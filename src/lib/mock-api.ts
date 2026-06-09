@@ -13,6 +13,10 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   avatar_url?: string;
+  /** Quando role === "personal", aponta para o cadastro Personal correspondente. */
+  personal_id?: string;
+  /** Quando role === "aluno", aponta para o cadastro Aluno correspondente. */
+  aluno_id?: string;
 }
 
 export interface AuthSession {
