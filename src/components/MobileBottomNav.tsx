@@ -1,33 +1,52 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Activity, Dumbbell, LineChart, Images } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Activity,
+  Dumbbell,
+  LineChart,
+  Images,
+  UserCircle,
+} from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import type { UserRole } from "@/lib/mock-api";
 
-const adminItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Usuários", url: "/usuarios", icon: Users },
-  { title: "Bio", url: "/bioimpedancia", icon: Activity },
-];
-const alunoItems = [
-  { title: "Treino", url: "/aluno", icon: Dumbbell },
-  { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
-  { title: "Comparar", url: "/aluno/comparativo", icon: Images },
-];
+const MENU: Record<UserRole, { title: string; url: string; icon: typeof Users }[]> = {
+  admin: [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Usuários", url: "/usuarios", icon: Users },
+  ],
+  personal: [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Alunos", url: "/usuarios", icon: Users },
+  ],
+  aluno: [
+    { title: "Treino", url: "/aluno", icon: Dumbbell },
+    { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
+    { title: "Bio", url: "/aluno/bioimpedancia", icon: Activity },
+    { title: "Comparar", url: "/aluno/comparativo", icon: Images },
+    { title: "Perfil", url: "/perfil", icon: UserCircle },
+  ],
+};
 
 export function MobileBottomNav() {
-  const { hasRole } = useAuth();
-  const items = hasRole("aluno") ? alunoItems : adminItems;
+  const { user } = useAuth();
+  const items = user ? MENU[user.role] : [];
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (items.length === 0) return null;
+  const colsClass =
+    items.length >= 5 ? "grid-cols-5" : items.length === 4 ? "grid-cols-4" : items.length === 3 ? "grid-cols-3" : "grid-cols-2";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
-      <ul className="grid grid-cols-3">
+      <ul className={`grid ${colsClass}`}>
         {items.map((it) => {
           const active = pathname === it.url || pathname.startsWith(it.url + "/");
           return (
             <li key={it.url}>
               <Link
                 to={it.url}
-                className={`flex flex-col items-center gap-1 py-2 text-xs ${
+                className={`flex flex-col items-center gap-1 py-2 text-[11px] ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
