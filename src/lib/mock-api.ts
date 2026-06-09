@@ -175,14 +175,38 @@ const ALUNOS: Aluno[] = [
   { id: "a6", nome: "Rodrigo Alves", nascimento: "1978-03-17", sexo: "M", altura_cm: 175, email: "rod@email.com", telefone: "(11) 97777-6060", personal_id: "p3", personal_nome: "Carlos Eduardo", status: "ativo", criado_em: "2026-02-04" },
 ];
 
-export async function apiListAlunos() {
+export async function apiListAlunos(filter?: { personalId?: string }) {
   await wait(300);
-  return { data: [...ALUNOS], meta: { total: ALUNOS.length } };
+  const data = filter?.personalId
+    ? ALUNOS.filter((a) => a.personal_id === filter.personalId)
+    : [...ALUNOS];
+  return { data, meta: { total: data.length } };
+}
+
+export async function apiGetAluno(id: string) {
+  await wait(250);
+  const aluno = ALUNOS.find((a) => a.id === id);
+  if (!aluno) throw { status: 404, message: "Aluno não encontrado" };
+  return { data: aluno };
 }
 
 export async function apiListPersonais() {
   await wait(300);
   return { data: [...PERSONAIS], meta: { total: PERSONAIS.length } };
+}
+
+export async function apiSearchPersonais(query: string) {
+  await wait(250);
+  const q = query.trim().toLowerCase();
+  const data = PERSONAIS.filter(
+    (p) =>
+      p.status === "ativo" &&
+      (q === "" ||
+        p.nome.toLowerCase().includes(q) ||
+        p.cref.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q)),
+  ).slice(0, 8);
+  return { data };
 }
 
 export async function apiCreateAluno(payload: Omit<Aluno, "id" | "criado_em" | "personal_nome" | "status">) {
@@ -196,7 +220,27 @@ export async function apiCreateAluno(payload: Omit<Aluno, "id" | "criado_em" | "
     criado_em: new Date().toISOString().slice(0, 10),
   };
   ALUNOS.unshift(novo);
+  if (personal) personal.alunos_count += 1;
   return { data: novo };
+}
+
+export async function apiUpdateAluno(id: string, patch: Partial<Omit<Aluno, "id" | "criado_em">>) {
+  await wait(400);
+  const idx = ALUNOS.findIndex((a) => a.id === id);
+  if (idx < 0) throw { status: 404, message: "Aluno não encontrado" };
+  const prev = ALUNOS[idx];
+  const next: Aluno = { ...prev, ...patch };
+  if (patch.personal_id && patch.personal_id !== prev.personal_id) {
+    const newP = PERSONAIS.find((p) => p.id === patch.personal_id);
+    const oldP = PERSONAIS.find((p) => p.id === prev.personal_id);
+    if (newP) {
+      next.personal_nome = newP.nome;
+      newP.alunos_count += 1;
+    }
+    if (oldP) oldP.alunos_count = Math.max(0, oldP.alunos_count - 1);
+  }
+  ALUNOS[idx] = next;
+  return { data: next };
 }
 
 export async function apiCreatePersonal(payload: Omit<Personal, "id" | "alunos_count">) {
@@ -204,6 +248,19 @@ export async function apiCreatePersonal(payload: Omit<Personal, "id" | "alunos_c
   const novo: Personal = { ...payload, id: `p${Date.now()}`, alunos_count: 0 };
   PERSONAIS.unshift(novo);
   return { data: novo };
+}
+
+export async function apiUpdatePersonal(id: string, patch: Partial<Omit<Personal, "id" | "alunos_count">>) {
+  await wait(400);
+  const idx = PERSONAIS.findIndex((p) => p.id === id);
+  if (idx < 0) throw { status: 404, message: "Personal não encontrado" };
+  const next = { ...PERSONAIS[idx], ...patch };
+  PERSONAIS[idx] = next;
+  // propagar nome para alunos
+  if (patch.nome) {
+    ALUNOS.forEach((a) => { if (a.personal_id === id) a.personal_nome = patch.nome!; });
+  }
+  return { data: next };
 }
 
 /* -------- Bioimpedância (InBody CSV) -------- */
