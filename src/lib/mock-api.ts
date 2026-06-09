@@ -41,6 +41,7 @@ const MOCK_USERS: Array<AuthUser & { password: string }> = [
     email: "personal@forlife.app",
     password: "Personal@2026",
     role: "personal",
+    personal_id: "p1",
   },
   {
     id: "u_aluno_01",
@@ -48,6 +49,7 @@ const MOCK_USERS: Array<AuthUser & { password: string }> = [
     email: "aluno@forlife.app",
     password: "Aluno@2026",
     role: "aluno",
+    aluno_id: "a1",
   },
 ];
 
