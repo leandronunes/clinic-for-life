@@ -15,6 +15,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppBioimpedanciaRouteImport } from './routes/_app.bioimpedancia'
+import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
+import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evolucao'
+import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -45,6 +48,21 @@ const AppBioimpedanciaRoute = AppBioimpedanciaRouteImport.update({
   path: '/bioimpedancia',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlunoIndexRoute = AppAlunoIndexRouteImport.update({
+  id: '/aluno/',
+  path: '/aluno/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlunoEvolucaoRoute = AppAlunoEvolucaoRouteImport.update({
+  id: '/aluno/evolucao',
+  path: '/aluno/evolucao',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlunoComparativoRoute = AppAlunoComparativoRouteImport.update({
+  id: '/aluno/comparativo',
+  path: '/aluno/comparativo',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +70,9 @@ export interface FileRoutesByFullPath {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/comparativo': typeof AppAlunoComparativoRoute
+  '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/aluno/': typeof AppAlunoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +80,9 @@ export interface FileRoutesByTo {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/comparativo': typeof AppAlunoComparativoRoute
+  '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/aluno': typeof AppAlunoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +92,31 @@ export interface FileRoutesById {
   '/_app/bioimpedancia': typeof AppBioimpedanciaRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/usuarios': typeof AppUsuariosRoute
+  '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
+  '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/_app/aluno/': typeof AppAlunoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/bioimpedancia' | '/dashboard' | '/usuarios'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/bioimpedancia'
+    | '/dashboard'
+    | '/usuarios'
+    | '/aluno/comparativo'
+    | '/aluno/evolucao'
+    | '/aluno/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/bioimpedancia' | '/dashboard' | '/usuarios'
+  to:
+    | '/'
+    | '/login'
+    | '/bioimpedancia'
+    | '/dashboard'
+    | '/usuarios'
+    | '/aluno/comparativo'
+    | '/aluno/evolucao'
+    | '/aluno'
   id:
     | '__root__'
     | '/'
@@ -82,6 +125,9 @@ export interface FileRouteTypes {
     | '/_app/bioimpedancia'
     | '/_app/dashboard'
     | '/_app/usuarios'
+    | '/_app/aluno/comparativo'
+    | '/_app/aluno/evolucao'
+    | '/_app/aluno/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -134,6 +180,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBioimpedanciaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aluno/': {
+      id: '/_app/aluno/'
+      path: '/aluno'
+      fullPath: '/aluno/'
+      preLoaderRoute: typeof AppAlunoIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/aluno/evolucao': {
+      id: '/_app/aluno/evolucao'
+      path: '/aluno/evolucao'
+      fullPath: '/aluno/evolucao'
+      preLoaderRoute: typeof AppAlunoEvolucaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/aluno/comparativo': {
+      id: '/_app/aluno/comparativo'
+      path: '/aluno/comparativo'
+      fullPath: '/aluno/comparativo'
+      preLoaderRoute: typeof AppAlunoComparativoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -141,12 +208,18 @@ interface AppRouteChildren {
   AppBioimpedanciaRoute: typeof AppBioimpedanciaRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
+  AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
+  AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
+  AppAlunoIndexRoute: typeof AppAlunoIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppBioimpedanciaRoute: AppBioimpedanciaRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppUsuariosRoute: AppUsuariosRoute,
+  AppAlunoComparativoRoute: AppAlunoComparativoRoute,
+  AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,
+  AppAlunoIndexRoute: AppAlunoIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -159,3 +232,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
