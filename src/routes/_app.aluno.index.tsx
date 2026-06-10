@@ -18,7 +18,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import {
   apiAddExercicio, apiCreateTreino, apiListTreinos,
-  type Exercicio, type Treino, type TreinoLetra,
+  type Exercicio, type Treino,
 } from "@/lib/mock-api";
 import { toast } from "sonner";
 
