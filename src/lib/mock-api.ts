@@ -342,6 +342,7 @@ export function validateStrongPassword(pw: string): string[] {
 
 /* -------- Treinos do Aluno -------- */
 
+/** @deprecated mantido apenas por compatibilidade — treinos agora usam posicao numérica. */
 export type TreinoLetra = "A" | "B" | "C";
 export type TreinoStatus = "ativo" | "arquivado";
 
