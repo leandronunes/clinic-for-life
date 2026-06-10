@@ -77,9 +77,9 @@ const AppAlunoBioimpedanciaRoute = AppAlunoBioimpedanciaRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppUsuariosAlunoIdRoute = AppUsuariosAlunoIdRouteImport.update({
-  id: '/aluno/$id',
-  path: '/aluno/$id',
-  getParentRoute: () => AppUsuariosRoute,
+  id: '/usuarios/aluno/$id',
+  path: '/usuarios/aluno/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -88,12 +88,12 @@ export interface FileRoutesByFullPath {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/perfil': typeof AppPerfilRoute
-  '/usuarios': typeof AppUsuariosRouteWithChildren
+  '/usuarios': typeof AppUsuariosRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
-  '/aluno/': typeof AppAlunoIndexRoute
   '/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
+  '/aluno/': typeof AppAlunoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,12 +101,12 @@ export interface FileRoutesByTo {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/perfil': typeof AppPerfilRoute
-  '/usuarios': typeof AppUsuariosRouteWithChildren
+  '/usuarios': typeof AppUsuariosRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
-  '/aluno': typeof AppAlunoIndexRoute
   '/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
+  '/aluno': typeof AppAlunoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,12 +116,12 @@ export interface FileRoutesById {
   '/_app/bioimpedancia': typeof AppBioimpedanciaRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/perfil': typeof AppPerfilRoute
-  '/_app/usuarios': typeof AppUsuariosRouteWithChildren
+  '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
-  '/_app/aluno/': typeof AppAlunoIndexRoute
   '/_app/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
+  '/_app/aluno/': typeof AppAlunoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -135,8 +135,8 @@ export interface FileRouteTypes {
     | '/aluno/bioimpedancia'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
-    | '/aluno/'
     | '/usuarios/aluno/$id'
+    | '/aluno/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,8 +148,8 @@ export interface FileRouteTypes {
     | '/aluno/bioimpedancia'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
-    | '/aluno'
     | '/usuarios/aluno/$id'
+    | '/aluno'
   id:
     | '__root__'
     | '/'
@@ -162,8 +162,8 @@ export interface FileRouteTypes {
     | '/_app/aluno/bioimpedancia'
     | '/_app/aluno/comparativo'
     | '/_app/aluno/evolucao'
-    | '/_app/aluno/'
     | '/_app/usuarios/aluno/$id'
+    | '/_app/aluno/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -253,34 +253,23 @@ declare module '@tanstack/react-router' {
     }
     '/_app/usuarios/aluno/$id': {
       id: '/_app/usuarios/aluno/$id'
-      path: '/aluno/$id'
+      path: '/usuarios/aluno/$id'
       fullPath: '/usuarios/aluno/$id'
       preLoaderRoute: typeof AppUsuariosAlunoIdRouteImport
-      parentRoute: typeof AppUsuariosRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
-
-interface AppUsuariosRouteChildren {
-  AppUsuariosAlunoIdRoute: typeof AppUsuariosAlunoIdRoute
-}
-
-const AppUsuariosRouteChildren: AppUsuariosRouteChildren = {
-  AppUsuariosAlunoIdRoute: AppUsuariosAlunoIdRoute,
-}
-
-const AppUsuariosRouteWithChildren = AppUsuariosRoute._addFileChildren(
-  AppUsuariosRouteChildren,
-)
 
 interface AppRouteChildren {
   AppBioimpedanciaRoute: typeof AppBioimpedanciaRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppPerfilRoute: typeof AppPerfilRoute
-  AppUsuariosRoute: typeof AppUsuariosRouteWithChildren
+  AppUsuariosRoute: typeof AppUsuariosRoute
   AppAlunoBioimpedanciaRoute: typeof AppAlunoBioimpedanciaRoute
   AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
   AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
+  AppUsuariosAlunoIdRoute: typeof AppUsuariosAlunoIdRoute
   AppAlunoIndexRoute: typeof AppAlunoIndexRoute
 }
 
@@ -288,10 +277,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppBioimpedanciaRoute: AppBioimpedanciaRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppPerfilRoute: AppPerfilRoute,
-  AppUsuariosRoute: AppUsuariosRouteWithChildren,
+  AppUsuariosRoute: AppUsuariosRoute,
   AppAlunoBioimpedanciaRoute: AppAlunoBioimpedanciaRoute,
   AppAlunoComparativoRoute: AppAlunoComparativoRoute,
   AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,
+  AppUsuariosAlunoIdRoute: AppUsuariosAlunoIdRoute,
   AppAlunoIndexRoute: AppAlunoIndexRoute,
 }
 
@@ -305,13 +295,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
