@@ -89,18 +89,16 @@ function MeuTreinoPage() {
           {!isLoading && lista.length > 0 && (
             <>
               <div className="flex flex-wrap gap-2">
-                {(["A", "B", "C"] as const).map((l) => {
-                  const exists = lista.some((t) => t.letra === l);
-                  if (!exists) return null;
-                  const active = treinoAtual?.letra === l;
+                {lista.map((t) => {
+                  const active = treinoAtual?.posicao === t.posicao;
                   return (
                     <Button
-                      key={l}
+                      key={t.id}
                       variant={active ? "default" : "outline"}
-                      onClick={() => setLetra(l)}
+                      onClick={() => setPosicao(t.posicao)}
                       className={active ? "brand-gradient text-primary-foreground" : ""}
                     >
-                      Treino {l}
+                      Treino {t.posicao}
                     </Button>
                   );
                 })}
