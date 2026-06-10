@@ -1,20 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Play, Clock, Dumbbell, Archive, CheckCircle2, Info } from "lucide-react";
+import { Play, Clock, Dumbbell, Archive, CheckCircle2, Info, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/auth-context";
-import { apiListTreinos, type Exercicio, type Treino } from "@/lib/mock-api";
+import {
+  apiAddExercicio, apiCreateTreino, apiListTreinos,
+  type Exercicio, type Treino, type TreinoLetra,
+} from "@/lib/mock-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({
   head: () => ({ meta: [{ title: "Meu Treino — Núcleo For Life" }] }),
@@ -22,13 +28,13 @@ export const Route = createFileRoute("/_app/aluno/")({
 });
 
 function MeuTreinoPage() {
-  const { user, effectiveAlunoId } = useAuth();
+  const { user, effectiveAlunoId, canWrite } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data, isLoading } = useQuery({
     queryKey: ["treinos", alunoId],
     queryFn: () => apiListTreinos(alunoId),
   });
-  const [letra, setLetra] = useState<"A" | "B" | "C">("A");
+  const [letra, setLetra] = useState<TreinoLetra>("A");
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercicio | null>(null);
 
@@ -37,11 +43,20 @@ function MeuTreinoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Treino</h1>
-        <p className="text-sm text-muted-foreground">
-          Olá, {user?.name?.split(" ")[0]} — seu plano A/B/C atualizado pelo seu Personal.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Treino</h1>
+          <p className="text-sm text-muted-foreground">
+            Olá, {user?.name?.split(" ")[0]} — seu plano A/B/C atualizado pelo seu Personal.
+          </p>
+        </div>
+        {canWrite && view === "ativos" && (
+          <NovoTreinoDialog
+            alunoId={alunoId}
+            existentes={(data?.ativos ?? []).map((t) => t.letra)}
+            personalNome={user?.role === "personal" ? user.name : undefined}
+          />
+        )}
       </div>
 
       <Tabs value={view} onValueChange={(v) => setView(v as "ativos" | "arquivados")}>
@@ -88,7 +103,13 @@ function MeuTreinoPage() {
                 })}
               </div>
 
-              {treinoAtual && <TreinoCard treino={treinoAtual} onWatch={setVideoEx} />}
+              {treinoAtual && (
+                <TreinoCard
+                  treino={treinoAtual}
+                  onWatch={setVideoEx}
+                  canEdit={canWrite && treinoAtual.status === "ativo"}
+                />
+              )}
             </>
           )}
         </TabsContent>
@@ -124,7 +145,9 @@ function MeuTreinoPage() {
   );
 }
 
-function TreinoCard({ treino, onWatch }: { treino: Treino; onWatch: (e: Exercicio) => void }) {
+function TreinoCard({
+  treino, onWatch, canEdit,
+}: { treino: Treino; onWatch: (e: Exercicio) => void; canEdit: boolean }) {
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
@@ -144,6 +167,11 @@ function TreinoCard({ treino, onWatch }: { treino: Treino; onWatch: (e: Exercici
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
+        {treino.exercicios.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Nenhum exercício neste treino ainda.
+          </div>
+        )}
         {treino.exercicios.map((ex, idx) => (
           <div
             key={ex.id}
@@ -169,7 +197,215 @@ function TreinoCard({ treino, onWatch }: { treino: Treino; onWatch: (e: Exercici
             </Button>
           </div>
         ))}
+
+        {canEdit && <NovoExercicioDialog treinoId={treino.id} />}
       </CardContent>
     </Card>
+  );
+}
+
+/* ---------------- Dialogs (admin/personal) ---------------- */
+
+function NovoTreinoDialog({
+  alunoId, existentes, personalNome,
+}: { alunoId: string; existentes: TreinoLetra[]; personalNome?: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const disponiveis = (["A", "B", "C"] as TreinoLetra[]).filter((l) => !existentes.includes(l));
+  const [form, setForm] = useState({
+    letra: (disponiveis[0] ?? "A") as TreinoLetra,
+    titulo: "",
+    foco: "",
+  });
+
+  const mut = useMutation({
+    mutationFn: () => apiCreateTreino(alunoId, { ...form, personal_nome: personalNome }),
+    onSuccess: () => {
+      toast.success(`Treino ${form.letra} cadastrado`);
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+      setOpen(false);
+      setForm({ letra: (disponiveis.filter((l) => l !== form.letra)[0] ?? "A"), titulo: "", foco: "" });
+    },
+    onError: () => toast.error("Não foi possível cadastrar o treino"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" disabled={disponiveis.length === 0}>
+          <Plus className="mr-1 h-4 w-4" />
+          {disponiveis.length === 0 ? "A/B/C completos" : "Novo treino"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Cadastrar novo treino</DialogTitle>
+          <DialogDescription>
+            Crie um treino A, B ou C para este aluno. Você poderá adicionar exercícios depois.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Letra">
+            <Select
+              value={form.letra}
+              onValueChange={(v) => setForm({ ...form, letra: v as TreinoLetra })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {disponiveis.map((l) => (
+                  <SelectItem key={l} value={l}>Treino {l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Foco">
+            <Input
+              placeholder="Ex.: Empurrar (Push)"
+              value={form.foco}
+              onChange={(e) => setForm({ ...form, foco: e.target.value })}
+              maxLength={80}
+            />
+          </Field>
+          <Field label="Título" className="sm:col-span-2">
+            <Input
+              placeholder="Ex.: Treino A — Peito, Ombro e Tríceps"
+              value={form.titulo}
+              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              maxLength={120}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending || !form.titulo.trim() || !form.foco.trim()}
+          >
+            {mut.isPending ? "Salvando..." : "Criar treino"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NovoExercicioDialog({ treinoId }: { treinoId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    nome: "", grupo: "", series: 3, reps: "10-12",
+    carga_kg: undefined as number | undefined,
+    descanso_s: 60, video_url: "", observacao: "",
+  });
+
+  const mut = useMutation({
+    mutationFn: () => apiAddExercicio(treinoId, form),
+    onSuccess: () => {
+      toast.success("Exercício adicionado");
+      qc.invalidateQueries({ queryKey: ["treinos"] });
+      setOpen(false);
+      setForm({ nome: "", grupo: "", series: 3, reps: "10-12", carga_kg: undefined, descanso_s: 60, video_url: "", observacao: "" });
+    },
+    onError: () => toast.error("Falha ao adicionar exercício"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full border-dashed">
+          <Plus className="mr-1 h-4 w-4" /> Adicionar exercício / série
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Adicionar exercício</DialogTitle>
+          <DialogDescription>
+            Cadastre o exercício com séries, repetições, carga e descanso.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome" className="sm:col-span-2">
+            <Input
+              placeholder="Ex.: Supino reto com barra"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              maxLength={80}
+            />
+          </Field>
+          <Field label="Grupo muscular">
+            <Input
+              placeholder="Ex.: Peito"
+              value={form.grupo}
+              onChange={(e) => setForm({ ...form, grupo: e.target.value })}
+              maxLength={40}
+            />
+          </Field>
+          <Field label="Séries">
+            <Input
+              type="number" min={1} max={10}
+              value={form.series}
+              onChange={(e) => setForm({ ...form, series: Math.max(1, Number(e.target.value) || 1) })}
+            />
+          </Field>
+          <Field label="Repetições">
+            <Input
+              placeholder="Ex.: 10 ou 8-12 ou 45s"
+              value={form.reps}
+              onChange={(e) => setForm({ ...form, reps: e.target.value })}
+              maxLength={20}
+            />
+          </Field>
+          <Field label="Carga (kg)">
+            <Input
+              type="number" min={0} step={0.5}
+              value={form.carga_kg ?? ""}
+              onChange={(e) => setForm({ ...form, carga_kg: e.target.value === "" ? undefined : Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="Descanso (s)">
+            <Input
+              type="number" min={0} step={5}
+              value={form.descanso_s}
+              onChange={(e) => setForm({ ...form, descanso_s: Math.max(0, Number(e.target.value) || 0) })}
+            />
+          </Field>
+          <Field label="Vídeo (YouTube embed)" className="sm:col-span-2">
+            <Input
+              placeholder="https://www.youtube.com/embed/..."
+              value={form.video_url}
+              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+              maxLength={200}
+            />
+          </Field>
+          <Field label="Observação" className="sm:col-span-2">
+            <Textarea
+              placeholder="Dica de execução (opcional)"
+              value={form.observacao}
+              onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+              maxLength={300}
+              rows={2}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending || !form.nome.trim() || !form.grupo.trim() || !form.reps.trim()}
+          >
+            {mut.isPending ? "Salvando..." : "Adicionar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
+    </div>
   );
 }
