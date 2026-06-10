@@ -34,12 +34,14 @@ function MeuTreinoPage() {
     queryKey: ["treinos", alunoId],
     queryFn: () => apiListTreinos(alunoId),
   });
-  const [letra, setLetra] = useState<TreinoLetra>("A");
+  const [posicao, setPosicao] = useState<number | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercicio | null>(null);
 
-  const lista = view === "ativos" ? data?.ativos ?? [] : data?.arquivados ?? [];
-  const treinoAtual = lista.find((t) => t.letra === letra) ?? lista[0];
+  const lista = [...(view === "ativos" ? data?.ativos ?? [] : data?.arquivados ?? [])].sort(
+    (a, b) => a.posicao - b.posicao,
+  );
+  const treinoAtual = lista.find((t) => t.posicao === posicao) ?? lista[0];
 
   return (
     <div className="space-y-6">
@@ -47,17 +49,18 @@ function MeuTreinoPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Treino</h1>
           <p className="text-sm text-muted-foreground">
-            Olá, {user?.name?.split(" ")[0]} — seu plano A/B/C atualizado pelo seu Personal.
+            Olá, {user?.name?.split(" ")[0]} — seu plano de treinos atualizado pelo seu Personal.
           </p>
         </div>
         {canWrite && view === "ativos" && (
           <NovoTreinoDialog
             alunoId={alunoId}
-            existentes={(data?.ativos ?? []).map((t) => t.letra)}
             personalNome={user?.role === "personal" ? user.name : undefined}
+            onCreated={(t) => setPosicao(t.posicao)}
           />
         )}
       </div>
+
 
       <Tabs value={view} onValueChange={(v) => setView(v as "ativos" | "arquivados")}>
         <TabsList>
