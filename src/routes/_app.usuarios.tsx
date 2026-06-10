@@ -74,6 +74,7 @@ function AlunosTab({
 }: { query: string; canWrite: boolean; personalId?: string; isAdmin: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { impersonateAluno } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ["alunos", personalId ?? "all"],
     queryFn: () => apiListAlunos(personalId ? { personalId } : undefined),
@@ -118,7 +119,10 @@ function AlunosTab({
                 <TableRow
                   key={a.id}
                   className="cursor-pointer hover:bg-muted/40"
-                  onClick={() => navigate({ to: "/alunos/$id", params: { id: a.id } })}
+                  onClick={() => {
+                    impersonateAluno(a.id);
+                    navigate({ to: "/aluno" });
+                  }}
                 >
                   <TableCell>
                     <div className="font-medium text-foreground">{a.nome}</div>

@@ -20,10 +20,11 @@ export const Route = createFileRoute("/_app/aluno/comparativo")({
 });
 
 function ComparativoPage() {
-  const { user } = useAuth();
+  const { user, effectiveAlunoId } = useAuth();
+  const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data: fotos = [], isLoading } = useQuery({
-    queryKey: ["fotos", user?.id],
-    queryFn: () => apiListFotos(user?.id ?? ""),
+    queryKey: ["fotos", alunoId],
+    queryFn: () => apiListFotos(alunoId),
   });
 
   const [antesId, setAntesId] = useState<string>("");
