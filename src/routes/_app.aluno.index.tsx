@@ -22,10 +22,11 @@ export const Route = createFileRoute("/_app/aluno/")({
 });
 
 function MeuTreinoPage() {
-  const { user } = useAuth();
+  const { user, effectiveAlunoId } = useAuth();
+  const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data, isLoading } = useQuery({
-    queryKey: ["treinos", user?.id],
-    queryFn: () => apiListTreinos(user?.id ?? ""),
+    queryKey: ["treinos", alunoId],
+    queryFn: () => apiListTreinos(alunoId),
   });
   const [letra, setLetra] = useState<"A" | "B" | "C">("A");
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");

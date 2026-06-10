@@ -32,10 +32,11 @@ const METRICS: Record<Metric, { label: string; color: string; suffix: string; be
 };
 
 function EvolucaoPage() {
-  const { user } = useAuth();
+  const { user, effectiveAlunoId } = useAuth();
+  const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data = [], isLoading } = useQuery({
-    queryKey: ["evolucao", user?.id],
-    queryFn: () => apiListEvolucao(user?.id ?? ""),
+    queryKey: ["evolucao", alunoId],
+    queryFn: () => apiListEvolucao(alunoId),
   });
   const [metric, setMetric] = useState<Metric>("peso_kg");
 
