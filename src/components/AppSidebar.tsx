@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
@@ -8,6 +8,8 @@ import {
   Images,
   LogOut,
   UserCircle,
+  ArrowLeftCircle,
+  Eye,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,11 +47,21 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
 };
 
 export function AppSidebar() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
+  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = user ? MENU[user.role] : [];
+  const menuRole = effectiveRole ?? user?.role;
+  let items = menuRole ? MENU[menuRole] : [];
+  // Quando admin/personal está visualizando como aluno, esconde a tela de "Perfil" do aluno.
+  if (isImpersonating) items = items.filter((i) => i.url !== "/perfil");
+
   const isActive = (url: string) =>
     pathname === url || (url !== "/dashboard" && pathname.startsWith(url + "/"));
+
+  const handleStopImpersonating = () => {
+    stopImpersonating();
+    navigate({ to: "/usuarios" });
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -60,9 +72,20 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {isImpersonating && (
+          <div className="mx-2 mt-2 rounded-md border border-accent/40 bg-accent/10 p-2 text-xs text-sidebar-foreground">
+            <div className="flex items-center gap-2 font-medium">
+              <Eye className="h-3.5 w-3.5" /> Visualizando como aluno
+            </div>
+            <p className="mt-1 text-sidebar-foreground/70">
+              Você está vendo o app pelo ponto de vista do aluno.
+            </p>
+          </div>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>
-            {user?.role === "aluno" ? "Aluno" : user?.role === "personal" ? "Personal" : "Gestão"}
+            {menuRole === "aluno" ? "Aluno" : menuRole === "personal" ? "Personal" : "Gestão"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -76,6 +99,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isImpersonating && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={handleStopImpersonating}>
+                    <ArrowLeftCircle className="h-4 w-4" />
+                    <span>Voltar ao meu perfil</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
