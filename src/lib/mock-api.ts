@@ -342,6 +342,7 @@ export function validateStrongPassword(pw: string): string[] {
 
 /* -------- Treinos do Aluno -------- */
 
+/** @deprecated mantido apenas por compatibilidade — treinos agora usam posicao numérica. */
 export type TreinoLetra = "A" | "B" | "C";
 export type TreinoStatus = "ativo" | "arquivado";
 
@@ -359,7 +360,7 @@ export interface Exercicio {
 
 export interface Treino {
   id: string;
-  letra: TreinoLetra;
+  posicao: number;
   titulo: string;
   foco: string;
   status: TreinoStatus;
@@ -374,7 +375,7 @@ const YT = (id: string) => `https://www.youtube.com/embed/${id}`;
 const TREINOS_ATIVOS: Treino[] = [
   {
     id: "t_a",
-    letra: "A",
+    posicao: 1,
     titulo: "Treino A — Peito, Ombro e Tríceps",
     foco: "Empurrar (Push)",
     status: "ativo",
@@ -390,7 +391,7 @@ const TREINOS_ATIVOS: Treino[] = [
   },
   {
     id: "t_b",
-    letra: "B",
+    posicao: 2,
     titulo: "Treino B — Costas e Bíceps",
     foco: "Puxar (Pull)",
     status: "ativo",
@@ -406,7 +407,7 @@ const TREINOS_ATIVOS: Treino[] = [
   },
   {
     id: "t_c",
-    letra: "C",
+    posicao: 3,
     titulo: "Treino C — Pernas e Core",
     foco: "Membros inferiores",
     status: "ativo",
@@ -425,7 +426,7 @@ const TREINOS_ATIVOS: Treino[] = [
 const TREINOS_ARQUIVADOS: Treino[] = [
   {
     id: "t_arq_1",
-    letra: "A",
+    posicao: 1,
     titulo: "Treino A (Mar/2026) — Adaptação",
     foco: "Adaptação geral",
     status: "arquivado",
@@ -439,7 +440,7 @@ const TREINOS_ARQUIVADOS: Treino[] = [
   },
   {
     id: "t_arq_2",
-    letra: "B",
+    posicao: 2,
     titulo: "Treino B (Jan/2026) — Hipertrofia inicial",
     foco: "Hipertrofia",
     status: "arquivado",
@@ -459,7 +460,6 @@ export async function apiListTreinos(alunoId: string): Promise<{ ativos: Treino[
 }
 
 export interface NovoTreinoInput {
-  letra: TreinoLetra;
   titulo: string;
   foco: string;
   personal_nome?: string;
@@ -468,9 +468,11 @@ export interface NovoTreinoInput {
 export async function apiCreateTreino(alunoId: string, input: NovoTreinoInput): Promise<Treino> {
   await wait(450);
   void alunoId;
+  const proxPosicao =
+    TREINOS_ATIVOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
   const novo: Treino = {
     id: `t_${Math.random().toString(36).slice(2, 8)}`,
-    letra: input.letra,
+    posicao: proxPosicao,
     titulo: input.titulo.trim(),
     foco: input.foco.trim(),
     status: "ativo",

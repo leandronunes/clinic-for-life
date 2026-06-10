@@ -10,15 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/auth-context";
 import {
   apiAddExercicio, apiCreateTreino, apiListTreinos,
-  type Exercicio, type Treino, type TreinoLetra,
+  type Exercicio, type Treino,
 } from "@/lib/mock-api";
 import { toast } from "sonner";
 
@@ -34,12 +31,14 @@ function MeuTreinoPage() {
     queryKey: ["treinos", alunoId],
     queryFn: () => apiListTreinos(alunoId),
   });
-  const [letra, setLetra] = useState<TreinoLetra>("A");
+  const [posicao, setPosicao] = useState<number | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercicio | null>(null);
 
-  const lista = view === "ativos" ? data?.ativos ?? [] : data?.arquivados ?? [];
-  const treinoAtual = lista.find((t) => t.letra === letra) ?? lista[0];
+  const lista = [...(view === "ativos" ? data?.ativos ?? [] : data?.arquivados ?? [])].sort(
+    (a, b) => a.posicao - b.posicao,
+  );
+  const treinoAtual = lista.find((t) => t.posicao === posicao) ?? lista[0];
 
   return (
     <div className="space-y-6">
@@ -47,17 +46,18 @@ function MeuTreinoPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Treino</h1>
           <p className="text-sm text-muted-foreground">
-            Olá, {user?.name?.split(" ")[0]} — seu plano A/B/C atualizado pelo seu Personal.
+            Olá, {user?.name?.split(" ")[0]} — seu plano de treinos atualizado pelo seu Personal.
           </p>
         </div>
         {canWrite && view === "ativos" && (
           <NovoTreinoDialog
             alunoId={alunoId}
-            existentes={(data?.ativos ?? []).map((t) => t.letra)}
             personalNome={user?.role === "personal" ? user.name : undefined}
+            onCreated={(t) => setPosicao(t.posicao)}
           />
         )}
       </div>
+
 
       <Tabs value={view} onValueChange={(v) => setView(v as "ativos" | "arquivados")}>
         <TabsList>
@@ -86,18 +86,16 @@ function MeuTreinoPage() {
           {!isLoading && lista.length > 0 && (
             <>
               <div className="flex flex-wrap gap-2">
-                {(["A", "B", "C"] as const).map((l) => {
-                  const exists = lista.some((t) => t.letra === l);
-                  if (!exists) return null;
-                  const active = treinoAtual?.letra === l;
+                {lista.map((t) => {
+                  const active = treinoAtual?.posicao === t.posicao;
                   return (
                     <Button
-                      key={l}
+                      key={t.id}
                       variant={active ? "default" : "outline"}
-                      onClick={() => setLetra(l)}
+                      onClick={() => setPosicao(t.posicao)}
                       className={active ? "brand-gradient text-primary-foreground" : ""}
                     >
-                      Treino {l}
+                      Treino {t.posicao}
                     </Button>
                   );
                 })}
@@ -154,7 +152,7 @@ function TreinoCard({
         <div>
           <CardTitle className="flex items-center gap-2 text-xl">
             <span className="grid h-9 w-9 place-items-center rounded-lg brand-gradient text-base font-bold text-primary-foreground">
-              {treino.letra}
+              {treino.posicao}
             </span>
             {treino.titulo}
           </CardTitle>
@@ -207,25 +205,23 @@ function TreinoCard({
 /* ---------------- Dialogs (admin/personal) ---------------- */
 
 function NovoTreinoDialog({
-  alunoId, existentes, personalNome,
-}: { alunoId: string; existentes: TreinoLetra[]; personalNome?: string }) {
+  alunoId, personalNome, onCreated,
+}: { alunoId: string; personalNome?: string; onCreated?: (t: Treino) => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const todas: TreinoLetra[] = ["A", "B", "C"];
-  const sugestao = todas.find((l) => !existentes.includes(l)) ?? "A";
-  const [form, setForm] = useState<{ letra: TreinoLetra; titulo: string; foco: string }>({
-    letra: sugestao,
+  const [form, setForm] = useState<{ titulo: string; foco: string }>({
     titulo: "",
     foco: "",
   });
 
   const mut = useMutation({
     mutationFn: () => apiCreateTreino(alunoId, { ...form, personal_nome: personalNome }),
-    onSuccess: () => {
-      toast.success(`Treino ${form.letra} cadastrado`);
+    onSuccess: (novo) => {
+      toast.success(`Treino ${novo.posicao} cadastrado`);
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
       setOpen(false);
-      setForm({ letra: sugestao, titulo: "", foco: "" });
+      setForm({ titulo: "", foco: "" });
+      onCreated?.(novo);
     },
     onError: () => toast.error("Não foi possível cadastrar o treino"),
   });
@@ -241,39 +237,24 @@ function NovoTreinoDialog({
         <DialogHeader>
           <DialogTitle>Cadastrar novo treino</DialogTitle>
           <DialogDescription>
-            Crie um treino A, B ou C para este aluno. Você poderá adicionar exercícios depois.
+            A posição é atribuída automaticamente conforme a ordem dos treinos ativos.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Letra">
-            <Select
-              value={form.letra}
-              onValueChange={(v) => setForm({ ...form, letra: v as TreinoLetra })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {todas.map((l) => (
-                  <SelectItem key={l} value={l}>
-                    Treino {l}{existentes.includes(l) ? " (já existe)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Field label="Título" className="sm:col-span-2">
+            <Input
+              placeholder="Ex.: Peito, Ombro e Tríceps"
+              value={form.titulo}
+              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              maxLength={120}
+            />
           </Field>
-          <Field label="Foco">
+          <Field label="Foco" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Empurrar (Push)"
               value={form.foco}
               onChange={(e) => setForm({ ...form, foco: e.target.value })}
               maxLength={80}
-            />
-          </Field>
-          <Field label="Título" className="sm:col-span-2">
-            <Input
-              placeholder="Ex.: Treino A — Peito, Ombro e Tríceps"
-              value={form.titulo}
-              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-              maxLength={120}
             />
           </Field>
         </div>
