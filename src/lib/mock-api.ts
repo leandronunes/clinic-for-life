@@ -360,7 +360,7 @@ export interface Exercicio {
 
 export interface Treino {
   id: string;
-  letra: TreinoLetra;
+  posicao: number;
   titulo: string;
   foco: string;
   status: TreinoStatus;
