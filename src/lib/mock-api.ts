@@ -375,7 +375,7 @@ const YT = (id: string) => `https://www.youtube.com/embed/${id}`;
 const TREINOS_ATIVOS: Treino[] = [
   {
     id: "t_a",
-    letra: "A",
+    posicao: 1,
     titulo: "Treino A — Peito, Ombro e Tríceps",
     foco: "Empurrar (Push)",
     status: "ativo",
@@ -391,7 +391,7 @@ const TREINOS_ATIVOS: Treino[] = [
   },
   {
     id: "t_b",
-    letra: "B",
+    posicao: 2,
     titulo: "Treino B — Costas e Bíceps",
     foco: "Puxar (Pull)",
     status: "ativo",
@@ -407,7 +407,7 @@ const TREINOS_ATIVOS: Treino[] = [
   },
   {
     id: "t_c",
-    letra: "C",
+    posicao: 3,
     titulo: "Treino C — Pernas e Core",
     foco: "Membros inferiores",
     status: "ativo",
@@ -426,7 +426,7 @@ const TREINOS_ATIVOS: Treino[] = [
 const TREINOS_ARQUIVADOS: Treino[] = [
   {
     id: "t_arq_1",
-    letra: "A",
+    posicao: 1,
     titulo: "Treino A (Mar/2026) — Adaptação",
     foco: "Adaptação geral",
     status: "arquivado",
@@ -440,7 +440,7 @@ const TREINOS_ARQUIVADOS: Treino[] = [
   },
   {
     id: "t_arq_2",
-    letra: "B",
+    posicao: 2,
     titulo: "Treino B (Jan/2026) — Hipertrofia inicial",
     foco: "Hipertrofia",
     status: "arquivado",
