@@ -7,6 +7,7 @@ import {
   LineChart,
   Images,
   LogOut,
+  UserCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,23 +24,30 @@ import {
 import { BrandLogo } from "./BrandLogo";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
+import type { UserRole } from "@/lib/mock-api";
 
-const adminItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Usuários", url: "/usuarios", icon: Users },
-  { title: "Bioimpedância", url: "/bioimpedancia", icon: Activity },
-];
-
-const alunoItems = [
-  { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
-  { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
-  { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
-];
+const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDashboard }[]> = {
+  admin: [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Usuários", url: "/usuarios", icon: Users },
+  ],
+  personal: [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Meus Alunos", url: "/usuarios", icon: Users },
+  ],
+  aluno: [
+    { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
+    { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
+    { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
+    { title: "Bioimpedância", url: "/aluno/bioimpedancia", icon: Activity },
+    { title: "Perfil", url: "/perfil", icon: UserCircle },
+  ],
+};
 
 export function AppSidebar() {
-  const { user, signOut, hasRole } = useAuth();
+  const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = hasRole("aluno") ? alunoItems : adminItems;
+  const items = user ? MENU[user.role] : [];
   const isActive = (url: string) =>
     pathname === url || (url !== "/dashboard" && pathname.startsWith(url + "/"));
 
@@ -53,7 +61,9 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{hasRole("aluno") ? "Aluno" : "Gestão"}</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {user?.role === "aluno" ? "Aluno" : user?.role === "personal" ? "Personal" : "Gestão"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
