@@ -155,7 +155,7 @@ function TreinoCard({
         <div>
           <CardTitle className="flex items-center gap-2 text-xl">
             <span className="grid h-9 w-9 place-items-center rounded-lg brand-gradient text-base font-bold text-primary-foreground">
-              {treino.letra}
+              {treino.posicao}
             </span>
             {treino.titulo}
           </CardTitle>
