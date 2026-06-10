@@ -460,7 +460,6 @@ export async function apiListTreinos(alunoId: string): Promise<{ ativos: Treino[
 }
 
 export interface NovoTreinoInput {
-  letra: TreinoLetra;
   titulo: string;
   foco: string;
   personal_nome?: string;
@@ -469,9 +468,11 @@ export interface NovoTreinoInput {
 export async function apiCreateTreino(alunoId: string, input: NovoTreinoInput): Promise<Treino> {
   await wait(450);
   void alunoId;
+  const proxPosicao =
+    TREINOS_ATIVOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
   const novo: Treino = {
     id: `t_${Math.random().toString(36).slice(2, 8)}`,
-    letra: input.letra,
+    posicao: proxPosicao,
     titulo: input.titulo.trim(),
     foco: input.foco.trim(),
     status: "ativo",
