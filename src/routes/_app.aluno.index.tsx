@@ -211,9 +211,10 @@ function NovoTreinoDialog({
 }: { alunoId: string; existentes: TreinoLetra[]; personalNome?: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const disponiveis = (["A", "B", "C"] as TreinoLetra[]).filter((l) => !existentes.includes(l));
-  const [form, setForm] = useState({
-    letra: (disponiveis[0] ?? "A") as TreinoLetra,
+  const todas: TreinoLetra[] = ["A", "B", "C"];
+  const sugestao = todas.find((l) => !existentes.includes(l)) ?? "A";
+  const [form, setForm] = useState<{ letra: TreinoLetra; titulo: string; foco: string }>({
+    letra: sugestao,
     titulo: "",
     foco: "",
   });
@@ -224,7 +225,7 @@ function NovoTreinoDialog({
       toast.success(`Treino ${form.letra} cadastrado`);
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
       setOpen(false);
-      setForm({ letra: (disponiveis.filter((l) => l !== form.letra)[0] ?? "A"), titulo: "", foco: "" });
+      setForm({ letra: sugestao, titulo: "", foco: "" });
     },
     onError: () => toast.error("Não foi possível cadastrar o treino"),
   });
@@ -232,9 +233,8 @@ function NovoTreinoDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" disabled={disponiveis.length === 0}>
-          <Plus className="mr-1 h-4 w-4" />
-          {disponiveis.length === 0 ? "A/B/C completos" : "Novo treino"}
+        <Button size="sm">
+          <Plus className="mr-1 h-4 w-4" /> Novo treino
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -252,8 +252,10 @@ function NovoTreinoDialog({
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {disponiveis.map((l) => (
-                  <SelectItem key={l} value={l}>Treino {l}</SelectItem>
+                {todas.map((l) => (
+                  <SelectItem key={l} value={l}>
+                    Treino {l}{existentes.includes(l) ? " (já existe)" : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
