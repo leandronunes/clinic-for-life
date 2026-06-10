@@ -118,7 +118,7 @@ function AlunosTab({
                 <TableRow
                   key={a.id}
                   className="cursor-pointer hover:bg-muted/40"
-                  onClick={() => navigate({ to: "/usuarios/aluno/$id", params: { id: a.id } })}
+                  onClick={() => navigate({ to: "/alunos/$id", params: { id: a.id } })}
                 >
                   <TableCell>
                     <div className="font-medium text-foreground">{a.nome}</div>

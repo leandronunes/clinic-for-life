@@ -17,10 +17,10 @@ import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppBioimpedanciaRouteImport } from './routes/_app.bioimpedancia'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
+import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evolucao'
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBioimpedanciaRouteImport } from './routes/_app.aluno.bioimpedancia'
-import { Route as AppUsuariosAlunoIdRouteImport } from './routes/_app.usuarios.aluno.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -61,6 +61,11 @@ const AppAlunoIndexRoute = AppAlunoIndexRouteImport.update({
   path: '/aluno/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlunosIdRoute = AppAlunosIdRouteImport.update({
+  id: '/alunos/$id',
+  path: '/alunos/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAlunoEvolucaoRoute = AppAlunoEvolucaoRouteImport.update({
   id: '/aluno/evolucao',
   path: '/aluno/evolucao',
@@ -76,11 +81,6 @@ const AppAlunoBioimpedanciaRoute = AppAlunoBioimpedanciaRouteImport.update({
   path: '/aluno/bioimpedancia',
   getParentRoute: () => AppRoute,
 } as any)
-const AppUsuariosAlunoIdRoute = AppUsuariosAlunoIdRouteImport.update({
-  id: '/aluno/$id',
-  path: '/aluno/$id',
-  getParentRoute: () => AppUsuariosRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,12 +88,12 @@ export interface FileRoutesByFullPath {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/perfil': typeof AppPerfilRoute
-  '/usuarios': typeof AppUsuariosRouteWithChildren
+  '/usuarios': typeof AppUsuariosRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno/': typeof AppAlunoIndexRoute
-  '/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,12 +101,12 @@ export interface FileRoutesByTo {
   '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/perfil': typeof AppPerfilRoute
-  '/usuarios': typeof AppUsuariosRouteWithChildren
+  '/usuarios': typeof AppUsuariosRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno': typeof AppAlunoIndexRoute
-  '/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,12 +116,12 @@ export interface FileRoutesById {
   '/_app/bioimpedancia': typeof AppBioimpedanciaRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/perfil': typeof AppPerfilRoute
-  '/_app/usuarios': typeof AppUsuariosRouteWithChildren
+  '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/_app/alunos/$id': typeof AppAlunosIdRoute
   '/_app/aluno/': typeof AppAlunoIndexRoute
-  '/_app/usuarios/aluno/$id': typeof AppUsuariosAlunoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -135,8 +135,8 @@ export interface FileRouteTypes {
     | '/aluno/bioimpedancia'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
+    | '/alunos/$id'
     | '/aluno/'
-    | '/usuarios/aluno/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,8 +148,8 @@ export interface FileRouteTypes {
     | '/aluno/bioimpedancia'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
+    | '/alunos/$id'
     | '/aluno'
-    | '/usuarios/aluno/$id'
   id:
     | '__root__'
     | '/'
@@ -162,8 +162,8 @@ export interface FileRouteTypes {
     | '/_app/aluno/bioimpedancia'
     | '/_app/aluno/comparativo'
     | '/_app/aluno/evolucao'
+    | '/_app/alunos/$id'
     | '/_app/aluno/'
-    | '/_app/usuarios/aluno/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -230,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/alunos/$id': {
+      id: '/_app/alunos/$id'
+      path: '/alunos/$id'
+      fullPath: '/alunos/$id'
+      preLoaderRoute: typeof AppAlunosIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/aluno/evolucao': {
       id: '/_app/aluno/evolucao'
       path: '/aluno/evolucao'
@@ -251,36 +258,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoBioimpedanciaRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/usuarios/aluno/$id': {
-      id: '/_app/usuarios/aluno/$id'
-      path: '/aluno/$id'
-      fullPath: '/usuarios/aluno/$id'
-      preLoaderRoute: typeof AppUsuariosAlunoIdRouteImport
-      parentRoute: typeof AppUsuariosRoute
-    }
   }
 }
-
-interface AppUsuariosRouteChildren {
-  AppUsuariosAlunoIdRoute: typeof AppUsuariosAlunoIdRoute
-}
-
-const AppUsuariosRouteChildren: AppUsuariosRouteChildren = {
-  AppUsuariosAlunoIdRoute: AppUsuariosAlunoIdRoute,
-}
-
-const AppUsuariosRouteWithChildren = AppUsuariosRoute._addFileChildren(
-  AppUsuariosRouteChildren,
-)
 
 interface AppRouteChildren {
   AppBioimpedanciaRoute: typeof AppBioimpedanciaRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppPerfilRoute: typeof AppPerfilRoute
-  AppUsuariosRoute: typeof AppUsuariosRouteWithChildren
+  AppUsuariosRoute: typeof AppUsuariosRoute
   AppAlunoBioimpedanciaRoute: typeof AppAlunoBioimpedanciaRoute
   AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
   AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
+  AppAlunosIdRoute: typeof AppAlunosIdRoute
   AppAlunoIndexRoute: typeof AppAlunoIndexRoute
 }
 
@@ -288,10 +277,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppBioimpedanciaRoute: AppBioimpedanciaRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppPerfilRoute: AppPerfilRoute,
-  AppUsuariosRoute: AppUsuariosRouteWithChildren,
+  AppUsuariosRoute: AppUsuariosRoute,
   AppAlunoBioimpedanciaRoute: AppAlunoBioimpedanciaRoute,
   AppAlunoComparativoRoute: AppAlunoComparativoRoute,
   AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,
+  AppAlunosIdRoute: AppAlunosIdRoute,
   AppAlunoIndexRoute: AppAlunoIndexRoute,
 }
 
