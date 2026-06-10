@@ -208,25 +208,23 @@ function TreinoCard({
 /* ---------------- Dialogs (admin/personal) ---------------- */
 
 function NovoTreinoDialog({
-  alunoId, existentes, personalNome,
-}: { alunoId: string; existentes: TreinoLetra[]; personalNome?: string }) {
+  alunoId, personalNome, onCreated,
+}: { alunoId: string; personalNome?: string; onCreated?: (t: Treino) => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const todas: TreinoLetra[] = ["A", "B", "C"];
-  const sugestao = todas.find((l) => !existentes.includes(l)) ?? "A";
-  const [form, setForm] = useState<{ letra: TreinoLetra; titulo: string; foco: string }>({
-    letra: sugestao,
+  const [form, setForm] = useState<{ titulo: string; foco: string }>({
     titulo: "",
     foco: "",
   });
 
   const mut = useMutation({
     mutationFn: () => apiCreateTreino(alunoId, { ...form, personal_nome: personalNome }),
-    onSuccess: () => {
-      toast.success(`Treino ${form.letra} cadastrado`);
+    onSuccess: (novo) => {
+      toast.success(`Treino ${novo.posicao} cadastrado`);
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
       setOpen(false);
-      setForm({ letra: sugestao, titulo: "", foco: "" });
+      setForm({ titulo: "", foco: "" });
+      onCreated?.(novo);
     },
     onError: () => toast.error("Não foi possível cadastrar o treino"),
   });
@@ -242,39 +240,24 @@ function NovoTreinoDialog({
         <DialogHeader>
           <DialogTitle>Cadastrar novo treino</DialogTitle>
           <DialogDescription>
-            Crie um treino A, B ou C para este aluno. Você poderá adicionar exercícios depois.
+            A posição é atribuída automaticamente conforme a ordem dos treinos ativos.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Letra">
-            <Select
-              value={form.letra}
-              onValueChange={(v) => setForm({ ...form, letra: v as TreinoLetra })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {todas.map((l) => (
-                  <SelectItem key={l} value={l}>
-                    Treino {l}{existentes.includes(l) ? " (já existe)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Field label="Título" className="sm:col-span-2">
+            <Input
+              placeholder="Ex.: Peito, Ombro e Tríceps"
+              value={form.titulo}
+              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              maxLength={120}
+            />
           </Field>
-          <Field label="Foco">
+          <Field label="Foco" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Empurrar (Push)"
               value={form.foco}
               onChange={(e) => setForm({ ...form, foco: e.target.value })}
               maxLength={80}
-            />
-          </Field>
-          <Field label="Título" className="sm:col-span-2">
-            <Input
-              placeholder="Ex.: Treino A — Peito, Ombro e Tríceps"
-              value={form.titulo}
-              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-              maxLength={120}
             />
           </Field>
         </div>
