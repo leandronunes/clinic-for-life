@@ -458,6 +458,60 @@ export async function apiListTreinos(alunoId: string): Promise<{ ativos: Treino[
   return { ativos: TREINOS_ATIVOS, arquivados: TREINOS_ARQUIVADOS };
 }
 
+export interface NovoTreinoInput {
+  letra: TreinoLetra;
+  titulo: string;
+  foco: string;
+  personal_nome?: string;
+}
+
+export async function apiCreateTreino(alunoId: string, input: NovoTreinoInput): Promise<Treino> {
+  await wait(450);
+  void alunoId;
+  const novo: Treino = {
+    id: `t_${Math.random().toString(36).slice(2, 8)}`,
+    letra: input.letra,
+    titulo: input.titulo.trim(),
+    foco: input.foco.trim(),
+    status: "ativo",
+    criado_em: new Date().toISOString().slice(0, 10),
+    personal_nome: input.personal_nome ?? "Personal",
+    exercicios: [],
+  };
+  TREINOS_ATIVOS.push(novo);
+  return novo;
+}
+
+export interface NovoExercicioInput {
+  nome: string;
+  series: number;
+  reps: string;
+  carga_kg?: number;
+  descanso_s: number;
+  grupo: string;
+  video_url?: string;
+  observacao?: string;
+}
+
+export async function apiAddExercicio(treinoId: string, input: NovoExercicioInput): Promise<Exercicio> {
+  await wait(400);
+  const treino = TREINOS_ATIVOS.find((t) => t.id === treinoId);
+  if (!treino) throw new Error("Treino não encontrado");
+  const ex: Exercicio = {
+    id: `e_${Math.random().toString(36).slice(2, 8)}`,
+    nome: input.nome.trim(),
+    series: input.series,
+    reps: input.reps.trim(),
+    carga_kg: input.carga_kg,
+    descanso_s: input.descanso_s,
+    grupo: input.grupo.trim(),
+    video_url: input.video_url?.trim() || YT("rT7DgCr-3pg"),
+    observacao: input.observacao?.trim() || undefined,
+  };
+  treino.exercicios.push(ex);
+  return ex;
+}
+
 /* -------- Evolução física -------- */
 
 export interface EvolucaoPonto {
