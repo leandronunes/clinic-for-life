@@ -10,7 +10,7 @@ import { apiGetAluno, apiProcessBioimpedanciaCsv, type BioImportResult } from "@
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/usuarios/aluno/$id")({
+export const Route = createFileRoute("/_app/alunos/$id")({
   head: () => ({ meta: [{ title: "Detalhe do Aluno — Núcleo For Life" }] }),
   component: AlunoDetalhePage,
 });
