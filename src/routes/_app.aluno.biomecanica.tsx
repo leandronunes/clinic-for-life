@@ -89,7 +89,90 @@ function BiomecanicaPage() {
         canWrite={canWrite}
         onChanged={refresh}
       />
+
+      <AvaliacaoEstruturalSection alunoId={alunoId} canWrite={canWrite} />
     </div>
+  );
+}
+
+function AvaliacaoEstruturalSection({
+  alunoId,
+  canWrite,
+}: {
+  alunoId: string;
+  canWrite: boolean;
+}) {
+  const qc = useQueryClient();
+  const { data = {}, isLoading } = useQuery({
+    queryKey: ["estrutural", alunoId],
+    queryFn: () => apiGetEstrutural(alunoId),
+  });
+  const [pending, setPending] = useState<EstruturalItem | null>(null);
+
+  const handleToggle = async (item: EstruturalItem, value: boolean) => {
+    setPending(item);
+    try {
+      await apiSetEstrutural(alunoId, item, value);
+      await qc.invalidateQueries({ queryKey: ["estrutural", alunoId] });
+    } catch {
+      toast.error("Falha ao salvar avaliação.");
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <Card className="shadow-soft">
+      <CardHeader>
+        <CardTitle className="text-base uppercase tracking-wide">Avaliação Estrutural</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {canWrite
+            ? "Marque os itens que o aluno apresenta."
+            : "Avaliação registrada pelo personal."}
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="grid place-items-center py-6 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {ESTRUTURAL_ITENS.map(({ key, label }) => {
+              const value = data[key];
+              return (
+                <li key={key} className="flex items-center justify-between py-3 gap-4">
+                  <span className="text-sm">{label}</span>
+                  {canWrite ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Não</span>
+                      <Switch
+                        checked={value === true}
+                        disabled={pending === key}
+                        onCheckedChange={(v) => handleToggle(key, v)}
+                      />
+                      <span className="text-xs text-muted-foreground">Sim</span>
+                    </div>
+                  ) : value === undefined ? (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Não avaliado
+                    </Badge>
+                  ) : value ? (
+                    <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive">
+                      <Check className="mr-1 h-3 w-3" /> Sim
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">
+                      <X className="mr-1 h-3 w-3" /> Não
+                    </Badge>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
