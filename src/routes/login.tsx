@@ -182,6 +182,8 @@ function LoginPage() {
           </div>
         </div>
       </div>
+      </div>
+      <ParceirosVitrine />
     </div>
   );
 }
