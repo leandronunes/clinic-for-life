@@ -10,6 +10,7 @@ import {
   UserCircle,
   ArrowLeftCircle,
   Eye,
+  Handshake,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   admin: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Usuários", url: "/usuarios", icon: Users },
+    { title: "Parceiros", url: "/parceiros", icon: Handshake },
   ],
   personal: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },

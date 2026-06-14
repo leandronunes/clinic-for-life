@@ -561,6 +561,110 @@ const FOTOS: FotoEvolucao[] = [
   { id: "f4", data: "2026-06-01", url: "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&h=800&fit=crop", peso_kg: 66.4, gordura_pct: 23.1, massa_muscular_kg: 32.0 },
 ];
 
+/* -------- Parceiros (vitrine pública) -------- */
+
+export type ParceiroCategoria =
+  | "Nutrição"
+  | "Fisioterapia"
+  | "Medicina Esportiva"
+  | "Suplementação"
+  | "Estética"
+  | "Laboratórios";
+
+export const PARCEIRO_CATEGORIAS: ParceiroCategoria[] = [
+  "Nutrição",
+  "Fisioterapia",
+  "Medicina Esportiva",
+  "Suplementação",
+  "Estética",
+  "Laboratórios",
+];
+
+export interface Parceiro {
+  id: string;
+  nome: string;
+  logo_url: string;
+  categoria: ParceiroCategoria;
+  descricao: string;
+  link: string;
+  criado_em: string;
+}
+
+const PARCEIROS: Parceiro[] = [
+  {
+    id: "pa1",
+    nome: "NutriVida",
+    logo_url: "https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=200&h=200&fit=crop",
+    categoria: "Nutrição",
+    descricao: "Consultoria nutricional especializada em performance esportiva.",
+    link: "https://example.com/nutrivida",
+    criado_em: "2026-03-12",
+  },
+  {
+    id: "pa2",
+    nome: "FisioMov",
+    logo_url: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=200&h=200&fit=crop",
+    categoria: "Fisioterapia",
+    descricao: "Reabilitação e prevenção de lesões para atletas.",
+    link: "https://example.com/fisiomov",
+    criado_em: "2026-02-04",
+  },
+  {
+    id: "pa3",
+    nome: "Sports Med Center",
+    logo_url: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=200&h=200&fit=crop",
+    categoria: "Medicina Esportiva",
+    descricao: "Acompanhamento médico esportivo completo.",
+    link: "https://example.com/sportsmed",
+    criado_em: "2026-01-20",
+  },
+  {
+    id: "pa4",
+    nome: "PureSupp",
+    logo_url: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=200&h=200&fit=crop",
+    categoria: "Suplementação",
+    descricao: "Linha premium de suplementos com certificação.",
+    link: "https://example.com/puresupp",
+    criado_em: "2025-12-02",
+  },
+];
+
+export async function apiListParceiros(): Promise<{ data: Parceiro[] }> {
+  await wait(250);
+  return { data: [...PARCEIROS] };
+}
+
+export async function apiCreateParceiro(
+  payload: Omit<Parceiro, "id" | "criado_em">,
+): Promise<{ data: Parceiro }> {
+  await wait(450);
+  const novo: Parceiro = {
+    ...payload,
+    id: `pa${Date.now()}`,
+    criado_em: new Date().toISOString().slice(0, 10),
+  };
+  PARCEIROS.unshift(novo);
+  return { data: novo };
+}
+
+export async function apiUpdateParceiro(
+  id: string,
+  patch: Partial<Omit<Parceiro, "id" | "criado_em">>,
+): Promise<{ data: Parceiro }> {
+  await wait(400);
+  const idx = PARCEIROS.findIndex((p) => p.id === id);
+  if (idx < 0) throw { status: 404, message: "Parceiro não encontrado" };
+  PARCEIROS[idx] = { ...PARCEIROS[idx], ...patch };
+  return { data: PARCEIROS[idx] };
+}
+
+export async function apiDeleteParceiro(id: string): Promise<{ data: { id: string } }> {
+  await wait(350);
+  const idx = PARCEIROS.findIndex((p) => p.id === id);
+  if (idx >= 0) PARCEIROS.splice(idx, 1);
+  return { data: { id } };
+}
+
 export async function apiListFotos(alunoId: string): Promise<FotoEvolucao[]> {
   await wait(300);
   void alunoId;
