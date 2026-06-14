@@ -671,3 +671,47 @@ export async function apiListFotos(alunoId: string): Promise<FotoEvolucao[]> {
   return FOTOS;
 }
 
+
+/* -------- Avaliação Biomecânica -------- */
+
+export type BiomecanicaSlot =
+  | "frontal"
+  | "posterior"
+  | "flexao_tronco"
+  | "lado_esquerdo"
+  | "lado_direito"
+  | "flexao_perfil";
+
+export type BiomecanicaImagens = Partial<Record<BiomecanicaSlot, string>>;
+
+const BIOMECANICA: Record<string, BiomecanicaImagens> = {};
+
+export async function apiListBiomecanica(alunoId: string): Promise<BiomecanicaImagens> {
+  await wait(250);
+  return { ...(BIOMECANICA[alunoId] ?? {}) };
+}
+
+export async function apiUploadBiomecanica(
+  alunoId: string,
+  slot: BiomecanicaSlot,
+  file: File,
+): Promise<{ slot: BiomecanicaSlot; url: string }> {
+  await wait(500);
+  const url = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Falha ao ler imagem"));
+    reader.readAsDataURL(file);
+  });
+  BIOMECANICA[alunoId] = { ...(BIOMECANICA[alunoId] ?? {}), [slot]: url };
+  return { slot, url };
+}
+
+export async function apiDeleteBiomecanica(
+  alunoId: string,
+  slot: BiomecanicaSlot,
+): Promise<{ slot: BiomecanicaSlot }> {
+  await wait(300);
+  if (BIOMECANICA[alunoId]) delete BIOMECANICA[alunoId][slot];
+  return { slot };
+}
