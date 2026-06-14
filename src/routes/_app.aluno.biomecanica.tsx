@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Loader2, Trash2, ImageIcon } from "lucide-react";
+import { Upload, Loader2, Trash2, ImageIcon, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   apiGetAluno,
   apiListBiomecanica,
   apiUploadBiomecanica,
   apiDeleteBiomecanica,
+  apiGetEstrutural,
+  apiSetEstrutural,
+  ESTRUTURAL_ITENS,
   type BiomecanicaSlot,
   type BiomecanicaImagens,
+  type EstruturalItem,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
