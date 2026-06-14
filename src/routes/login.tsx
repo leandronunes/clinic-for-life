@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ParceirosVitrine } from "@/components/ParceirosVitrine";
 import { validateStrongPassword } from "@/lib/mock-api";
 import { toast } from "sonner";
 
@@ -62,7 +63,8 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="flex min-h-screen flex-col">
+      <div className="grid flex-1 lg:grid-cols-2">
       {/* Painel visual à esquerda */}
       <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex brand-gradient">
         <BrandLogo size={56} />
