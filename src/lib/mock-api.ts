@@ -715,3 +715,43 @@ export async function apiDeleteBiomecanica(
   if (BIOMECANICA[alunoId]) delete BIOMECANICA[alunoId][slot];
   return { slot };
 }
+
+/* -------- Avaliação Estrutural -------- */
+
+export type EstruturalItem =
+  | "escoliose"
+  | "rotacao_coluna"
+  | "rotacao_quadril"
+  | "desequilibrio_cintura_escapular"
+  | "discinesia_escapular"
+  | "encurtamento"
+  | "diferenca_tamanho_membros";
+
+export const ESTRUTURAL_ITENS: { key: EstruturalItem; label: string }[] = [
+  { key: "escoliose", label: "Escoliose" },
+  { key: "rotacao_coluna", label: "Rotação na coluna" },
+  { key: "rotacao_quadril", label: "Rotação no quadril" },
+  { key: "desequilibrio_cintura_escapular", label: "Desequilíbrio força cintura escapular" },
+  { key: "discinesia_escapular", label: "Discinesia escapular" },
+  { key: "encurtamento", label: "Encurtamento" },
+  { key: "diferenca_tamanho_membros", label: "Diferença no tamanho de membros" },
+];
+
+export type AvaliacaoEstrutural = Partial<Record<EstruturalItem, boolean>>;
+
+const ESTRUTURAL: Record<string, AvaliacaoEstrutural> = {};
+
+export async function apiGetEstrutural(alunoId: string): Promise<AvaliacaoEstrutural> {
+  await wait(200);
+  return { ...(ESTRUTURAL[alunoId] ?? {}) };
+}
+
+export async function apiSetEstrutural(
+  alunoId: string,
+  item: EstruturalItem,
+  value: boolean,
+): Promise<AvaliacaoEstrutural> {
+  await wait(200);
+  ESTRUTURAL[alunoId] = { ...(ESTRUTURAL[alunoId] ?? {}), [item]: value };
+  return { ...ESTRUTURAL[alunoId] };
+}
