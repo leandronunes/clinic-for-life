@@ -13,7 +13,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
-import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -41,11 +40,6 @@ const IndexRoute = IndexRouteImport.update({
 const AppUsuariosRoute = AppUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppParceirosRoute = AppParceirosRouteImport.update({
-  id: '/parceiros',
-  path: '/parceiros',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
@@ -102,8 +96,6 @@ export interface FileRoutesByFullPath {
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/usuarios': typeof AppUsuariosRoute
-  '/parceiros': typeof AppParceirosRoute
-  '/parceiros': typeof AppParceirosRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
@@ -134,7 +126,6 @@ export interface FileRoutesById {
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/usuarios': typeof AppUsuariosRoute
-  '/_app/parceiros': typeof AppParceirosRoute
   '/_app/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
@@ -151,8 +142,6 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/perfil'
     | '/usuarios'
-    | '/parceiros'
-    | '/parceiros'
     | '/aluno/bioimpedancia'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
@@ -182,7 +171,6 @@ export interface FileRouteTypes {
     | '/_app/parceiros'
     | '/_app/perfil'
     | '/_app/usuarios'
-    | '/_app/parceiros'
     | '/_app/aluno/bioimpedancia'
     | '/_app/aluno/comparativo'
     | '/_app/aluno/evolucao'
@@ -224,13 +212,6 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AppUsuariosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/parceiros': {
-      id: '/_app/parceiros'
-      path: '/parceiros'
-      fullPath: '/parceiros'
-      preLoaderRoute: typeof AppParceirosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/perfil': {
