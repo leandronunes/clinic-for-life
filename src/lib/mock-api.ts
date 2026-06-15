@@ -755,3 +755,67 @@ export async function apiSetEstrutural(
   ESTRUTURAL[alunoId] = { ...(ESTRUTURAL[alunoId] ?? {}), [item]: value };
   return { ...ESTRUTURAL[alunoId] };
 }
+
+/* -------- Anamnese Dinâmica -------- */
+
+export type AnamneseItem =
+  | "remedios"
+  | "reposicoes"
+  | "observacoes"
+  | "fratura"
+  | "luxacoes"
+  | "dor"
+  | "refeicoes"
+  | "hidratacao"
+  | "sono"
+  | "fezes";
+
+export type AnamneseDinamica = Partial<Record<AnamneseItem, string>>;
+
+export const ANAMNESE_SECOES: {
+  titulo: string;
+  itens: { key: AnamneseItem; label: string }[];
+}[] = [
+  {
+    titulo: "Quadro Clínico",
+    itens: [
+      { key: "remedios", label: "Remédios" },
+      { key: "reposicoes", label: "Reposições / Suplementos" },
+      { key: "observacoes", label: "Observações" },
+    ],
+  },
+  {
+    titulo: "Avaliação Ortopédica",
+    itens: [
+      { key: "fratura", label: "Fratura" },
+      { key: "luxacoes", label: "Luxações" },
+      { key: "dor", label: "Dor" },
+    ],
+  },
+  {
+    titulo: "Avaliação de Hábitos",
+    itens: [
+      { key: "refeicoes", label: "Refeições" },
+      { key: "hidratacao", label: "Hidratação" },
+      { key: "sono", label: "Sono" },
+      { key: "fezes", label: "Fezes" },
+    ],
+  },
+];
+
+const ANAMNESE: Record<string, AnamneseDinamica> = {};
+
+export async function apiGetAnamnese(alunoId: string): Promise<AnamneseDinamica> {
+  await wait(200);
+  return { ...(ANAMNESE[alunoId] ?? {}) };
+}
+
+export async function apiSetAnamnese(
+  alunoId: string,
+  item: AnamneseItem,
+  value: string,
+): Promise<AnamneseDinamica> {
+  await wait(200);
+  ANAMNESE[alunoId] = { ...(ANAMNESE[alunoId] ?? {}), [item]: value };
+  return { ...ANAMNESE[alunoId] };
+}
