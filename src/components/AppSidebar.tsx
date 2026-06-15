@@ -11,6 +11,7 @@ import {
   ArrowLeftCircle,
   Eye,
   Handshake,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
