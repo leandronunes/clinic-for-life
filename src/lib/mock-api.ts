@@ -146,7 +146,10 @@ export interface Aluno {
   personal_nome: string;
   status: "ativo" | "inativo";
   criado_em: string;
+  plano_saude?: string;
+  contato_emergencia?: string;
 }
+
 
 export interface Personal {
   id: string;
