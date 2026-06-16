@@ -725,7 +725,13 @@ export type EstruturalItem =
   | "desequilibrio_cintura_escapular"
   | "discinesia_escapular"
   | "encurtamento"
-  | "diferenca_tamanho_membros";
+  | "diferenca_tamanho_membros"
+  | "anteversao_pelvica"
+  | "retroversao_pelvica"
+  | "joelho_valgo"
+  | "joelho_varo"
+  | "arco_plantar_cavo"
+  | "arco_plantar_plano";
 
 export const ESTRUTURAL_ITENS: { key: EstruturalItem; label: string }[] = [
   { key: "escoliose", label: "Escoliose" },
@@ -735,7 +741,14 @@ export const ESTRUTURAL_ITENS: { key: EstruturalItem; label: string }[] = [
   { key: "discinesia_escapular", label: "Discinesia escapular" },
   { key: "encurtamento", label: "Encurtamento" },
   { key: "diferenca_tamanho_membros", label: "Diferença no tamanho de membros" },
+  { key: "anteversao_pelvica", label: "Anteversão Pélvica" },
+  { key: "retroversao_pelvica", label: "Retroversão Pélvica" },
+  { key: "joelho_valgo", label: "Joelho Valgo" },
+  { key: "joelho_varo", label: "Joelho Varo" },
+  { key: "arco_plantar_cavo", label: "Arco Plantar Cavo" },
+  { key: "arco_plantar_plano", label: "Arco Plantar Plano" },
 ];
+
 
 export type AvaliacaoEstrutural = Partial<Record<EstruturalItem, boolean>>;
 
