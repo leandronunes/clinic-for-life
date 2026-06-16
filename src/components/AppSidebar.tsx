@@ -46,6 +46,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
     { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
     { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
+    { title: "Parceiros", url: "/aluno/parceiros", icon: Handshake },
     { title: "Perfil", url: "/perfil", icon: UserCircle },
   ],
 };
