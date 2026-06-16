@@ -99,11 +99,6 @@ const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
   path: '/aluno/anamnese',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAlunoParceirosRoute = AppAlunoParceirosRouteImport.update({
-  id: '/aluno/parceiros',
-  path: '/aluno/parceiros',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
