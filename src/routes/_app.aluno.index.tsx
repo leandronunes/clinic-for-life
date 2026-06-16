@@ -491,12 +491,10 @@ function ExercicioFormDialog({
               onChange={(e) => setForm({ ...form, descanso_s: Math.max(0, Number(e.target.value) || 0) })}
             />
           </Field>
-          <Field label="Vídeo (YouTube embed)" className="sm:col-span-2">
-            <Input
-              placeholder="https://www.youtube.com/embed/..."
+          <Field label="Vídeo de demonstração" className="sm:col-span-2">
+            <ExercicioVideoInput
               value={form.video_url}
-              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-              maxLength={200}
+              onChange={(url) => setForm({ ...form, video_url: url })}
             />
           </Field>
           <Field label="Observação" className="sm:col-span-2">
