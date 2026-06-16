@@ -138,13 +138,22 @@ function MeuTreinoPage() {
           </DialogHeader>
           {videoEx && (
             <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-              <iframe
-                src={videoEx.video_url}
-                title={videoEx.nome}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {isUploadedVideo(videoEx.video_url) ? (
+                <video
+                  src={videoEx.video_url}
+                  controls
+                  playsInline
+                  className="h-full w-full"
+                />
+              ) : (
+                <iframe
+                  src={videoEx.video_url}
+                  title={videoEx.nome}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
           )}
           {videoEx?.observacao && (
