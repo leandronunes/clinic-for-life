@@ -13,13 +13,21 @@ import {
   type Aluno, type Personal,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/_app/perfil")({
-  head: () => ({ meta: [{ title: "Meu Perfil — Núcleo For Life" }] }),
+  head: () =>
+    pageHead({
+      path: "/perfil",
+      title: "Meu Perfil — Núcleo For Life",
+      description:
+        "Edite seus dados pessoais, contato e personal responsável dentro da plataforma Núcleo For Life.",
+    }),
   component: PerfilPage,
 });
+
 
 function PerfilPage() {
   const { user, hasRole } = useAuth();
