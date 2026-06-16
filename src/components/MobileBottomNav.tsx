@@ -14,7 +14,6 @@ import {
   Menu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { UserRole } from "@/lib/mock-api";
 import {
   Sheet,
@@ -53,8 +52,8 @@ const EXTRA_ALUNO: NavItem[] = [
 export function MobileBottomNav() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const role = effectiveRole ?? user?.role;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const role = pathname.startsWith("/aluno") ? "aluno" : (effectiveRole ?? user?.role);
   let items = role ? [...MENU[role]] : [];
   if (isImpersonating) {
     items = items.filter((i) => i.url !== "/perfil");
@@ -68,8 +67,6 @@ export function MobileBottomNav() {
   if (isImpersonating) {
     items.push({ title: "Voltar", url: "__stop__", icon: ArrowLeftCircle });
   }
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (!isMobile) return null;
   if (items.length === 0 && !showMore) return null;
 
   const totalCols = items.length + (showMore ? 1 : 0);
@@ -77,7 +74,7 @@ export function MobileBottomNav() {
     totalCols >= 5 ? "grid-cols-5" : totalCols === 4 ? "grid-cols-4" : totalCols === 3 ? "grid-cols-3" : "grid-cols-2";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
 
       <ul className={`grid ${colsClass}`}>
         {items.map((it) => {
