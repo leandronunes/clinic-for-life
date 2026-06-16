@@ -37,7 +37,6 @@ const MENU: Record<UserRole, NavItem[]> = {
   aluno: [
     { title: "Treino", url: "/aluno", icon: Dumbbell },
     { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
-    { title: "Bio", url: "/aluno/bioimpedancia", icon: Activity },
     { title: "Comparar", url: "/aluno/comparativo", icon: Images },
     { title: "Perfil", url: "/perfil", icon: UserCircle },
   ],

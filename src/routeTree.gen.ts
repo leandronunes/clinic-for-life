@@ -22,7 +22,6 @@ import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evolucao'
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
-import { Route as AppAlunoBioimpedanciaRouteImport } from './routes/_app.aluno.bioimpedancia'
 import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
 
 const LoginRoute = LoginRouteImport.update({
@@ -89,11 +88,6 @@ const AppAlunoBiomecanicaRoute = AppAlunoBiomecanicaRouteImport.update({
   path: '/aluno/biomecanica',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAlunoBioimpedanciaRoute = AppAlunoBioimpedanciaRouteImport.update({
-  id: '/aluno/bioimpedancia',
-  path: '/aluno/bioimpedancia',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
   id: '/aluno/anamnese',
   path: '/aluno/anamnese',
@@ -109,7 +103,6 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AppPerfilRoute
   '/usuarios': typeof AppUsuariosRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
-  '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
@@ -125,7 +118,6 @@ export interface FileRoutesByTo {
   '/perfil': typeof AppPerfilRoute
   '/usuarios': typeof AppUsuariosRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
-  '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
@@ -143,7 +135,6 @@ export interface FileRoutesById {
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/aluno/anamnese': typeof AppAlunoAnamneseRoute
-  '/_app/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/_app/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
@@ -161,7 +152,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/usuarios'
     | '/aluno/anamnese'
-    | '/aluno/bioimpedancia'
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
@@ -177,7 +167,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/usuarios'
     | '/aluno/anamnese'
-    | '/aluno/bioimpedancia'
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
@@ -194,7 +183,6 @@ export interface FileRouteTypes {
     | '/_app/perfil'
     | '/_app/usuarios'
     | '/_app/aluno/anamnese'
-    | '/_app/aluno/bioimpedancia'
     | '/_app/aluno/biomecanica'
     | '/_app/aluno/comparativo'
     | '/_app/aluno/evolucao'
@@ -301,13 +289,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoBiomecanicaRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/aluno/bioimpedancia': {
-      id: '/_app/aluno/bioimpedancia'
-      path: '/aluno/bioimpedancia'
-      fullPath: '/aluno/bioimpedancia'
-      preLoaderRoute: typeof AppAlunoBioimpedanciaRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/aluno/anamnese': {
       id: '/_app/aluno/anamnese'
       path: '/aluno/anamnese'
@@ -325,7 +306,6 @@ interface AppRouteChildren {
   AppPerfilRoute: typeof AppPerfilRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
   AppAlunoAnamneseRoute: typeof AppAlunoAnamneseRoute
-  AppAlunoBioimpedanciaRoute: typeof AppAlunoBioimpedanciaRoute
   AppAlunoBiomecanicaRoute: typeof AppAlunoBiomecanicaRoute
   AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
   AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
@@ -340,7 +320,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilRoute: AppPerfilRoute,
   AppUsuariosRoute: AppUsuariosRoute,
   AppAlunoAnamneseRoute: AppAlunoAnamneseRoute,
-  AppAlunoBioimpedanciaRoute: AppAlunoBioimpedanciaRoute,
   AppAlunoBiomecanicaRoute: AppAlunoBiomecanicaRoute,
   AppAlunoComparativoRoute: AppAlunoComparativoRoute,
   AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,

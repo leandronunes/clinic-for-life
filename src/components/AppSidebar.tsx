@@ -44,7 +44,6 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
     { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
     { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
-    { title: "Bioimpedância", url: "/aluno/bioimpedancia", icon: Activity },
     { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
     { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
     { title: "Perfil", url: "/perfil", icon: UserCircle },

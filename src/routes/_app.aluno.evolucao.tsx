@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -12,11 +12,31 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TrendingDown, TrendingUp, Scale, Flame, Activity } from "lucide-react";
+import {
+  TrendingDown,
+  TrendingUp,
+  Scale,
+  Flame,
+  Activity,
+  Dumbbell,
+  Upload,
+  FileSpreadsheet,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
-import { apiListEvolucao, type EvolucaoPonto } from "@/lib/mock-api";
+import {
+  apiGetAluno,
+  apiListEvolucao,
+  apiProcessBioimpedanciaCsv,
+  type EvolucaoPonto,
+  type BioImportResult,
+} from "@/lib/mock-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/evolucao")({
   head: () => ({ meta: [{ title: "Evolução — Núcleo For Life" }] }),
@@ -32,11 +52,16 @@ const METRICS: Record<Metric, { label: string; color: string; suffix: string; be
 };
 
 function EvolucaoPage() {
-  const { user, effectiveAlunoId } = useAuth();
+  const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, refetch } = useQuery({
     queryKey: ["evolucao", alunoId],
     queryFn: () => apiListEvolucao(alunoId),
+  });
+  const { data: alunoResp } = useQuery({
+    queryKey: ["aluno", alunoId],
+    queryFn: () => apiGetAluno(alunoId),
+    enabled: isImpersonating,
   });
   const [metric, setMetric] = useState<Metric>("peso_kg");
 
@@ -57,6 +82,13 @@ function EvolucaoPage() {
           Seus dados de bioimpedância nos últimos 10 meses.
         </p>
       </div>
+
+      {canWrite && (
+        <BioUploadCard
+          alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
+          onImported={() => refetch()}
+        />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {(Object.keys(METRICS) as Metric[]).map((m) => (
@@ -124,6 +156,38 @@ function EvolucaoPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Dumbbell className="h-4 w-4" /> Avaliações
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Peso</TableHead>
+                <TableHead className="hidden sm:table-cell">Massa muscular</TableHead>
+                <TableHead className="hidden sm:table-cell">Gordura</TableHead>
+                <TableHead>IMC</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...data].reverse().map((p) => (
+                <TableRow key={p.data}>
+                  <TableCell>{p.data}</TableCell>
+                  <TableCell>{p.peso_kg} kg</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.massa_muscular_kg} kg</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.gordura_pct} %</TableCell>
+                  <TableCell>{p.imc}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -161,5 +225,97 @@ function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: E
         </CardContent>
       </Card>
     </button>
+  );
+}
+
+function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImported: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<BioImportResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleProcess = async (f: File) => {
+    setFile(f); setResult(null); setLoading(true);
+    try {
+      const r = await apiProcessBioimpedanciaCsv(f);
+      setResult(r);
+      if (r.erros.length === 0) toast.success(`${r.importados} registros importados para ${alunoEmail}`);
+      else toast.warning(`${r.importados} importados, ${r.erros.length} com erro`);
+      onImported();
+    } catch {
+      toast.error("Falha ao processar o arquivo");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <Card className="shadow-soft border-accent/30">
+      <CardHeader>
+        <CardTitle className="text-base">Upload de Bioimpedância (InBody)</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Esta área é visível apenas para administradores e personais. Envie o CSV exportado do InBody para registrar a avaliação deste aluno.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) handleProcess(f); }}
+          onClick={() => inputRef.current?.click()}
+          className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+            drag ? "border-accent bg-accent/5" : "border-border hover:bg-muted/30"
+          }`}
+        >
+          <input
+            ref={inputRef} type="file" accept=".csv,text/csv" className="hidden"
+            onChange={(e) => e.target.files?.[0] && handleProcess(e.target.files[0])}
+          />
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full brand-gradient text-primary-foreground">
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          </div>
+          <h3 className="mt-3 font-semibold">{loading ? "Processando..." : "Arraste o CSV ou clique para enviar"}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Colunas: <code>email,peso_kg,massa_muscular_kg,gordura_pct,data</code>
+          </p>
+          {file && !loading && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
+              <FileSpreadsheet className="h-3.5 w-3.5" /> {file.name}
+            </div>
+          )}
+        </div>
+
+        {result && (
+          <div className="rounded-lg border border-border">
+            <div className="flex items-center gap-2 border-b border-border p-3 text-sm">
+              {result.erros.length === 0 ? (
+                <><CheckCircle2 className="h-4 w-4 text-success" /> {result.importados} registros válidos</>
+              ) : (
+                <><AlertTriangle className="h-4 w-4 text-warning" /> {result.importados} ok · {result.erros.length} erros</>
+              )}
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Peso</TableHead>
+                  <TableHead className="hidden md:table-cell">Massa M.</TableHead>
+                  <TableHead className="hidden md:table-cell">Gordura</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.preview.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell>{r.data}</TableCell>
+                    <TableCell>{r.peso_kg} kg</TableCell>
+                    <TableCell className="hidden md:table-cell">{r.massa_muscular_kg} kg</TableCell>
+                    <TableCell className="hidden md:table-cell">{r.gordura_pct}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
