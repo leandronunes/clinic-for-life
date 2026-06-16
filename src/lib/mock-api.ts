@@ -768,7 +768,8 @@ export type AnamneseItem =
   | "refeicoes"
   | "hidratacao"
   | "sono"
-  | "fezes";
+  | "fezes"
+  | "objetivos";
 
 export type AnamneseDinamica = Partial<Record<AnamneseItem, string>>;
 
@@ -776,6 +777,12 @@ export const ANAMNESE_SECOES: {
   titulo: string;
   itens: { key: AnamneseItem; label: string }[];
 }[] = [
+  {
+    titulo: "OBJETIVOS",
+    itens: [
+      { key: "objetivos", label: "Objetivo a ser atingido" },
+    ],
+  },
   {
     titulo: "Quadro Clínico",
     itens: [
