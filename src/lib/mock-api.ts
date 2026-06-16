@@ -517,6 +517,65 @@ export async function apiAddExercicio(treinoId: string, input: NovoExercicioInpu
   return ex;
 }
 
+export async function apiUpdateTreino(
+  treinoId: string,
+  patch: Partial<Pick<Treino, "titulo" | "foco">>,
+): Promise<Treino> {
+  await wait(350);
+  const treino =
+    TREINOS_ATIVOS.find((t) => t.id === treinoId) ??
+    TREINOS_ARQUIVADOS.find((t) => t.id === treinoId);
+  if (!treino) throw new Error("Treino não encontrado");
+  if (patch.titulo !== undefined) treino.titulo = patch.titulo.trim();
+  if (patch.foco !== undefined) treino.foco = patch.foco.trim();
+  return treino;
+}
+
+export async function apiArchiveTreino(treinoId: string): Promise<Treino> {
+  await wait(350);
+  const idx = TREINOS_ATIVOS.findIndex((t) => t.id === treinoId);
+  if (idx === -1) throw new Error("Treino não encontrado");
+  const [treino] = TREINOS_ATIVOS.splice(idx, 1);
+  treino.status = "arquivado";
+  treino.arquivado_em = new Date().toISOString().slice(0, 10);
+  TREINOS_ATIVOS.forEach((t, i) => { t.posicao = i + 1; });
+  treino.posicao =
+    TREINOS_ARQUIVADOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
+  TREINOS_ARQUIVADOS.unshift(treino);
+  return treino;
+}
+
+export async function apiUpdateExercicio(
+  treinoId: string,
+  exercicioId: string,
+  patch: Partial<NovoExercicioInput>,
+): Promise<Exercicio> {
+  await wait(300);
+  const treino = TREINOS_ATIVOS.find((t) => t.id === treinoId);
+  if (!treino) throw new Error("Treino não encontrado");
+  const ex = treino.exercicios.find((e) => e.id === exercicioId);
+  if (!ex) throw new Error("Exercício não encontrado");
+  if (patch.nome !== undefined) ex.nome = patch.nome.trim();
+  if (patch.grupo !== undefined) ex.grupo = patch.grupo.trim();
+  if (patch.series !== undefined) ex.series = patch.series;
+  if (patch.reps !== undefined) ex.reps = patch.reps.trim();
+  if (patch.carga_kg !== undefined) ex.carga_kg = patch.carga_kg;
+  if (patch.descanso_s !== undefined) ex.descanso_s = patch.descanso_s;
+  if (patch.video_url !== undefined) ex.video_url = patch.video_url.trim() || ex.video_url;
+  if (patch.observacao !== undefined) ex.observacao = patch.observacao.trim() || undefined;
+  return ex;
+}
+
+export async function apiDeleteExercicio(treinoId: string, exercicioId: string): Promise<{ id: string }> {
+  await wait(250);
+  const treino = TREINOS_ATIVOS.find((t) => t.id === treinoId);
+  if (!treino) throw new Error("Treino não encontrado");
+  const idx = treino.exercicios.findIndex((e) => e.id === exercicioId);
+  if (idx === -1) throw new Error("Exercício não encontrado");
+  treino.exercicios.splice(idx, 1);
+  return { id: exercicioId };
+}
+
 /* -------- Evolução física -------- */
 
 export interface EvolucaoPonto {
