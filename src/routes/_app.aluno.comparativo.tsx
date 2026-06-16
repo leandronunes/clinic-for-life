@@ -13,16 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { apiListFotos, type FotoEvolucao } from "@/lib/mock-api";
-import { pageHead } from "@/lib/seo";
-
 export const Route = createFileRoute("/_app/aluno/comparativo")({
-  head: () =>
-    pageHead({
-      path: "/aluno/comparativo",
-      title: "Antes & Depois — Núcleo For Life",
-      description:
-        "Compare lado a lado as fotos do seu antes e depois para visualizar a evolução do seu corpo ao longo do tempo.",
-    }),
   component: ComparativoPage,
 });
 

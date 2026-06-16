@@ -34,17 +34,9 @@ import {
   type ParceiroCategoria,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
-import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/parceiros")({
-  head: () =>
-    pageHead({
-      path: "/parceiros",
-      title: "Gerenciar Parceiros — Núcleo For Life",
-      description:
-        "Cadastre e administre a rede de parceiros da clínica: nutricionistas, fisioterapeutas e serviços conveniados.",
-    }),
   component: ParceirosPage,
 });
 

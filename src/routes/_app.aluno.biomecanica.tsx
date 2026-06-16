@@ -38,17 +38,9 @@ import {
   type EstruturalItem,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
-import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/biomecanica")({
-  head: () =>
-    pageHead({
-      path: "/aluno/biomecanica",
-      title: "Avaliação Biomecânica — Núcleo For Life",
-      description:
-        "Faça upload das imagens dos planos coronal e sagital e mantenha o histórico das avaliações biomecânicas.",
-    }),
   component: BiomecanicaPage,
 });
 

@@ -10,16 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiActivitySeries, apiDashboardKpis, type RangeFilter } from "@/lib/mock-api";
-import { pageHead } from "@/lib/seo";
-
 export const Route = createFileRoute("/_app/dashboard")({
-  head: () =>
-    pageHead({
-      path: "/dashboard",
-      title: "Dashboard — Núcleo For Life",
-      description:
-        "Visão geral da operação da clínica: alunos ativos, treinos prescritos, anamneses e desempenho semanal.",
-    }),
   component: DashboardPage,
 });
 

@@ -6,16 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiListParceiros } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
-import { pageHead } from "@/lib/seo";
-
 export const Route = createFileRoute("/_app/aluno/parceiros")({
-  head: () =>
-    pageHead({
-      path: "/aluno/parceiros",
-      title: "Meus Parceiros — Núcleo For Life",
-      description:
-        "Acesse seu cartão virtual da clínica e a rede de parceiros com descontos exclusivos para alunos Núcleo For Life.",
-    }),
   component: AlunoParceirosPage,
 });
 

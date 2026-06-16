@@ -22,18 +22,10 @@ import {
   apiListTreinos, apiUpdateExercicio, apiUpdateTreino,
   type Exercicio, type Treino,
 } from "@/lib/mock-api";
-import { pageHead } from "@/lib/seo";
 import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({
-  head: () =>
-    pageHead({
-      path: "/aluno",
-      title: "Meu Treino — Núcleo For Life",
-      description:
-        "Acompanhe seu plano de treino atual, exercícios prescritos e treinos finalizados na sua jornada Núcleo For Life.",
-    }),
   component: MeuTreinoPage,
 });
 
