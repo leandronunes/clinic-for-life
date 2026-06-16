@@ -844,6 +844,7 @@ export type AnamneseItem =
   | "sono"
   | "fezes"
   | "urina"
+  | "observacoes_ortopedica"
   | "objetivos";
 
 export type AnamneseDinamica = Partial<Record<AnamneseItem, string>>;
@@ -877,7 +878,7 @@ export const ANAMNESE_SECOES: {
       { key: "fratura", label: "Fratura" },
       { key: "luxacoes", label: "Luxações" },
       { key: "dor", label: "Dor" },
-      { key: "observacoes", label: "Observações" },
+      { key: "observacoes_ortopedica", label: "Observações" },
     ],
   },
   {
