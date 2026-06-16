@@ -20,6 +20,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
 import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
+import { Route as AppAlunoExamesRouteImport } from './routes/_app.aluno.exames'
 import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evolucao'
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
@@ -79,6 +80,11 @@ const AppAlunoParceirosRoute = AppAlunoParceirosRouteImport.update({
   path: '/aluno/parceiros',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlunoExamesRoute = AppAlunoExamesRouteImport.update({
+  id: '/aluno/exames',
+  path: '/aluno/exames',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAlunoEvolucaoRoute = AppAlunoEvolucaoRouteImport.update({
   id: '/aluno/evolucao',
   path: '/aluno/evolucao',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/aluno/exames': typeof AppAlunoExamesRoute
   '/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno/': typeof AppAlunoIndexRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/aluno/exames': typeof AppAlunoExamesRoute
   '/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno': typeof AppAlunoIndexRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_app/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
+  '/_app/aluno/exames': typeof AppAlunoExamesRoute
   '/_app/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/_app/alunos/$id': typeof AppAlunosIdRoute
   '/_app/aluno/': typeof AppAlunoIndexRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
+    | '/aluno/exames'
     | '/aluno/parceiros'
     | '/alunos/$id'
     | '/aluno/'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
     | '/aluno/evolucao'
+    | '/aluno/exames'
     | '/aluno/parceiros'
     | '/alunos/$id'
     | '/aluno'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_app/aluno/biomecanica'
     | '/_app/aluno/comparativo'
     | '/_app/aluno/evolucao'
+    | '/_app/aluno/exames'
     | '/_app/aluno/parceiros'
     | '/_app/alunos/$id'
     | '/_app/aluno/'
@@ -288,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoParceirosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aluno/exames': {
+      id: '/_app/aluno/exames'
+      path: '/aluno/exames'
+      fullPath: '/aluno/exames'
+      preLoaderRoute: typeof AppAlunoExamesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/aluno/evolucao': {
       id: '/_app/aluno/evolucao'
       path: '/aluno/evolucao'
@@ -328,6 +347,7 @@ interface AppRouteChildren {
   AppAlunoBiomecanicaRoute: typeof AppAlunoBiomecanicaRoute
   AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
   AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
+  AppAlunoExamesRoute: typeof AppAlunoExamesRoute
   AppAlunoParceirosRoute: typeof AppAlunoParceirosRoute
   AppAlunosIdRoute: typeof AppAlunosIdRoute
   AppAlunoIndexRoute: typeof AppAlunoIndexRoute
@@ -342,6 +362,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlunoBiomecanicaRoute: AppAlunoBiomecanicaRoute,
   AppAlunoComparativoRoute: AppAlunoComparativoRoute,
   AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,
+  AppAlunoExamesRoute: AppAlunoExamesRoute,
   AppAlunoParceirosRoute: AppAlunoParceirosRoute,
   AppAlunosIdRoute: AppAlunosIdRoute,
   AppAlunoIndexRoute: AppAlunoIndexRoute,

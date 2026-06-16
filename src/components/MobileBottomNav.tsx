@@ -12,6 +12,7 @@ import {
   Handshake,
   LogOut,
   Menu,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/mock-api";
@@ -45,6 +46,7 @@ const MENU: Record<UserRole, NavItem[]> = {
 };
 
 const EXTRA_ALUNO: NavItem[] = [
+  { title: "Exames", url: "/aluno/exames", icon: FileText },
   { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
   { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
 ];

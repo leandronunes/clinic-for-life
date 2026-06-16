@@ -12,6 +12,7 @@ import {
   Eye,
   Handshake,
   ClipboardList,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
     { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
     { title: "Parceiros", url: "/aluno/parceiros", icon: Handshake },
+    { title: "Exames", url: "/aluno/exames", icon: FileText },
     { title: "Perfil", url: "/perfil", icon: UserCircle },
   ],
 };

@@ -969,3 +969,58 @@ export async function apiSetAnamnese(
   ANAMNESE[alunoId] = { ...(ANAMNESE[alunoId] ?? {}), [item]: value };
   return { ...ANAMNESE[alunoId] };
 }
+
+/* -------- Exames do Aluno -------- */
+
+export interface ExameAluno {
+  id: string;
+  nome: string;
+  descricao?: string;
+  arquivo_url: string;
+  content_type: string;
+  tamanho: number;
+  enviado_em: string;
+}
+
+const EXAMES: Record<string, ExameAluno[]> = {};
+
+export async function apiListExames(alunoId: string): Promise<ExameAluno[]> {
+  await wait(200);
+  return [...(EXAMES[alunoId] ?? [])].sort(
+    (a, b) => new Date(b.enviado_em).getTime() - new Date(a.enviado_em).getTime(),
+  );
+}
+
+export async function apiUploadExame(
+  alunoId: string,
+  file: File,
+  meta?: { nome?: string; descricao?: string },
+): Promise<ExameAluno> {
+  await wait(400);
+  const url = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Falha ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+  const exame: ExameAluno = {
+    id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    nome: meta?.nome?.trim() || file.name,
+    descricao: meta?.descricao?.trim() || undefined,
+    arquivo_url: url,
+    content_type: file.type || "application/octet-stream",
+    tamanho: file.size,
+    enviado_em: new Date().toISOString(),
+  };
+  EXAMES[alunoId] = [...(EXAMES[alunoId] ?? []), exame];
+  return exame;
+}
+
+export async function apiDeleteExame(
+  alunoId: string,
+  exameId: string,
+): Promise<{ id: string }> {
+  await wait(200);
+  EXAMES[alunoId] = (EXAMES[alunoId] ?? []).filter((e) => e.id !== exameId);
+  return { id: exameId };
+}
