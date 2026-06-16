@@ -17,12 +17,20 @@ import {
   apiAddExercicio, apiCreateTreino, apiListTreinos,
   type Exercicio, type Treino,
 } from "@/lib/mock-api";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({
-  head: () => ({ meta: [{ title: "Meu Treino — Núcleo For Life" }] }),
+  head: () =>
+    pageHead({
+      path: "/aluno",
+      title: "Meu Treino — Núcleo For Life",
+      description:
+        "Acompanhe seu plano de treino atual, exercícios prescritos e treinos finalizados na sua jornada Núcleo For Life.",
+    }),
   component: MeuTreinoPage,
 });
+
 
 function MeuTreinoPage() {
   const { user, effectiveAlunoId, canWrite } = useAuth();

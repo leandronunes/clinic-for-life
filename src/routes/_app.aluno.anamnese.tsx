@@ -15,12 +15,20 @@ import {
   type AnamneseItem,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/anamnese")({
-  head: () => ({ meta: [{ title: "Anamnese Dinâmica — Núcleo For Life" }] }),
+  head: () =>
+    pageHead({
+      path: "/aluno/anamnese",
+      title: "Anamnese Dinâmica — Núcleo For Life",
+      description:
+        "Responda sua anamnese dinâmica: histórico de saúde, hábitos, objetivos e restrições para orientar o seu plano.",
+    }),
   component: AnamnesePage,
 });
+
 
 function AnamnesePage() {
   const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();

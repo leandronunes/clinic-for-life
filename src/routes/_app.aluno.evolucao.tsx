@@ -39,12 +39,20 @@ import {
   type EvolucaoPonto,
   type BioImportResult,
 } from "@/lib/mock-api";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/evolucao")({
-  head: () => ({ meta: [{ title: "Evolução — Núcleo For Life" }] }),
+  head: () =>
+    pageHead({
+      path: "/aluno/evolucao",
+      title: "Evolução Física — Núcleo For Life",
+      description:
+        "Acompanhe peso, gordura, massa muscular e fotos da sua evolução com gráficos e histórico de bioimpedância.",
+    }),
   component: EvolucaoPage,
 });
+
 
 type Metric = "peso_kg" | "gordura_pct" | "massa_muscular_kg";
 

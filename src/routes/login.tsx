@@ -9,17 +9,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
 import { validateStrongPassword } from "@/lib/mock-api";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({
-    meta: [
-      { title: "Entrar — Núcleo For Life" },
-      { name: "description", content: "Acesse sua conta Núcleo For Life: saúde, movimento, capacidade, vida." },
-    ],
-  }),
+  head: () =>
+    pageHead({
+      path: "/login",
+      title: "Entrar — Núcleo For Life",
+      description:
+        "Acesse a plataforma da Clínica For Life para acompanhar avaliações, treinos e evolução em tempo real.",
+    }),
   component: LoginPage,
 });
+
 
 function LoginPage() {
   const { signIn } = useAuth();
@@ -63,8 +66,9 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col">
       <div className="grid flex-1 lg:grid-cols-2">
+
       {/* Painel visual à esquerda */}
       <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex brand-gradient">
         <BrandLogo size={56} />
@@ -184,7 +188,8 @@ function LoginPage() {
       </div>
       </div>
       <ParceirosVitrine />
-    </div>
+    </main>
+
   );
 }
 

@@ -1,0 +1,13 @@
+# Núcleo For Life
+
+> Plataforma da Clínica For Life — saúde, movimento, capacidade e vida. Acompanhamento integrado de avaliação física, treinos e evolução em tempo real.
+
+A Núcleo For Life é uma clínica 4.0 que conecta alunos, personais e administradores em uma única plataforma para gestão de avaliações físicas (bioimpedância InBody, biomecânica, anamnese dinâmica), prescrição de treinos, evolução do aluno e rede de parceiros com benefícios.
+
+## Pages
+
+- [Entrar](/login): Acesso de alunos, personais e administradores à plataforma.
+
+## Optional
+
+- [Página inicial](/): Redirecionamento para a área correspondente ao perfil autenticado.

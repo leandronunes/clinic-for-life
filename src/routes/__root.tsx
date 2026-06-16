@@ -82,14 +82,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Núcleo For Life — Clínica 4.0" },
       { name: "description", content: "Plataforma da Clínica For Life: saúde, movimento, capacidade e vida." },
       { name: "author", content: "Núcleo For Life" },
-      { property: "og:title", content: "Núcleo For Life — Clínica 4.0" },
-      { property: "og:description", content: "Plataforma da Clínica For Life: saúde, movimento, capacidade e vida." },
+      { property: "og:site_name", content: "Núcleo For Life" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Núcleo For Life — Clínica 4.0" },
-      { name: "twitter:description", content: "Plataforma da Clínica For Life: saúde, movimento, capacidade e vida." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0c4a4980-4a2c-4b2b-a23a-dd668a62aacd/id-preview-b3a31dbf--376a7081-ca80-43ef-b7e8-56a42fd2be38.lovable.app-1781568206547.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0c4a4980-4a2c-4b2b-a23a-dd668a62aacd/id-preview-b3a31dbf--376a7081-ca80-43ef-b7e8-56a42fd2be38.lovable.app-1781568206547.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -100,7 +94,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
       },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Núcleo For Life",
+              url: "https://clinic-for-life.lovable.app",
+              description:
+                "Clínica 4.0 que integra avaliação física, treinos e evolução em uma única plataforma.",
+            },
+            {
+              "@type": "WebSite",
+              name: "Núcleo For Life",
+              url: "https://clinic-for-life.lovable.app",
+            },
+          ],
+        }),
+      },
+    ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
