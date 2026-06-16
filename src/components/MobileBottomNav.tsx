@@ -121,7 +121,7 @@ export function MobileBottomNav() {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4 flex flex-col gap-1">
-                  {EXTRA_ALUNO.map((it) => (
+                  {role === "aluno" && EXTRA_ALUNO.map((it) => (
                     <SheetClose asChild key={it.url}>
                       <Link
                         to={it.url}
@@ -132,7 +132,7 @@ export function MobileBottomNav() {
                       </Link>
                     </SheetClose>
                   ))}
-                  {!isImpersonating && (
+                  {!isImpersonating && role === "aluno" && (
                     <SheetClose asChild>
                       <Link
                         to="/perfil"
