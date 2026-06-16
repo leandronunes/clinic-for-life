@@ -12,6 +12,7 @@ import {
   Handshake,
   LogOut,
   Menu,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/mock-api";
