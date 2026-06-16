@@ -39,7 +39,8 @@ function PerfilPage() {
   const saveMut = useMutation({
     mutationFn: () => apiUpdateAluno(user.aluno_id!, {
       nome: current!.nome, email: current!.email, telefone: current!.telefone,
-      altura_cm: current!.altura_cm, sexo: current!.sexo, nascimento: current!.nascimento,
+      sexo: current!.sexo, nascimento: current!.nascimento,
+      plano_saude: current!.plano_saude, contato_emergencia: current!.contato_emergencia,
     }),
     onSuccess: () => {
       toast.success("Perfil atualizado");
@@ -87,10 +88,35 @@ function PerfilPage() {
             <Field label="Nascimento">
               <Input type="date" value={current.nascimento} onChange={(e) => setForm({ ...current, nascimento: e.target.value })} />
             </Field>
-            <Field label="Altura (cm)">
-              <Input type="number" value={current.altura_cm} onChange={(e) => setForm({ ...current, altura_cm: Number(e.target.value) })} />
+            <Field label="Gênero">
+              <Select
+                value={current.sexo}
+                onValueChange={(v) => setForm({ ...current, sexo: v as Aluno["sexo"] })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="F">Feminino</SelectItem>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Plano de Saúde" className="sm:col-span-2">
+              <Input
+                value={current.plano_saude ?? ""}
+                onChange={(e) => setForm({ ...current, plano_saude: e.target.value })}
+                placeholder="Ex.: Unimed, Bradesco Saúde..."
+              />
+            </Field>
+            <Field label="Contato de Emergência" className="sm:col-span-2">
+              <Input
+                value={current.contato_emergencia ?? ""}
+                onChange={(e) => setForm({ ...current, contato_emergencia: e.target.value })}
+                placeholder="Nome e telefone"
+              />
             </Field>
           </div>
+
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setForm(null)} disabled={!form || saveMut.isPending}>Descartar</Button>
             <Button onClick={() => saveMut.mutate()} disabled={!form || saveMut.isPending}>
