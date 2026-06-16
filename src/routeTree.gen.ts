@@ -335,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoAnamneseRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aluno/exames': {
+      id: '/_app/aluno/exames'
+      path: '/aluno/exames'
+      fullPath: '/aluno/exames'
+      preLoaderRoute: typeof AppAlunoExamesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
