@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Play, Clock, Dumbbell, Archive, CheckCircle2, Info, Plus } from "lucide-react";
+import { Play, Clock, Dumbbell, Archive, CheckCircle2, Info, Plus, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  apiAddExercicio, apiCreateTreino, apiListTreinos,
+  apiAddExercicio, apiArchiveTreino, apiCreateTreino, apiDeleteExercicio,
+  apiListTreinos, apiUpdateExercicio, apiUpdateTreino,
   type Exercicio, type Treino,
 } from "@/lib/mock-api";
 import { pageHead } from "@/lib/seo";
@@ -67,7 +72,7 @@ function MeuTreinoPage() {
       </div>
 
 
-      <Tabs value={view} onValueChange={(v) => setView(v as "ativos" | "arquivados")}>
+      <Tabs value={view} onValueChange={(v) => { setView(v as "ativos" | "arquivados"); setPosicao(null); }}>
         <TabsList>
           <TabsTrigger value="ativos" className="gap-2">
             <CheckCircle2 className="h-4 w-4" /> Ativos
@@ -112,6 +117,7 @@ function MeuTreinoPage() {
               {treinoAtual && (
                 <TreinoCard
                   treino={treinoAtual}
+                  alunoId={alunoId}
                   onWatch={setVideoEx}
                   canEdit={canWrite && treinoAtual.status === "ativo"}
                 />
@@ -152,8 +158,18 @@ function MeuTreinoPage() {
 }
 
 function TreinoCard({
-  treino, onWatch, canEdit,
-}: { treino: Treino; onWatch: (e: Exercicio) => void; canEdit: boolean }) {
+  treino, alunoId, onWatch, canEdit,
+}: { treino: Treino; alunoId: string; onWatch: (e: Exercicio) => void; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const archiveMut = useMutation({
+    mutationFn: () => apiArchiveTreino(treino.id),
+    onSuccess: () => {
+      toast.success("Treino arquivado");
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível arquivar o treino"),
+  });
+
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
@@ -168,9 +184,46 @@ function TreinoCard({
             {treino.foco} · {treino.exercicios.length} exercícios · Personal: {treino.personal_nome}
           </p>
         </div>
-        <Badge variant={treino.status === "ativo" ? "default" : "secondary"} className={treino.status === "ativo" ? "bg-success text-success-foreground" : ""}>
-          {treino.status === "ativo" ? "Ativo" : "Arquivado"}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={treino.status === "ativo" ? "default" : "secondary"} className={treino.status === "ativo" ? "bg-success text-success-foreground" : ""}>
+            {treino.status === "ativo" ? "Ativo" : "Arquivado"}
+          </Badge>
+          {canEdit && (
+            <>
+              <TreinoFormDialog
+                mode="edit"
+                alunoId={alunoId}
+                treino={treino}
+                trigger={
+                  <Button size="icon" variant="ghost" aria-label="Editar treino">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                }
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label="Arquivar treino">
+                    <Archive className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Arquivar este treino?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O treino será movido para a aba "Arquivados" e ficará somente leitura.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => archiveMut.mutate()} disabled={archiveMut.isPending}>
+                      {archiveMut.isPending ? "Arquivando..." : "Arquivar"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {treino.exercicios.length === 0 && (
@@ -198,13 +251,30 @@ function TreinoCard({
                 </div>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => onWatch(ex)} className="self-start sm:self-auto">
-              <Play className="mr-1 h-4 w-4" /> Ver execução
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              <Button size="sm" variant="outline" onClick={() => onWatch(ex)}>
+                <Play className="mr-1 h-4 w-4" /> Ver execução
+              </Button>
+              {canEdit && (
+                <>
+                  <ExercicioFormDialog
+                    mode="edit"
+                    treinoId={treino.id}
+                    exercicio={ex}
+                    trigger={
+                      <Button size="icon" variant="ghost" aria-label="Editar exercício">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                  <DeleteExercicioButton treinoId={treino.id} exercicio={ex} />
+                </>
+              )}
+            </div>
           </div>
         ))}
 
-        {canEdit && <NovoExercicioDialog treinoId={treino.id} />}
+        {canEdit && <ExercicioFormDialog mode="create" treinoId={treino.id} />}
       </CardContent>
     </Card>
   );
@@ -215,37 +285,65 @@ function TreinoCard({
 function NovoTreinoDialog({
   alunoId, personalNome, onCreated,
 }: { alunoId: string; personalNome?: string; onCreated?: (t: Treino) => void }) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<{ titulo: string; foco: string }>({
-    titulo: "",
-    foco: "",
-  });
-
-  const mut = useMutation({
-    mutationFn: () => apiCreateTreino(alunoId, { ...form, personal_nome: personalNome }),
-    onSuccess: (novo) => {
-      toast.success(`Treino ${novo.posicao} cadastrado`);
-      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
-      setOpen(false);
-      setForm({ titulo: "", foco: "" });
-      onCreated?.(novo);
-    },
-    onError: () => toast.error("Não foi possível cadastrar o treino"),
-  });
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <TreinoFormDialog
+      mode="create"
+      alunoId={alunoId}
+      personalNome={personalNome}
+      onCreated={onCreated}
+      trigger={
         <Button size="sm">
           <Plus className="mr-1 h-4 w-4" /> Novo treino
         </Button>
-      </DialogTrigger>
+      }
+    />
+  );
+}
+
+function TreinoFormDialog({
+  mode, alunoId, personalNome, treino, trigger, onCreated,
+}: {
+  mode: "create" | "edit";
+  alunoId: string;
+  personalNome?: string;
+  treino?: Treino;
+  trigger?: React.ReactNode;
+  onCreated?: (t: Treino) => void;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<{ titulo: string; foco: string }>({
+    titulo: treino?.titulo ?? "",
+    foco: treino?.foco ?? "",
+  });
+
+  const mut = useMutation({
+    mutationFn: () =>
+      mode === "create"
+        ? apiCreateTreino(alunoId, { ...form, personal_nome: personalNome })
+        : apiUpdateTreino(treino!.id, form),
+    onSuccess: (novo) => {
+      toast.success(mode === "create" ? `Treino ${novo.posicao} cadastrado` : "Treino atualizado");
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+      setOpen(false);
+      if (mode === "create") {
+        setForm({ titulo: "", foco: "" });
+        onCreated?.(novo);
+      }
+    },
+    onError: () => toast.error(mode === "create" ? "Não foi possível cadastrar o treino" : "Não foi possível atualizar o treino"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && treino) setForm({ titulo: treino.titulo, foco: treino.foco }); }}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Cadastrar novo treino</DialogTitle>
+          <DialogTitle>{mode === "create" ? "Cadastrar novo treino" : "Editar treino"}</DialogTitle>
           <DialogDescription>
-            A posição é atribuída automaticamente conforme a ordem dos treinos ativos.
+            {mode === "create"
+              ? "A posição é atribuída automaticamente conforme a ordem dos treinos ativos."
+              : "Atualize o título e o foco deste treino."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -272,7 +370,7 @@ function NovoTreinoDialog({
             onClick={() => mut.mutate()}
             disabled={mut.isPending || !form.titulo.trim() || !form.foco.trim()}
           >
-            {mut.isPending ? "Salvando..." : "Criar treino"}
+            {mut.isPending ? "Salvando..." : mode === "create" ? "Criar treino" : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -280,36 +378,59 @@ function NovoTreinoDialog({
   );
 }
 
-function NovoExercicioDialog({ treinoId }: { treinoId: string }) {
+function ExercicioFormDialog({
+  mode, treinoId, exercicio, trigger,
+}: {
+  mode: "create" | "edit";
+  treinoId: string;
+  exercicio?: Exercicio;
+  trigger?: React.ReactNode;
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const emptyForm = {
     nome: "", grupo: "", series: 3, reps: "10-12",
     carga_kg: undefined as number | undefined,
     descanso_s: 60, video_url: "", observacao: "",
+  };
+  const formFromEx = (ex: Exercicio) => ({
+    nome: ex.nome,
+    grupo: ex.grupo,
+    series: ex.series,
+    reps: ex.reps,
+    carga_kg: ex.carga_kg,
+    descanso_s: ex.descanso_s,
+    video_url: ex.video_url,
+    observacao: ex.observacao ?? "",
   });
+  const [form, setForm] = useState(exercicio ? formFromEx(exercicio) : emptyForm);
 
   const mut = useMutation({
-    mutationFn: () => apiAddExercicio(treinoId, form),
+    mutationFn: () =>
+      mode === "create"
+        ? apiAddExercicio(treinoId, form)
+        : apiUpdateExercicio(treinoId, exercicio!.id, form),
     onSuccess: () => {
-      toast.success("Exercício adicionado");
+      toast.success(mode === "create" ? "Exercício adicionado" : "Exercício atualizado");
       qc.invalidateQueries({ queryKey: ["treinos"] });
       setOpen(false);
-      setForm({ nome: "", grupo: "", series: 3, reps: "10-12", carga_kg: undefined, descanso_s: 60, video_url: "", observacao: "" });
+      if (mode === "create") setForm(emptyForm);
     },
-    onError: () => toast.error("Falha ao adicionar exercício"),
+    onError: () => toast.error(mode === "create" ? "Falha ao adicionar exercício" : "Falha ao atualizar exercício"),
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && exercicio) setForm(formFromEx(exercicio)); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full border-dashed">
-          <Plus className="mr-1 h-4 w-4" /> Adicionar exercício / série
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="w-full border-dashed">
+            <Plus className="mr-1 h-4 w-4" /> Adicionar exercício / série
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Adicionar exercício</DialogTitle>
+          <DialogTitle>{mode === "create" ? "Adicionar exercício" : "Editar exercício"}</DialogTitle>
           <DialogDescription>
             Cadastre o exercício com séries, repetições, carga e descanso.
           </DialogDescription>
@@ -384,11 +505,44 @@ function NovoExercicioDialog({ treinoId }: { treinoId: string }) {
             onClick={() => mut.mutate()}
             disabled={mut.isPending || !form.nome.trim() || !form.grupo.trim() || !form.reps.trim()}
           >
-            {mut.isPending ? "Salvando..." : "Adicionar"}
+            {mut.isPending ? "Salvando..." : mode === "create" ? "Adicionar" : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DeleteExercicioButton({ treinoId, exercicio }: { treinoId: string; exercicio: Exercicio }) {
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => apiDeleteExercicio(treinoId, exercicio.id),
+    onSuccess: () => {
+      toast.success("Exercício removido");
+      qc.invalidateQueries({ queryKey: ["treinos"] });
+    },
+    onError: () => toast.error("Falha ao remover exercício"),
+  });
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="icon" variant="ghost" aria-label="Remover exercício">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remover "{exercicio.nome}"?</AlertDialogTitle>
+          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => mut.mutate()} disabled={mut.isPending}>
+            {mut.isPending ? "Removendo..." : "Remover"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
