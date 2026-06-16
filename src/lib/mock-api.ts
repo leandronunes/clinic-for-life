@@ -778,9 +778,14 @@ export type AnamneseItem =
   | "remedios"
   | "reposicoes"
   | "observacoes"
+  | "pressao_sistolica"
+  | "pressao_diastolica"
+  | "glicemia_variavel"
   | "fratura"
   | "luxacoes"
   | "dor"
+  | "altura"
+  | "peso"
   | "refeicoes"
   | "hidratacao"
   | "sono"
@@ -805,6 +810,9 @@ export const ANAMNESE_SECOES: {
       { key: "remedios", label: "Remédios" },
       { key: "reposicoes", label: "Reposições / Suplementos" },
       { key: "observacoes", label: "Observações" },
+      { key: "pressao_sistolica", label: "Pressão Sistólica" },
+      { key: "pressao_diastolica", label: "Pressão Diastólica" },
+      { key: "glicemia_variavel", label: "Glicemia Variável" },
     ],
   },
   {
@@ -813,6 +821,8 @@ export const ANAMNESE_SECOES: {
       { key: "fratura", label: "Fratura" },
       { key: "luxacoes", label: "Luxações" },
       { key: "dor", label: "Dor" },
+      { key: "altura", label: "Altura" },
+      { key: "peso", label: "Peso" },
     ],
   },
   {
@@ -825,6 +835,7 @@ export const ANAMNESE_SECOES: {
     ],
   },
 ];
+
 
 const ANAMNESE: Record<string, AnamneseDinamica> = {};
 
