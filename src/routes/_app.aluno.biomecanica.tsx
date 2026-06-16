@@ -1,14 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Loader2, Trash2, ImageIcon, Check, X } from "lucide-react";
+import { Upload, Loader2, Trash2, ImageIcon, Check, X, History, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   apiGetAluno,
   apiListBiomecanica,
+  apiListBiomecanicaHistorico,
+  apiNovaAvaliacaoBiomecanica,
   apiUploadBiomecanica,
   apiDeleteBiomecanica,
   apiGetEstrutural,
@@ -55,17 +74,63 @@ function BiomecanicaPage() {
   });
   const alunoNome = alunoResp?.data?.nome;
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["biomecanica", alunoId] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["biomecanica", alunoId] });
+    qc.invalidateQueries({ queryKey: ["biomecanica-hist", alunoId] });
+  };
+
+  const hasAlguma = Object.keys(imagens).length > 0;
+  const [novaBusy, setNovaBusy] = useState(false);
+
+  const handleNovaAvaliacao = async () => {
+    setNovaBusy(true);
+    try {
+      await apiNovaAvaliacaoBiomecanica(alunoId);
+      toast.success("Nova avaliação iniciada. O conjunto anterior foi arquivado no histórico.");
+      refresh();
+    } catch {
+      toast.error("Falha ao iniciar nova avaliação.");
+    } finally {
+      setNovaBusy(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Avaliação Biomecânica</h1>
-        <p className="text-sm text-muted-foreground">
-          {isImpersonating && alunoNome
-            ? `Avaliação biomecânica de ${alunoNome}.`
-            : "Registro fotográfico dos planos coronal e sagital para análise postural."}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Avaliação Biomecânica</h1>
+          <p className="text-sm text-muted-foreground">
+            {isImpersonating && alunoNome
+              ? `Avaliação biomecânica de ${alunoNome}.`
+              : "Registro fotográfico dos planos coronal e sagital para análise postural."}
+          </p>
+        </div>
+        {canWrite && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={novaBusy || !hasAlguma} className="sm:self-start">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova avaliação
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Iniciar nova avaliação?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  O conjunto atual de imagens dos planos coronal e sagital será arquivado no
+                  histórico e você poderá enviar um novo conjunto. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleNovaAvaliacao}>
+                  Iniciar nova avaliação
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <PlanoSection
@@ -90,7 +155,117 @@ function BiomecanicaPage() {
         onChanged={refresh}
       />
 
+      <HistoricoBiomecanicaSection alunoId={alunoId} />
+
       <AvaliacaoEstruturalSection alunoId={alunoId} canWrite={canWrite} />
+    </div>
+  );
+}
+
+function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
+  const { data: historico = [], isLoading } = useQuery({
+    queryKey: ["biomecanica-hist", alunoId],
+    queryFn: () => apiListBiomecanicaHistorico(alunoId),
+  });
+
+  return (
+    <Card className="shadow-soft">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <History className="h-4 w-4" /> Histórico de Avaliações
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Conjuntos de imagens de avaliações anteriores (planos coronal e sagital).
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="grid place-items-center py-6 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : historico.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Nenhuma avaliação anterior arquivada.
+          </p>
+        ) : (
+          <Accordion type="single" collapsible className="w-full">
+            {historico.map((av, idx) => {
+              const data = new Date(av.criada_em);
+              const dataFmt = data.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              });
+              const horaFmt = data.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const total = Object.keys(av.imagens).length;
+              return (
+                <AccordionItem key={av.id} value={av.id}>
+                  <AccordionTrigger className="text-sm">
+                    <span className="flex flex-1 items-center justify-between gap-2 pr-2">
+                      <span>
+                        Avaliação de {dataFmt}{" "}
+                        <span className="text-muted-foreground">às {horaFmt}</span>
+                        {idx === 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            Mais recente
+                          </Badge>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {total}/6 imagens
+                      </span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <HistoricoPlanoGrid titulo="Plano Coronal" slots={PLANO_CORONAL} imagens={av.imagens} />
+                    <HistoricoPlanoGrid titulo="Plano Sagital" slots={PLANO_SAGITAL} imagens={av.imagens} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function HistoricoPlanoGrid({
+  titulo,
+  slots,
+  imagens,
+}: {
+  titulo: string;
+  slots: { slot: BiomecanicaSlot; label: string }[];
+  imagens: BiomecanicaImagens;
+}) {
+  return (
+    <div>
+      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {titulo}
+      </h4>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {slots.map((s) => {
+          const url = imagens[s.slot];
+          return (
+            <div key={s.slot} className="space-y-1">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border bg-muted/30">
+                {url ? (
+                  <img src={url} alt={s.label} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full place-items-center text-muted-foreground">
+                    <ImageIcon className="h-6 w-6 opacity-50" />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
