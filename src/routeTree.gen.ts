@@ -16,7 +16,6 @@ import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as AppBioimpedanciaRouteImport } from './routes/_app.bioimpedancia'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
 import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
@@ -59,11 +58,6 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const AppBioimpedanciaRoute = AppBioimpedanciaRouteImport.update({
-  id: '/bioimpedancia',
-  path: '/bioimpedancia',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAlunoIndexRoute = AppAlunoIndexRouteImport.update({
   id: '/aluno/',
   path: '/aluno/',
@@ -103,7 +97,6 @@ const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
@@ -119,7 +112,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/bioimpedancia': typeof AppBioimpedanciaRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
@@ -137,7 +129,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/bioimpedancia': typeof AppBioimpedanciaRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
@@ -155,7 +146,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/bioimpedancia'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
@@ -171,7 +161,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/bioimpedancia'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
@@ -188,7 +177,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/bioimpedancia'
     | '/_app/dashboard'
     | '/_app/parceiros'
     | '/_app/perfil'
@@ -259,13 +247,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/bioimpedancia': {
-      id: '/_app/bioimpedancia'
-      path: '/bioimpedancia'
-      fullPath: '/bioimpedancia'
-      preLoaderRoute: typeof AppBioimpedanciaRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/aluno/': {
       id: '/_app/aluno/'
       path: '/aluno'
@@ -319,7 +300,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppBioimpedanciaRoute: typeof AppBioimpedanciaRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -334,7 +314,6 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppBioimpedanciaRoute: AppBioimpedanciaRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
