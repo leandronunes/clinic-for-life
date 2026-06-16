@@ -23,6 +23,7 @@ import {
   type Exercicio, type Treino,
 } from "@/lib/mock-api";
 import { pageHead } from "@/lib/seo";
+import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({
@@ -137,13 +138,22 @@ function MeuTreinoPage() {
           </DialogHeader>
           {videoEx && (
             <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-              <iframe
-                src={videoEx.video_url}
-                title={videoEx.nome}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {isUploadedVideo(videoEx.video_url) ? (
+                <video
+                  src={videoEx.video_url}
+                  controls
+                  playsInline
+                  className="h-full w-full"
+                />
+              ) : (
+                <iframe
+                  src={videoEx.video_url}
+                  title={videoEx.nome}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
           )}
           {videoEx?.observacao && (
@@ -481,12 +491,10 @@ function ExercicioFormDialog({
               onChange={(e) => setForm({ ...form, descanso_s: Math.max(0, Number(e.target.value) || 0) })}
             />
           </Field>
-          <Field label="Vídeo (YouTube embed)" className="sm:col-span-2">
-            <Input
-              placeholder="https://www.youtube.com/embed/..."
+          <Field label="Vídeo de demonstração" className="sm:col-span-2">
+            <ExercicioVideoInput
               value={form.video_url}
-              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-              maxLength={200}
+              onChange={(url) => setForm({ ...form, video_url: url })}
             />
           </Field>
           <Field label="Observação" className="sm:col-span-2">
