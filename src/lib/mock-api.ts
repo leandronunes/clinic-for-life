@@ -843,6 +843,7 @@ export type AnamneseItem =
   | "hidratacao"
   | "sono"
   | "fezes"
+  | "urina"
   | "objetivos";
 
 export type AnamneseDinamica = Partial<Record<AnamneseItem, string>>;
