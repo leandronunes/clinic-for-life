@@ -188,7 +188,8 @@ function LoginPage() {
       </div>
       </div>
       <ParceirosVitrine />
-    </div>
+    </main>
+
   );
 }
 
