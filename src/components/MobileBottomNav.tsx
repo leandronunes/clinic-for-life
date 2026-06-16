@@ -8,9 +8,20 @@ import {
   Images,
   UserCircle,
   ArrowLeftCircle,
+  ClipboardList,
+  LogOut,
+  Menu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/mock-api";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 type NavItem = { title: string; url: string; icon: typeof Users };
 
@@ -32,19 +43,34 @@ const MENU: Record<UserRole, NavItem[]> = {
   ],
 };
 
+const EXTRA_ALUNO: NavItem[] = [
+  { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
+  { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
+];
+
 export function MobileBottomNav() {
-  const { user, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
+  const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
   const navigate = useNavigate();
   const role = effectiveRole ?? user?.role;
   let items = role ? [...MENU[role]] : [];
   if (isImpersonating) {
     items = items.filter((i) => i.url !== "/perfil");
+  }
+  // Replace last slot with "Mais" menu for aluno role to expose extras + sair.
+  const showMore = role === "aluno";
+  if (showMore) {
+    // remove Perfil from main bar (moved into More), keep 4 + More
+    items = items.filter((i) => i.url !== "/perfil");
+  }
+  if (isImpersonating) {
     items.push({ title: "Voltar", url: "__stop__", icon: ArrowLeftCircle });
   }
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (items.length === 0) return null;
+  if (items.length === 0 && !showMore) return null;
+
+  const totalCols = items.length + (showMore ? 1 : 0);
   const colsClass =
-    items.length >= 5 ? "grid-cols-5" : items.length === 4 ? "grid-cols-4" : items.length === 3 ? "grid-cols-3" : "grid-cols-2";
+    totalCols >= 5 ? "grid-cols-5" : totalCols === 4 ? "grid-cols-4" : totalCols === 3 ? "grid-cols-3" : "grid-cols-2";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
@@ -79,6 +105,73 @@ export function MobileBottomNav() {
             </li>
           );
         })}
+        {showMore && (
+          <li>
+            <Sheet>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
+                >
+                  <Menu className="h-5 w-5" />
+                  Mais
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-2xl">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 flex flex-col gap-1">
+                  {EXTRA_ALUNO.map((it) => (
+                    <SheetClose asChild key={it.url}>
+                      <Link
+                        to={it.url}
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                      >
+                        <it.icon className="h-5 w-5" />
+                        {it.title}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                  {!isImpersonating && (
+                    <SheetClose asChild>
+                      <Link
+                        to="/perfil"
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                      >
+                        <UserCircle className="h-5 w-5" />
+                        Perfil
+                      </Link>
+                    </SheetClose>
+                  )}
+                  {isImpersonating ? (
+                    <SheetClose asChild>
+                      <button
+                        type="button"
+                        onClick={() => { stopImpersonating(); navigate({ to: "/usuarios" }); }}
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent text-left"
+                      >
+                        <ArrowLeftCircle className="h-5 w-5" />
+                        Voltar ao meu perfil
+                      </button>
+                    </SheetClose>
+                  ) : (
+                    <SheetClose asChild>
+                      <button
+                        type="button"
+                        onClick={signOut}
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent text-left text-destructive"
+                      >
+                        <LogOut className="h-5 w-5" />
+                        Sair
+                      </button>
+                    </SheetClose>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </li>
+        )}
       </ul>
     </nav>
   );
