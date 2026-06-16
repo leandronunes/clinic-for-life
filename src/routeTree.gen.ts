@@ -24,7 +24,6 @@ import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evoluc
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
 import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
-import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -98,6 +97,11 @@ const AppAlunoBiomecanicaRoute = AppAlunoBiomecanicaRouteImport.update({
 const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
   id: '/aluno/anamnese',
   path: '/aluno/anamnese',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlunoParceirosRoute = AppAlunoParceirosRouteImport.update({
+  id: '/aluno/parceiros',
+  path: '/aluno/parceiros',
   getParentRoute: () => AppRoute,
 } as any)
 
