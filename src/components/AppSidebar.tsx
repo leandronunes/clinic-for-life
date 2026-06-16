@@ -12,6 +12,7 @@ import {
   Eye,
   Handshake,
   ClipboardList,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
