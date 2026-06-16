@@ -9,17 +9,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
 import { validateStrongPassword } from "@/lib/mock-api";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({
-    meta: [
-      { title: "Entrar — Núcleo For Life" },
-      { name: "description", content: "Acesse sua conta Núcleo For Life: saúde, movimento, capacidade, vida." },
-    ],
-  }),
+  head: () =>
+    pageHead({
+      path: "/login",
+      title: "Entrar — Núcleo For Life",
+      description:
+        "Acesse a plataforma da Clínica For Life para acompanhar avaliações, treinos e evolução em tempo real.",
+    }),
   component: LoginPage,
 });
+
 
 function LoginPage() {
   const { signIn } = useAuth();
