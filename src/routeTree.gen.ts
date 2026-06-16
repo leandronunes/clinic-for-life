@@ -23,6 +23,7 @@ import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evoluc
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
 import { Route as AppAlunoBioimpedanciaRouteImport } from './routes/_app.aluno.bioimpedancia'
+import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -93,6 +94,11 @@ const AppAlunoBioimpedanciaRoute = AppAlunoBioimpedanciaRouteImport.update({
   path: '/aluno/bioimpedancia',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
+  id: '/aluno/anamnese',
+  path: '/aluno/anamnese',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/aluno/comparativo': typeof AppAlunoComparativoRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/usuarios': typeof AppUsuariosRoute
+  '/_app/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/_app/aluno/bioimpedancia': typeof AppAlunoBioimpedanciaRoute
   '/_app/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
   '/_app/aluno/comparativo': typeof AppAlunoComparativoRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/perfil'
     | '/usuarios'
+    | '/aluno/anamnese'
     | '/aluno/bioimpedancia'
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/perfil'
     | '/usuarios'
+    | '/aluno/anamnese'
     | '/aluno/bioimpedancia'
     | '/aluno/biomecanica'
     | '/aluno/comparativo'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/_app/parceiros'
     | '/_app/perfil'
     | '/_app/usuarios'
+    | '/_app/aluno/anamnese'
     | '/_app/aluno/bioimpedancia'
     | '/_app/aluno/biomecanica'
     | '/_app/aluno/comparativo'
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoBioimpedanciaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aluno/anamnese': {
+      id: '/_app/aluno/anamnese'
+      path: '/aluno/anamnese'
+      fullPath: '/aluno/anamnese'
+      preLoaderRoute: typeof AppAlunoAnamneseRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -305,6 +324,7 @@ interface AppRouteChildren {
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
+  AppAlunoAnamneseRoute: typeof AppAlunoAnamneseRoute
   AppAlunoBioimpedanciaRoute: typeof AppAlunoBioimpedanciaRoute
   AppAlunoBiomecanicaRoute: typeof AppAlunoBiomecanicaRoute
   AppAlunoComparativoRoute: typeof AppAlunoComparativoRoute
@@ -319,6 +339,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppUsuariosRoute: AppUsuariosRoute,
+  AppAlunoAnamneseRoute: AppAlunoAnamneseRoute,
   AppAlunoBioimpedanciaRoute: AppAlunoBioimpedanciaRoute,
   AppAlunoBiomecanicaRoute: AppAlunoBiomecanicaRoute,
   AppAlunoComparativoRoute: AppAlunoComparativoRoute,

@@ -11,6 +11,7 @@ import {
   ArrowLeftCircle,
   Eye,
   Handshake,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
     { title: "Bioimpedância", url: "/aluno/bioimpedancia", icon: Activity },
     { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
+    { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
     { title: "Perfil", url: "/perfil", icon: UserCircle },
   ],
 };
