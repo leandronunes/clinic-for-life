@@ -863,20 +863,21 @@ export const ANAMNESE_SECOES: {
     itens: [
       { key: "remedios", label: "Remédios" },
       { key: "reposicoes", label: "Reposições / Suplementos" },
-      { key: "observacoes", label: "Observações" },
       { key: "pressao_sistolica", label: "Pressão Sistólica" },
       { key: "pressao_diastolica", label: "Pressão Diastólica" },
       { key: "glicemia_variavel", label: "Glicemia Variável" },
+      { key: "observacoes", label: "Observações" },
     ],
   },
   {
     titulo: "Avaliação Ortopédica",
     itens: [
+      { key: "altura", label: "Altura" },
+      { key: "peso", label: "Peso" },
       { key: "fratura", label: "Fratura" },
       { key: "luxacoes", label: "Luxações" },
       { key: "dor", label: "Dor" },
-      { key: "altura", label: "Altura" },
-      { key: "peso", label: "Peso" },
+      { key: "observacoes", label: "Observações" },
     ],
   },
   {
@@ -886,6 +887,7 @@ export const ANAMNESE_SECOES: {
       { key: "hidratacao", label: "Hidratação" },
       { key: "sono", label: "Sono" },
       { key: "fezes", label: "Fezes" },
+      { key: "urina", label: "Urina" },
     ],
   },
 ];
