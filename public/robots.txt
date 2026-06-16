@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://clinic-for-life.lovable.app/sitemap.xml
