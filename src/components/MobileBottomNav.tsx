@@ -52,6 +52,7 @@ const EXTRA_ALUNO: NavItem[] = [
 
 export function MobileBottomNav() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const role = effectiveRole ?? user?.role;
   let items = role ? [...MENU[role]] : [];
