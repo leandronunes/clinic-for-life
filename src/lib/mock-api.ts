@@ -687,11 +687,60 @@ export type BiomecanicaSlot =
 
 export type BiomecanicaImagens = Partial<Record<BiomecanicaSlot, string>>;
 
-const BIOMECANICA: Record<string, BiomecanicaImagens> = {};
+export interface BiomecanicaAvaliacao {
+  id: string;
+  criada_em: string;
+  imagens: BiomecanicaImagens;
+}
+
+const BIOMECANICA_HIST: Record<string, BiomecanicaAvaliacao[]> = {};
+
+function ensureAvaliacaoAtual(alunoId: string): BiomecanicaAvaliacao {
+  const list = BIOMECANICA_HIST[alunoId] ?? (BIOMECANICA_HIST[alunoId] = []);
+  if (list.length === 0) {
+    list.push({
+      id: `bio_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      criada_em: new Date().toISOString(),
+      imagens: {},
+    });
+  }
+  return list[list.length - 1];
+}
 
 export async function apiListBiomecanica(alunoId: string): Promise<BiomecanicaImagens> {
   await wait(250);
-  return { ...(BIOMECANICA[alunoId] ?? {}) };
+  const list = BIOMECANICA_HIST[alunoId] ?? [];
+  if (list.length === 0) return {};
+  return { ...list[list.length - 1].imagens };
+}
+
+export async function apiListBiomecanicaHistorico(
+  alunoId: string,
+): Promise<BiomecanicaAvaliacao[]> {
+  await wait(250);
+  const list = BIOMECANICA_HIST[alunoId] ?? [];
+  if (list.length <= 1) return [];
+  // Histórico = todas as avaliações exceto a atual (última), ordem decrescente
+  return list.slice(0, -1).map((a) => ({ ...a, imagens: { ...a.imagens } })).reverse();
+}
+
+export async function apiNovaAvaliacaoBiomecanica(
+  alunoId: string,
+): Promise<BiomecanicaAvaliacao> {
+  await wait(300);
+  const list = BIOMECANICA_HIST[alunoId] ?? (BIOMECANICA_HIST[alunoId] = []);
+  const atual = list[list.length - 1];
+  // Só arquiva se a avaliação atual tem alguma imagem; senão reaproveita
+  if (!atual || Object.keys(atual.imagens).length > 0) {
+    const nova: BiomecanicaAvaliacao = {
+      id: `bio_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      criada_em: new Date().toISOString(),
+      imagens: {},
+    };
+    list.push(nova);
+    return nova;
+  }
+  return atual;
 }
 
 export async function apiUploadBiomecanica(
@@ -706,7 +755,8 @@ export async function apiUploadBiomecanica(
     reader.onerror = () => reject(new Error("Falha ao ler imagem"));
     reader.readAsDataURL(file);
   });
-  BIOMECANICA[alunoId] = { ...(BIOMECANICA[alunoId] ?? {}), [slot]: url };
+  const atual = ensureAvaliacaoAtual(alunoId);
+  atual.imagens[slot] = url;
   return { slot, url };
 }
 
@@ -715,7 +765,10 @@ export async function apiDeleteBiomecanica(
   slot: BiomecanicaSlot,
 ): Promise<{ slot: BiomecanicaSlot }> {
   await wait(300);
-  if (BIOMECANICA[alunoId]) delete BIOMECANICA[alunoId][slot];
+  const list = BIOMECANICA_HIST[alunoId];
+  if (list && list.length > 0) {
+    delete list[list.length - 1].imagens[slot];
+  }
   return { slot };
 }
 
