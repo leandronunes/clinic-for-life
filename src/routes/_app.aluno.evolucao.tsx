@@ -24,6 +24,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  Camera,
+  ImagePlus,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,10 +87,13 @@ function EvolucaoPage() {
       </div>
 
       {canWrite && (
-        <BioUploadCard
-          alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
-          onImported={() => refetch()}
-        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <BioUploadCard
+            alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
+            onImported={() => refetch()}
+          />
+          <PhotoUploadCard alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""} />
+        </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -315,6 +321,111 @@ function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImpor
             </Table>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PhotoUploadCard({ alunoEmail }: { alunoEmail: string }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [drag, setDrag] = useState(false);
+
+  const handleFile = (f: File) => {
+    if (!f.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
+      return;
+    }
+    const url = URL.createObjectURL(f);
+    setPreview(url);
+    setFileName(f.name);
+    toast.success(`Foto carregada${alunoEmail ? ` para ${alunoEmail}` : ""}`);
+  };
+
+  const clear = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setFileName("");
+  };
+
+  return (
+    <Card className="shadow-soft border-accent/30">
+      <CardHeader>
+        <CardTitle className="text-base">Upload de Foto de Evolução</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Tire uma foto agora pelo celular ou envie uma imagem já existente para registrar a evolução visual deste aluno.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
+
+        {preview ? (
+          <div className="relative overflow-hidden rounded-xl border border-border">
+            <img src={preview} alt={fileName} className="max-h-80 w-full object-contain bg-muted" />
+            <button
+              type="button"
+              onClick={clear}
+              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
+              aria-label="Remover imagem"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {fileName && (
+              <div className="border-t border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground truncate">
+                {fileName}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+            onClick={() => galleryRef.current?.click()}
+            className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+              drag ? "border-accent bg-accent/5" : "border-border hover:bg-muted/30"
+            }`}
+          >
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full brand-gradient text-primary-foreground">
+              <ImagePlus className="h-5 w-5" />
+            </div>
+            <h3 className="mt-3 font-semibold">Arraste uma foto ou clique para enviar</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Formatos: JPG, PNG, WEBP</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <Camera className="h-4 w-4" /> Tirar foto
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            <ImagePlus className="h-4 w-4" /> Escolher imagem
+          </button>
+        </div>
       </CardContent>
     </Card>
   );
