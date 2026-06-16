@@ -24,6 +24,7 @@ import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.com
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
 import { Route as AppAlunoBioimpedanciaRouteImport } from './routes/_app.aluno.bioimpedancia'
 import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
+import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
