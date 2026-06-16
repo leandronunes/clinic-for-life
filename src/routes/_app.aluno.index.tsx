@@ -23,6 +23,7 @@ import {
   type Exercicio, type Treino,
 } from "@/lib/mock-api";
 import { pageHead } from "@/lib/seo";
+import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({
