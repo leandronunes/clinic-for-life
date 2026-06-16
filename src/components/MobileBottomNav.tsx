@@ -9,6 +9,7 @@ import {
   UserCircle,
   ArrowLeftCircle,
   ClipboardList,
+  Handshake,
   LogOut,
   Menu,
 } from "lucide-react";
