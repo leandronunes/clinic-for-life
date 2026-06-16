@@ -17,12 +17,20 @@ import {
   type Aluno, type Personal,
 } from "@/lib/mock-api";
 import { useAuth } from "@/contexts/auth-context";
+import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/usuarios")({
-  head: () => ({ meta: [{ title: "Usuários — Núcleo For Life" }] }),
+  head: () =>
+    pageHead({
+      path: "/usuarios",
+      title: "Usuários — Núcleo For Life",
+      description:
+        "Gerencie alunos e personais da clínica: criação de contas, edição de perfis e impersonação para suporte.",
+    }),
   component: UsuariosPage,
 });
+
 
 function UsuariosPage() {
   const { user, canWrite, hasRole } = useAuth();
