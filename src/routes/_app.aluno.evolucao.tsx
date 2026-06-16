@@ -87,10 +87,13 @@ function EvolucaoPage() {
       </div>
 
       {canWrite && (
-        <BioUploadCard
-          alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
-          onImported={() => refetch()}
-        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <BioUploadCard
+            alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
+            onImported={() => refetch()}
+          />
+          <PhotoUploadCard alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""} />
+        </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
