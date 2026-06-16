@@ -55,8 +55,9 @@ function formatBytes(n: number) {
 }
 
 function ExamesPage() {
-  const { user, effectiveAlunoId, canWrite } = useAuth();
+  const { user, effectiveAlunoId, isImpersonating } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
+  const canWrite = !isImpersonating; // o aluno (ou ele mesmo na sessão) pode enviar
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
