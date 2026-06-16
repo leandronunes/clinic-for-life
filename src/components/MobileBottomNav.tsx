@@ -82,11 +82,13 @@ export function MobileBottomNav() {
               <li key="stop">
                 <button
                   type="button"
+                  aria-label="Voltar ao meu perfil"
                   onClick={() => { stopImpersonating(); navigate({ to: "/usuarios" }); }}
                   className="flex w-full flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
                 >
-                  <it.icon className="h-5 w-5" />
+                  <it.icon className="h-5 w-5" aria-hidden="true" />
                   {it.title}
+
                 </button>
               </li>
             );
