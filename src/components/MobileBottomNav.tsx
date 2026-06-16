@@ -14,7 +14,6 @@ import {
   Menu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { UserRole } from "@/lib/mock-api";
 import {
   Sheet,
@@ -53,8 +52,8 @@ const EXTRA_ALUNO: NavItem[] = [
 export function MobileBottomNav() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const role = effectiveRole ?? user?.role;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const role = pathname.startsWith("/aluno") ? "aluno" : (effectiveRole ?? user?.role);
   let items = role ? [...MENU[role]] : [];
   if (isImpersonating) {
     items = items.filter((i) => i.url !== "/perfil");
@@ -68,17 +67,20 @@ export function MobileBottomNav() {
   if (isImpersonating) {
     items.push({ title: "Voltar", url: "__stop__", icon: ArrowLeftCircle });
   }
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (!isMobile) return null;
   if (items.length === 0 && !showMore) return null;
 
   const totalCols = items.length + (showMore ? 1 : 0);
   const colsClass =
-    totalCols >= 5 ? "grid-cols-5" : totalCols === 4 ? "grid-cols-4" : totalCols === 3 ? "grid-cols-3" : "grid-cols-2";
+    totalCols >= 5
+      ? "grid-cols-5"
+      : totalCols === 4
+        ? "grid-cols-4"
+        : totalCols === 3
+          ? "grid-cols-3"
+          : "grid-cols-2";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
       <ul className={`grid ${colsClass}`}>
         {items.map((it) => {
           if (it.url === "__stop__") {
@@ -87,12 +89,14 @@ export function MobileBottomNav() {
                 <button
                   type="button"
                   aria-label="Voltar ao meu perfil"
-                  onClick={() => { stopImpersonating(); navigate({ to: "/usuarios" }); }}
+                  onClick={() => {
+                    stopImpersonating();
+                    navigate({ to: "/usuarios" });
+                  }}
                   className="flex w-full flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
                 >
                   <it.icon className="h-5 w-5" aria-hidden="true" />
                   {it.title}
-
                 </button>
               </li>
             );
@@ -124,24 +128,24 @@ export function MobileBottomNav() {
                   <Menu className="h-5 w-5" aria-hidden="true" />
                   Mais
                 </button>
-
               </SheetTrigger>
               <SheetContent side="bottom" className="rounded-t-2xl">
                 <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4 flex flex-col gap-1">
-                  {role === "aluno" && EXTRA_ALUNO.map((it) => (
-                    <SheetClose asChild key={it.url}>
-                      <Link
-                        to={it.url}
-                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
-                      >
-                        <it.icon className="h-5 w-5" />
-                        {it.title}
-                      </Link>
-                    </SheetClose>
-                  ))}
+                  {role === "aluno" &&
+                    EXTRA_ALUNO.map((it) => (
+                      <SheetClose asChild key={it.url}>
+                        <Link
+                          to={it.url}
+                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                        >
+                          <it.icon className="h-5 w-5" />
+                          {it.title}
+                        </Link>
+                      </SheetClose>
+                    ))}
                   {!isImpersonating && role === "aluno" && (
                     <SheetClose asChild>
                       <Link
@@ -157,7 +161,10 @@ export function MobileBottomNav() {
                     <SheetClose asChild>
                       <button
                         type="button"
-                        onClick={() => { stopImpersonating(); navigate({ to: "/usuarios" }); }}
+                        onClick={() => {
+                          stopImpersonating();
+                          navigate({ to: "/usuarios" });
+                        }}
                         className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent text-left"
                       >
                         <ArrowLeftCircle className="h-5 w-5" />
