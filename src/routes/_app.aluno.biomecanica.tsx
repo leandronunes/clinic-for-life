@@ -1,14 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Loader2, Trash2, ImageIcon, Check, X } from "lucide-react";
+import { Upload, Loader2, Trash2, ImageIcon, Check, X, History, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   apiGetAluno,
   apiListBiomecanica,
+  apiListBiomecanicaHistorico,
+  apiNovaAvaliacaoBiomecanica,
   apiUploadBiomecanica,
   apiDeleteBiomecanica,
   apiGetEstrutural,
