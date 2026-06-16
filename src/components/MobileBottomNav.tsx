@@ -114,11 +114,13 @@ export function MobileBottomNav() {
               <SheetTrigger asChild>
                 <button
                   type="button"
+                  aria-label="Abrir mais opções"
                   className="flex w-full flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5" aria-hidden="true" />
                   Mais
                 </button>
+
               </SheetTrigger>
               <SheetContent side="bottom" className="rounded-t-2xl">
                 <SheetHeader>
