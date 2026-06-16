@@ -25,6 +25,7 @@ import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evoluc
 import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.comparativo'
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
 import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
+import { Route as AppAlunoExamesRouteImport } from './routes/_app.aluno.exames'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
