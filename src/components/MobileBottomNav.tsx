@@ -14,6 +14,7 @@ import {
   Menu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { UserRole } from "@/lib/mock-api";
 import {
   Sheet,
