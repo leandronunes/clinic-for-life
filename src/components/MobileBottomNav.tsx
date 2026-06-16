@@ -55,9 +55,9 @@ export function MobileBottomNav() {
   if (isImpersonating) {
     items = items.filter((i) => i.url !== "/perfil");
   }
-  // Replace last slot with "Mais" menu for aluno role to expose extras + sair.
-  const showMore = role === "aluno";
-  if (showMore) {
+  // Show "Mais" menu for all roles to expose extras (aluno) and/or sair.
+  const showMore = role === "aluno" || role === "admin" || role === "personal";
+  if (showMore && role === "aluno") {
     // remove Perfil from main bar (moved into More), keep 4 + More
     items = items.filter((i) => i.url !== "/perfil");
   }
