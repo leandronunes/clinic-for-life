@@ -25,14 +25,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  apiCreateParceiro,
-  apiDeleteParceiro,
-  apiListParceiros,
-  apiUpdateParceiro,
-  PARCEIRO_CATEGORIAS,
-  type Parceiro,
-  type ParceiroCategoria,
-} from "@/lib/mock-api";
+  fetchPartners,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  CATEGORY_FROM_BACKEND,
+  type Partner,
+  type PartnerCategory,
+} from "@/lib/api/partners";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -44,18 +44,18 @@ export const Route = createFileRoute("/_app/parceiros")({
 function ParceirosPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data = [], isLoading } = useQuery({
     queryKey: ["parceiros"],
-    queryFn: () => apiListParceiros().then((r) => r.data),
+    queryFn: () => fetchPartners(),
   });
 
   const [openNew, setOpenNew] = useState(false);
-  const [editing, setEditing] = useState<Parceiro | null>(null);
+  const [editing, setEditing] = useState<Partner | null>(null);
 
   if (user?.role !== "admin") return <Navigate to="/dashboard" />;
 
   const removeMut = useMutation({
-    mutationFn: (id: string) => apiDeleteParceiro(id),
+    mutationFn: (id: string) => deletePartner(id),
     onSuccess: () => {
       toast.success("Parceiro removido");
       qc.invalidateQueries({ queryKey: ["parceiros"] });
@@ -92,7 +92,7 @@ function ParceirosPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
         </div>
-      ) : (data?.length ?? 0) === 0 ? (
+      ) : data.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
             <ShieldAlert className="h-8 w-8 text-muted-foreground" />
@@ -101,29 +101,31 @@ function ParceirosPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data!.map((p) => (
+          {data.map((p) => (
             <Card key={p.id} className="overflow-hidden">
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start gap-3">
                   <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background">
-                    <img src={p.logo_url} alt={`Logo ${p.nome}`} className="h-full w-full object-cover" />
+                    {p.logo_url && <img src={p.logo_url} alt={`Logo ${p.name}`} className="h-full w-full object-cover" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{p.nome}</div>
+                    <div className="truncate font-semibold">{p.name}</div>
                     <Badge variant="secondary" className="mt-1">
-                      {p.categoria}
+                      {CATEGORY_FROM_BACKEND[p.category]}
                     </Badge>
                   </div>
                 </div>
-                <p className="line-clamp-3 text-sm text-muted-foreground">{p.descricao}</p>
-                <a
-                  href={p.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  {p.link} <ExternalLink className="h-3 w-3" />
-                </a>
+                <p className="line-clamp-3 text-sm text-muted-foreground">{p.description}</p>
+                {p.link && (
+                  <a
+                    href={p.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    {p.link} <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                     <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
@@ -133,7 +135,7 @@ function ParceirosPage() {
                     variant="ghost"
                     className="text-destructive hover:text-destructive"
                     onClick={() => {
-                      if (confirm(`Remover "${p.nome}"?`)) removeMut.mutate(p.id);
+                      if (confirm(`Remover "${p.name}"?`)) removeMut.mutate(p.id);
                     }}
                   >
                     <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover
@@ -169,23 +171,24 @@ function ParceiroFormDialog({
   onSaved,
 }: {
   mode: "create" | "edit";
-  initial?: Parceiro;
+  initial?: Partner;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [nome, setNome] = useState(initial?.nome ?? "");
-  const [logo_url, setLogoUrl] = useState(initial?.logo_url ?? "");
-  const [categoria, setCategoria] = useState<ParceiroCategoria>(
-    initial?.categoria ?? "Nutrição",
+  const [name, setName] = useState(initial?.name ?? "");
+  const [logoUrl, setLogoUrl] = useState(initial?.logo_url ?? "");
+  const [category, setCategory] = useState<PartnerCategory>(
+    initial?.category ?? "Nutrition",
   );
-  const [descricao, setDescricao] = useState(initial?.descricao ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
+  const [coupon, setCoupon] = useState(initial?.coupon ?? "");
 
   const mut = useMutation({
     mutationFn: async () => {
-      const payload = { nome: nome.trim(), logo_url: logo_url.trim(), categoria, descricao: descricao.trim(), link: link.trim() };
-      if (mode === "edit" && initial) return apiUpdateParceiro(initial.id, payload);
-      return apiCreateParceiro(payload);
+      const payload = { name: name.trim(), logo_url: logoUrl.trim() || undefined, category, description: description.trim() || undefined, link: link.trim() || undefined, coupon: coupon.trim() || undefined };
+      if (mode === "edit" && initial) return updatePartner(initial.id, payload);
+      return createPartner(payload);
     },
     onSuccess: () => {
       toast.success(mode === "edit" ? "Parceiro atualizado" : "Parceiro cadastrado");
@@ -194,7 +197,16 @@ function ParceiroFormDialog({
     onError: () => toast.error("Falha ao salvar parceiro"),
   });
 
-  const valid = nome.trim() && logo_url.trim() && descricao.trim() && link.trim();
+  const valid = name.trim();
+
+  const PT_CATEGORIES: { value: PartnerCategory; label: string }[] = [
+    { value: "Nutrition", label: "Nutrição" },
+    { value: "Physiotherapy", label: "Fisioterapia" },
+    { value: "Sports Medicine", label: "Medicina Esportiva" },
+    { value: "Supplementation", label: "Suplementação" },
+    { value: "Aesthetics", label: "Estética" },
+    { value: "Laboratories", label: "Laboratórios" },
+  ];
 
   return (
     <DialogContent className="max-w-lg">
@@ -213,21 +225,20 @@ function ParceiroFormDialog({
       >
         <div className="space-y-1.5">
           <Label htmlFor="p-nome">Nome</Label>
-          <Input id="p-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+          <Input id="p-nome" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="p-logo">Logotipo (URL)</Label>
           <Input
             id="p-logo"
             placeholder="https://…/logo.png"
-            value={logo_url}
+            value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
-            required
           />
-          {logo_url && (
+          {logoUrl && (
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
               <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-border bg-background">
-                <img src={logo_url} alt="Pré-visualização" className="h-full w-full object-cover" />
+                <img src={logoUrl} alt="Pré-visualização" className="h-full w-full object-cover" />
               </div>
               pré-visualização
             </div>
@@ -235,14 +246,14 @@ function ParceiroFormDialog({
         </div>
         <div className="space-y-1.5">
           <Label>Categoria</Label>
-          <Select value={categoria} onValueChange={(v) => setCategoria(v as ParceiroCategoria)}>
+          <Select value={category} onValueChange={(v) => setCategory(v as PartnerCategory)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PARCEIRO_CATEGORIAS.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
+              {PT_CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -253,9 +264,8 @@ function ParceiroFormDialog({
           <Textarea
             id="p-desc"
             rows={3}
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
@@ -266,7 +276,15 @@ function ParceiroFormDialog({
             placeholder="https://parceiro.com"
             value={link}
             onChange={(e) => setLink(e.target.value)}
-            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="p-coupon">Cupom (opcional)</Label>
+          <Input
+            id="p-coupon"
+            placeholder="Ex.: FORLIFE10"
+            value={coupon}
+            onChange={(e) => setCoupon(e.target.value)}
           />
         </div>
         <DialogFooter>

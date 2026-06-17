@@ -8,10 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  apiGetAluno, apiSearchPersonais, apiUpdateAluno,
-  type Aluno, type Personal,
-} from "@/lib/mock-api";
+import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
+import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -27,21 +25,25 @@ function PerfilPage() {
 
   if (!hasRole("aluno") || !user?.aluno_id) return <Navigate to="/dashboard" />;
 
-  const { data, isLoading } = useQuery({
+  const { data: student, isLoading } = useQuery({
     queryKey: ["aluno", user.aluno_id],
-    queryFn: () => apiGetAluno(user.aluno_id!),
+    queryFn: () => fetchStudent(user.aluno_id!),
   });
 
-  const aluno = data?.data;
-  const [form, setForm] = useState<Aluno | null>(null);
-  const current = form ?? aluno ?? null;
+  const [form, setForm] = useState<Student | null>(null);
+  const current = form ?? student ?? null;
 
   const saveMut = useMutation({
-    mutationFn: () => apiUpdateAluno(user.aluno_id!, {
-      nome: current!.nome, email: current!.email, telefone: current!.telefone,
-      sexo: current!.sexo, nascimento: current!.nascimento,
-      plano_saude: current!.plano_saude, contato_emergencia: current!.contato_emergencia,
-    }),
+    mutationFn: () =>
+      updateStudent(user.aluno_id!, {
+        name: current!.name,
+        email: current!.email,
+        phone: current!.phone,
+        sex: current!.sex,
+        birth_date: current!.birth_date,
+        health_plan: current!.health_plan,
+        emergency_contact: current!.emergency_contact,
+      }),
     onSuccess: () => {
       toast.success("Perfil atualizado");
       qc.invalidateQueries({ queryKey: ["aluno", user.aluno_id] });
@@ -49,9 +51,9 @@ function PerfilPage() {
   });
 
   const changePersonalMut = useMutation({
-    mutationFn: (personalId: string) => apiUpdateAluno(user.aluno_id!, { personal_id: personalId }),
+    mutationFn: (trainerId: string) => updateStudent(user.aluno_id!, { trainer_id: trainerId }),
     onSuccess: (res) => {
-      toast.success(`Personal alterado para ${res.data.personal_nome}`);
+      toast.success(`Personal alterado para ${res.trainer_name}`);
       qc.invalidateQueries({ queryKey: ["aluno", user.aluno_id] });
       setForm(null);
     },
@@ -77,41 +79,41 @@ function PerfilPage() {
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nome completo" className="sm:col-span-2">
-              <Input value={current.nome} onChange={(e) => setForm({ ...current, nome: e.target.value })} />
+              <Input value={current.name} onChange={(e) => setForm({ ...current, name: e.target.value })} />
             </Field>
             <Field label="E-mail">
               <Input type="email" value={current.email} onChange={(e) => setForm({ ...current, email: e.target.value })} />
             </Field>
             <Field label="Telefone">
-              <Input value={current.telefone} onChange={(e) => setForm({ ...current, telefone: e.target.value })} />
+              <Input value={current.phone} onChange={(e) => setForm({ ...current, phone: e.target.value })} />
             </Field>
             <Field label="Nascimento">
-              <Input type="date" value={current.nascimento} onChange={(e) => setForm({ ...current, nascimento: e.target.value })} />
+              <Input type="date" value={current.birth_date} onChange={(e) => setForm({ ...current, birth_date: e.target.value })} />
             </Field>
             <Field label="Gênero">
               <Select
-                value={current.sexo}
-                onValueChange={(v) => setForm({ ...current, sexo: v as Aluno["sexo"] })}
+                value={current.sex}
+                onValueChange={(v) => setForm({ ...current, sex: v as Student["sex"] })}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="F">Feminino</SelectItem>
-                  <SelectItem value="M">Masculino</SelectItem>
-                  <SelectItem value="Outro">Outro</SelectItem>
+                  <SelectItem value="female">Feminino</SelectItem>
+                  <SelectItem value="male">Masculino</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             <Field label="Plano de Saúde" className="sm:col-span-2">
               <Input
-                value={current.plano_saude ?? ""}
-                onChange={(e) => setForm({ ...current, plano_saude: e.target.value })}
+                value={current.health_plan ?? ""}
+                onChange={(e) => setForm({ ...current, health_plan: e.target.value })}
                 placeholder="Ex.: Unimed, Bradesco Saúde..."
               />
             </Field>
             <Field label="Contato de Emergência" className="sm:col-span-2">
               <Input
-                value={current.contato_emergencia ?? ""}
-                onChange={(e) => setForm({ ...current, contato_emergencia: e.target.value })}
+                value={current.emergency_contact ?? ""}
+                onChange={(e) => setForm({ ...current, emergency_contact: e.target.value })}
                 placeholder="Nome e telefone"
               />
             </Field>
@@ -127,9 +129,9 @@ function PerfilPage() {
       </Card>
 
       <PersonalSelector
-        currentPersonalId={current.personal_id}
-        currentPersonalNome={current.personal_nome}
-        onSelect={(p) => changePersonalMut.mutate(p.id)}
+        currentTrainerId={current.trainer_id}
+        currentTrainerName={current.trainer_name}
+        onSelect={(t) => changePersonalMut.mutate(t.id)}
         pending={changePersonalMut.isPending}
       />
     </div>
@@ -137,26 +139,25 @@ function PerfilPage() {
 }
 
 function PersonalSelector({
-  currentPersonalId, currentPersonalNome, onSelect, pending,
+  currentTrainerId, currentTrainerName, onSelect, pending,
 }: {
-  currentPersonalId: string;
-  currentPersonalNome: string;
-  onSelect: (p: Personal) => void;
+  currentTrainerId: string;
+  currentTrainerName: string;
+  onSelect: (t: Trainer) => void;
   pending: boolean;
 }) {
   const [q, setQ] = useState("");
-  const { data } = useQuery({
-    queryKey: ["search-personais", q],
-    queryFn: () => apiSearchPersonais(q),
+  const { data: results = [] } = useQuery({
+    queryKey: ["search-trainers", q],
+    queryFn: () => fetchTrainers(q),
   });
-  const results = data?.data ?? [];
 
   return (
     <Card className="shadow-soft">
       <CardHeader>
         <CardTitle className="text-base">Meu Personal</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Atual: <strong>{currentPersonalNome}</strong>. Busque outro personal para alterar.
+          Atual: <strong>{currentTrainerName}</strong>. Busque outro personal para alterar.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -174,11 +175,11 @@ function PersonalSelector({
             <li className="p-4 text-center text-sm text-muted-foreground">Nenhum personal encontrado.</li>
           )}
           {results.map((p) => {
-            const ativo = p.id === currentPersonalId;
+            const ativo = p.id === currentTrainerId;
             return (
               <li key={p.id} className="flex items-center justify-between gap-3 p-3">
                 <div>
-                  <div className="font-medium">{p.nome}</div>
+                  <div className="font-medium">{p.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {p.cref} · {p.email}
                   </div>

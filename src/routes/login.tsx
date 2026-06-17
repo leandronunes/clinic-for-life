@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
-import { validateStrongPassword } from "@/lib/mock-api";
+import { validateStrongPassword } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({

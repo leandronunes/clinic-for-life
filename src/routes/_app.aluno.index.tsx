@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  apiAddExercicio, apiArchiveTreino, apiCreateTreino, apiDeleteExercicio,
-  apiListTreinos, apiUpdateExercicio, apiUpdateTreino,
-  type Exercicio, type Treino,
-} from "@/lib/mock-api";
+  fetchWorkouts, createWorkout, updateWorkout, archiveWorkout,
+  createExercise, updateExercise, deleteExercise,
+  type Exercise, type Workout,
+} from "@/lib/api/workouts";
 import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
 import { toast } from "sonner";
 
@@ -35,16 +35,16 @@ function MeuTreinoPage() {
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data, isLoading } = useQuery({
     queryKey: ["treinos", alunoId],
-    queryFn: () => apiListTreinos(alunoId),
+    queryFn: () => fetchWorkouts(alunoId),
   });
   const [posicao, setPosicao] = useState<number | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
-  const [videoEx, setVideoEx] = useState<Exercicio | null>(null);
+  const [videoEx, setVideoEx] = useState<Exercise | null>(null);
 
-  const lista = [...(view === "ativos" ? data?.ativos ?? [] : data?.arquivados ?? [])].sort(
-    (a, b) => a.posicao - b.posicao,
+  const lista = [...(view === "ativos" ? data?.active ?? [] : data?.archived ?? [])].sort(
+    (a, b) => a.position - b.position,
   );
-  const treinoAtual = lista.find((t) => t.posicao === posicao) ?? lista[0];
+  const treinoAtual = lista.find((t) => t.position === posicao) ?? lista[0];
 
   return (
     <div className="space-y-6">
@@ -59,7 +59,7 @@ function MeuTreinoPage() {
           <NovoTreinoDialog
             alunoId={alunoId}
             personalNome={user?.role === "personal" ? user.name : undefined}
-            onCreated={(t) => setPosicao(t.posicao)}
+            onCreated={(t) => setPosicao(t.position)}
           />
         )}
       </div>
@@ -93,15 +93,15 @@ function MeuTreinoPage() {
             <>
               <div className="flex flex-wrap gap-2">
                 {lista.map((t) => {
-                  const active = treinoAtual?.posicao === t.posicao;
+                    const active = treinoAtual?.position === t.position;
                   return (
                     <Button
                       key={t.id}
                       variant={active ? "default" : "outline"}
-                      onClick={() => setPosicao(t.posicao)}
+                      onClick={() => setPosicao(t.position)}
                       className={active ? "brand-gradient text-primary-foreground" : ""}
                     >
-                      Treino {t.posicao}
+                      Treino {t.position}
                     </Button>
                   );
                 })}
@@ -112,7 +112,7 @@ function MeuTreinoPage() {
                   treino={treinoAtual}
                   alunoId={alunoId}
                   onWatch={setVideoEx}
-                  canEdit={canWrite && treinoAtual.status === "ativo"}
+                  canEdit={canWrite && treinoAtual.status === "active"}
                 />
               )}
             </>
@@ -123,9 +123,9 @@ function MeuTreinoPage() {
       <Dialog open={!!videoEx} onOpenChange={(o) => !o && setVideoEx(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{videoEx?.nome}</DialogTitle>
+            <DialogTitle>{videoEx?.name}</DialogTitle>
             <DialogDescription>
-              {videoEx?.series} séries × {videoEx?.reps} reps · Descanso {videoEx?.descanso_s}s
+              {videoEx?.sets} séries × {videoEx?.reps} reps · Descanso {videoEx?.rest_seconds}s
             </DialogDescription>
           </DialogHeader>
           {videoEx && (
@@ -140,7 +140,7 @@ function MeuTreinoPage() {
               ) : (
                 <iframe
                   src={videoEx.video_url}
-                  title={videoEx.nome}
+                  title={videoEx.name}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -148,9 +148,9 @@ function MeuTreinoPage() {
               )}
             </div>
           )}
-          {videoEx?.observacao && (
+          {videoEx?.notes && (
             <p className="rounded-md bg-muted p-3 text-sm">
-              <strong>Observação do Personal:</strong> {videoEx.observacao}
+              <strong>Observação do Personal:</strong> {videoEx.notes}
             </p>
           )}
         </DialogContent>
@@ -161,10 +161,10 @@ function MeuTreinoPage() {
 
 function TreinoCard({
   treino, alunoId, onWatch, canEdit,
-}: { treino: Treino; alunoId: string; onWatch: (e: Exercicio) => void; canEdit: boolean }) {
+}: { treino: Workout; alunoId: string; onWatch: (e: Exercise) => void; canEdit: boolean }) {
   const qc = useQueryClient();
   const archiveMut = useMutation({
-    mutationFn: () => apiArchiveTreino(treino.id),
+    mutationFn: () => archiveWorkout(alunoId, treino.id),
     onSuccess: () => {
       toast.success("Treino arquivado");
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
@@ -178,17 +178,17 @@ function TreinoCard({
         <div>
           <CardTitle className="flex items-center gap-2 text-xl">
             <span className="grid h-9 w-9 place-items-center rounded-lg brand-gradient text-base font-bold text-primary-foreground">
-              {treino.posicao}
+              {treino.position}
             </span>
-            {treino.titulo}
+            {treino.title}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {treino.foco} · {treino.exercicios.length} exercícios · Personal: {treino.personal_nome}
+            {treino.focus} · {treino.exercises.length} exercícios · Personal: {treino.trainer_name}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={treino.status === "ativo" ? "default" : "secondary"} className={treino.status === "ativo" ? "bg-success text-success-foreground" : ""}>
-            {treino.status === "ativo" ? "Ativo" : "Arquivado"}
+          <Badge variant={treino.status === "active" ? "default" : "secondary"} className={treino.status === "active" ? "bg-success text-success-foreground" : ""}>
+            {treino.status === "active" ? "Ativo" : "Arquivado"}
           </Badge>
           {canEdit && (
             <>
@@ -228,12 +228,12 @@ function TreinoCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {treino.exercicios.length === 0 && (
+        {treino.exercises.length === 0 && (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Nenhum exercício neste treino ainda.
           </div>
         )}
-        {treino.exercicios.map((ex, idx) => (
+        {treino.exercises.map((ex, idx) => (
           <div
             key={ex.id}
             className="flex flex-col gap-3 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between"
@@ -244,12 +244,12 @@ function TreinoCard({
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{ex.nome}</span>
-                  <Badge variant="outline" className="text-[10px]">{ex.grupo}</Badge>
+                  <span className="font-semibold">{ex.name}</span>
+                  <Badge variant="outline" className="text-[10px]">{ex.muscle_group}</Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><Dumbbell className="h-3 w-3" />{ex.series}×{ex.reps}{ex.carga_kg ? ` · ${ex.carga_kg}kg` : ""}</span>
-                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{ex.descanso_s}s descanso</span>
+                  <span className="inline-flex items-center gap-1"><Dumbbell className="h-3 w-3" />{ex.sets}×{ex.reps}{ex.load_kg ? ` · ${ex.load_kg}kg` : ""}</span>
+                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{ex.rest_seconds}s descanso</span>
                 </div>
               </div>
             </div>
@@ -262,6 +262,7 @@ function TreinoCard({
                   <ExercicioFormDialog
                     mode="edit"
                     treinoId={treino.id}
+                    alunoId={alunoId}
                     exercicio={ex}
                     trigger={
                       <Button size="icon" variant="ghost" aria-label="Editar exercício">
@@ -269,14 +270,14 @@ function TreinoCard({
                       </Button>
                     }
                   />
-                  <DeleteExercicioButton treinoId={treino.id} exercicio={ex} />
+                  <DeleteExercicioButton treinoId={treino.id} alunoId={alunoId} exercicio={ex} />
                 </>
               )}
             </div>
           </div>
         ))}
 
-        {canEdit && <ExercicioFormDialog mode="create" treinoId={treino.id} />}
+        {canEdit && <ExercicioFormDialog mode="create" treinoId={treino.id} alunoId={alunoId} />}
       </CardContent>
     </Card>
   );
@@ -286,7 +287,7 @@ function TreinoCard({
 
 function NovoTreinoDialog({
   alunoId, personalNome, onCreated,
-}: { alunoId: string; personalNome?: string; onCreated?: (t: Treino) => void }) {
+}: { alunoId: string; personalNome?: string; onCreated?: (t: Workout) => void }) {
   return (
     <TreinoFormDialog
       mode="create"
@@ -308,28 +309,28 @@ function TreinoFormDialog({
   mode: "create" | "edit";
   alunoId: string;
   personalNome?: string;
-  treino?: Treino;
+  treino?: Workout;
   trigger?: React.ReactNode;
-  onCreated?: (t: Treino) => void;
+  onCreated?: (t: Workout) => void;
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<{ titulo: string; foco: string }>({
-    titulo: treino?.titulo ?? "",
-    foco: treino?.foco ?? "",
+  const [form, setForm] = useState<{ title: string; focus: string }>({
+    title: treino?.title ?? "",
+    focus: treino?.focus ?? "",
   });
 
   const mut = useMutation({
     mutationFn: () =>
       mode === "create"
-        ? apiCreateTreino(alunoId, { ...form, personal_nome: personalNome })
-        : apiUpdateTreino(treino!.id, form),
+        ? createWorkout(alunoId, { title: form.title, focus: form.focus, trainer_name: personalNome })
+        : updateWorkout(alunoId, treino!.id, { title: form.title, focus: form.focus }),
     onSuccess: (novo) => {
-      toast.success(mode === "create" ? `Treino ${novo.posicao} cadastrado` : "Treino atualizado");
+      toast.success(mode === "create" ? `Treino ${novo.position} cadastrado` : "Treino atualizado");
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
       setOpen(false);
       if (mode === "create") {
-        setForm({ titulo: "", foco: "" });
+        setForm({ title: "", focus: "" });
         onCreated?.(novo);
       }
     },
@@ -337,7 +338,7 @@ function TreinoFormDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && treino) setForm({ titulo: treino.titulo, foco: treino.foco }); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && treino) setForm({ title: treino.title, focus: treino.focus }); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -352,16 +353,16 @@ function TreinoFormDialog({
           <Field label="Título" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Peito, Ombro e Tríceps"
-              value={form.titulo}
-              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
               maxLength={120}
             />
           </Field>
           <Field label="Foco" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Empurrar (Push)"
-              value={form.foco}
-              onChange={(e) => setForm({ ...form, foco: e.target.value })}
+              value={form.focus}
+              onChange={(e) => setForm({ ...form, focus: e.target.value })}
               maxLength={80}
             />
           </Field>
@@ -370,7 +371,7 @@ function TreinoFormDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => mut.mutate()}
-            disabled={mut.isPending || !form.titulo.trim() || !form.foco.trim()}
+            disabled={mut.isPending || !form.title.trim() || !form.focus.trim()}
           >
             {mut.isPending ? "Salvando..." : mode === "create" ? "Criar treino" : "Salvar alterações"}
           </Button>
@@ -381,37 +382,38 @@ function TreinoFormDialog({
 }
 
 function ExercicioFormDialog({
-  mode, treinoId, exercicio, trigger,
+  mode, treinoId, alunoId, exercicio, trigger,
 }: {
   mode: "create" | "edit";
   treinoId: string;
-  exercicio?: Exercicio;
+  alunoId: string;
+  exercicio?: Exercise;
   trigger?: React.ReactNode;
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const emptyForm = {
-    nome: "", grupo: "", series: 3, reps: "10-12",
-    carga_kg: undefined as number | undefined,
-    descanso_s: 60, video_url: "", observacao: "",
+    name: "", muscle_group: "", sets: 3, reps: "10-12",
+    load_kg: undefined as number | undefined,
+    rest_seconds: 60, video_url: "", notes: "",
   };
-  const formFromEx = (ex: Exercicio) => ({
-    nome: ex.nome,
-    grupo: ex.grupo,
-    series: ex.series,
+  const formFromEx = (ex: Exercise) => ({
+    name: ex.name,
+    muscle_group: ex.muscle_group,
+    sets: ex.sets,
     reps: ex.reps,
-    carga_kg: ex.carga_kg,
-    descanso_s: ex.descanso_s,
+    load_kg: ex.load_kg ?? undefined,
+    rest_seconds: ex.rest_seconds,
     video_url: ex.video_url,
-    observacao: ex.observacao ?? "",
+    notes: ex.notes ?? "",
   });
   const [form, setForm] = useState(exercicio ? formFromEx(exercicio) : emptyForm);
 
   const mut = useMutation({
     mutationFn: () =>
       mode === "create"
-        ? apiAddExercicio(treinoId, form)
-        : apiUpdateExercicio(treinoId, exercicio!.id, form),
+        ? createExercise(alunoId, treinoId, { ...form, load_kg: form.load_kg, notes: form.notes || undefined })
+        : updateExercise(alunoId, treinoId, exercicio!.id, { ...form, load_kg: form.load_kg, notes: form.notes || undefined }),
     onSuccess: () => {
       toast.success(mode === "create" ? "Exercício adicionado" : "Exercício atualizado");
       qc.invalidateQueries({ queryKey: ["treinos"] });
@@ -441,24 +443,24 @@ function ExercicioFormDialog({
           <Field label="Nome" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Supino reto com barra"
-              value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               maxLength={80}
             />
           </Field>
           <Field label="Grupo muscular">
             <Input
               placeholder="Ex.: Peito"
-              value={form.grupo}
-              onChange={(e) => setForm({ ...form, grupo: e.target.value })}
+              value={form.muscle_group}
+              onChange={(e) => setForm({ ...form, muscle_group: e.target.value })}
               maxLength={40}
             />
           </Field>
           <Field label="Séries">
             <Input
               type="number" min={1} max={10}
-              value={form.series}
-              onChange={(e) => setForm({ ...form, series: Math.max(1, Number(e.target.value) || 1) })}
+              value={form.sets}
+              onChange={(e) => setForm({ ...form, sets: Math.max(1, Number(e.target.value) || 1) })}
             />
           </Field>
           <Field label="Repetições">
@@ -472,15 +474,15 @@ function ExercicioFormDialog({
           <Field label="Carga (kg)">
             <Input
               type="number" min={0} step={0.5}
-              value={form.carga_kg ?? ""}
-              onChange={(e) => setForm({ ...form, carga_kg: e.target.value === "" ? undefined : Number(e.target.value) })}
+              value={form.load_kg ?? ""}
+              onChange={(e) => setForm({ ...form, load_kg: e.target.value === "" ? undefined : Number(e.target.value) })}
             />
           </Field>
           <Field label="Descanso (s)">
             <Input
               type="number" min={0} step={5}
-              value={form.descanso_s}
-              onChange={(e) => setForm({ ...form, descanso_s: Math.max(0, Number(e.target.value) || 0) })}
+              value={form.rest_seconds}
+              onChange={(e) => setForm({ ...form, rest_seconds: Math.max(0, Number(e.target.value) || 0) })}
             />
           </Field>
           <Field label="Vídeo de demonstração" className="sm:col-span-2">
@@ -492,8 +494,8 @@ function ExercicioFormDialog({
           <Field label="Observação" className="sm:col-span-2">
             <Textarea
               placeholder="Dica de execução (opcional)"
-              value={form.observacao}
-              onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
               maxLength={300}
               rows={2}
             />
@@ -503,7 +505,7 @@ function ExercicioFormDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => mut.mutate()}
-            disabled={mut.isPending || !form.nome.trim() || !form.grupo.trim() || !form.reps.trim()}
+            disabled={mut.isPending || !form.name.trim() || !form.muscle_group.trim() || !form.reps.trim()}
           >
             {mut.isPending ? "Salvando..." : mode === "create" ? "Adicionar" : "Salvar alterações"}
           </Button>
@@ -513,10 +515,10 @@ function ExercicioFormDialog({
   );
 }
 
-function DeleteExercicioButton({ treinoId, exercicio }: { treinoId: string; exercicio: Exercicio }) {
+function DeleteExercicioButton({ treinoId, alunoId, exercicio }: { treinoId: string; alunoId: string; exercicio: Exercise }) {
   const qc = useQueryClient();
   const mut = useMutation({
-    mutationFn: () => apiDeleteExercicio(treinoId, exercicio.id),
+    mutationFn: () => deleteExercise(alunoId, treinoId, exercicio.id),
     onSuccess: () => {
       toast.success("Exercício removido");
       qc.invalidateQueries({ queryKey: ["treinos"] });
@@ -532,7 +534,7 @@ function DeleteExercicioButton({ treinoId, exercicio }: { treinoId: string; exer
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remover "{exercicio.nome}"?</AlertDialogTitle>
+          <AlertDialogTitle>Remover "{exercicio.name}"?</AlertDialogTitle>
           <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

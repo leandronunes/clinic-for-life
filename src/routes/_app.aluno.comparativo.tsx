@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
-import { apiListFotos, type FotoEvolucao } from "@/lib/mock-api";
+import { fetchEvolutionPhotos, type EvolutionPhoto } from "@/lib/api/evolution-photos";
 export const Route = createFileRoute("/_app/aluno/comparativo")({
   component: ComparativoPage,
 });
@@ -23,7 +23,7 @@ function ComparativoPage() {
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data: fotos = [], isLoading } = useQuery({
     queryKey: ["fotos", alunoId],
-    queryFn: () => apiListFotos(alunoId),
+    queryFn: () => fetchEvolutionPhotos(alunoId),
   });
 
   const [antesId, setAntesId] = useState<string>("");
@@ -57,7 +57,7 @@ function ComparativoPage() {
                 <SelectTrigger className="mt-1.5"><SelectValue placeholder="Escolha uma data" /></SelectTrigger>
                 <SelectContent>
                   {fotos.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{formatDate(f.data)}</SelectItem>
+                    <SelectItem key={f.id} value={f.id}>{formatDate(f.taken_on)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -69,7 +69,7 @@ function ComparativoPage() {
                 <SelectTrigger className="mt-1.5"><SelectValue placeholder="Escolha uma data" /></SelectTrigger>
                 <SelectContent>
                   {fotos.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{formatDate(f.data)}</SelectItem>
+                    <SelectItem key={f.id} value={f.id}>{formatDate(f.taken_on)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -89,9 +89,9 @@ function ComparativoPage() {
 
           <Card className="shadow-soft">
             <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
-              <DiffRow label="Peso" antes={antes.peso_kg} depois={depois.peso_kg} suffix=" kg" betterDown />
-              <DiffRow label="Gordura corporal" antes={antes.gordura_pct} depois={depois.gordura_pct} suffix=" %" betterDown />
-              <DiffRow label="Massa muscular" antes={antes.massa_muscular_kg} depois={depois.massa_muscular_kg} suffix=" kg" />
+              <DiffRow label="Peso" antes={antes.weight_kg ?? 0} depois={depois.weight_kg ?? 0} suffix=" kg" betterDown />
+              <DiffRow label="Gordura corporal" antes={antes.fat_percentage ?? 0} depois={depois.fat_percentage ?? 0} suffix=" %" betterDown />
+              <DiffRow label="Massa muscular" antes={antes.muscle_mass_kg ?? 0} depois={depois.muscle_mass_kg ?? 0} suffix=" kg" />
             </CardContent>
           </Card>
         </>
@@ -104,23 +104,23 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-function PhotoCard({ label, foto, accent }: { label: string; foto: FotoEvolucao; accent: "muted" | "brand" }) {
+function PhotoCard({ label, foto, accent }: { label: string; foto: EvolutionPhoto; accent: "muted" | "brand" }) {
   return (
     <Card className="overflow-hidden shadow-soft">
       <div className="relative aspect-[3/4] w-full bg-muted">
-        <img src={foto.url} alt={`${label} - ${foto.data}`} className="h-full w-full object-cover" />
+        <img src={foto.image_url} alt={`${label} - ${foto.taken_on}`} className="h-full w-full object-cover" />
         <div className={`absolute left-3 top-3 rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground ${accent === "brand" ? "brand-gradient" : "bg-foreground/70"}`}>
           {label}
         </div>
       </div>
       <CardContent className="space-y-2 p-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" /> {formatDate(foto.data)}
+          <Calendar className="h-4 w-4" /> {formatDate(foto.taken_on)}
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <Stat label="Peso" value={`${foto.peso_kg.toFixed(1)} kg`} />
-          <Stat label="Gordura" value={`${foto.gordura_pct.toFixed(1)} %`} />
-          <Stat label="Músculo" value={`${foto.massa_muscular_kg.toFixed(1)} kg`} />
+          <Stat label="Peso" value={foto.weight_kg != null ? `${foto.weight_kg.toFixed(1)} kg` : "—"} />
+          <Stat label="Gordura" value={foto.fat_percentage != null ? `${foto.fat_percentage.toFixed(1)} %` : "—"} />
+          <Stat label="Músculo" value={foto.muscle_mass_kg != null ? `${foto.muscle_mass_kg.toFixed(1)} kg` : "—"} />
         </div>
       </CardContent>
     </Card>

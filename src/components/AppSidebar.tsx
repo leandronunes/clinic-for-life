@@ -29,7 +29,7 @@ import {
 import { BrandLogo } from "./BrandLogo";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
-import type { UserRole } from "@/lib/mock-api";
+import type { UserRole } from "@/lib/api/auth";
 
 const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDashboard }[]> = {
   admin: [

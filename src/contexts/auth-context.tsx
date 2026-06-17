@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AuthSession, AuthUser, UserRole } from "@/lib/mock-api";
+import type { AuthSession, AuthUser, UserRole } from "@/lib/api/auth";
 import { login, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 

@@ -15,7 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import type { UserRole } from "@/lib/mock-api";
+import type { UserRole } from "@/lib/api/auth";
 import {
   Sheet,
   SheetContent,

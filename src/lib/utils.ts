@@ -4,3 +4,13 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function validateStrongPassword(pw: string): string[] {
+  const errs: string[] = [];
+  if (pw.length < 8) errs.push("mínimo de 8 caracteres");
+  if (!/[A-Z]/.test(pw)) errs.push("uma letra maiúscula");
+  if (!/[a-z]/.test(pw)) errs.push("uma letra minúscula");
+  if (!/[0-9]/.test(pw)) errs.push("um número");
+  if (!/[^A-Za-z0-9]/.test(pw)) errs.push("um caractere especial");
+  return errs;
+}

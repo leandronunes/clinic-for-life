@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import {
   Area,
@@ -32,13 +32,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  apiGetAluno,
-  apiListEvolucao,
-  apiProcessBioimpedanciaCsv,
-  type EvolucaoPonto,
-  type BioImportResult,
-} from "@/lib/mock-api";
+import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
+import { importBioimpedanceCsv, type BioImportResult } from "@/lib/api/bioimpedance-import";
+import { createEvolutionPhoto, fileToDataUrl } from "@/lib/api/evolution-photos";
+import { fetchStudent } from "@/lib/api/students";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/evolucao")({
@@ -46,12 +43,12 @@ export const Route = createFileRoute("/_app/aluno/evolucao")({
 });
 
 
-type Metric = "peso_kg" | "gordura_pct" | "massa_muscular_kg";
+type Metric = "weight_kg" | "fat_percentage" | "muscle_mass_kg";
 
 const METRICS: Record<Metric, { label: string; color: string; suffix: string; better: "down" | "up"; icon: typeof Scale }> = {
-  peso_kg: { label: "Peso", color: "var(--color-chart-1)", suffix: " kg", better: "down", icon: Scale },
-  gordura_pct: { label: "Gordura corporal", color: "var(--color-chart-4)", suffix: " %", better: "down", icon: Flame },
-  massa_muscular_kg: { label: "Massa muscular", color: "var(--color-chart-2)", suffix: " kg", better: "up", icon: Activity },
+  weight_kg: { label: "Peso", color: "var(--color-chart-1)", suffix: " kg", better: "down", icon: Scale },
+  fat_percentage: { label: "Gordura corporal", color: "var(--color-chart-4)", suffix: " %", better: "down", icon: Flame },
+  muscle_mass_kg: { label: "Massa muscular", color: "var(--color-chart-2)", suffix: " kg", better: "up", icon: Activity },
 };
 
 function EvolucaoPage() {
@@ -59,20 +56,20 @@ function EvolucaoPage() {
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data = [], isLoading, refetch } = useQuery({
     queryKey: ["evolucao", alunoId],
-    queryFn: () => apiListEvolucao(alunoId),
+    queryFn: () => fetchMeasurements(alunoId),
   });
-  const { data: alunoResp } = useQuery({
+  const { data: student } = useQuery({
     queryKey: ["aluno", alunoId],
-    queryFn: () => apiGetAluno(alunoId),
+    queryFn: () => fetchStudent(alunoId),
     enabled: isImpersonating,
   });
-  const [metric, setMetric] = useState<Metric>("peso_kg");
+  const [metric, setMetric] = useState<Metric>("weight_kg");
 
   const formatted = useMemo(
     () =>
       data.map((d) => ({
         ...d,
-        label: new Date(d.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+        label: new Date(d.measured_on).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
       })),
     [data],
   );
@@ -89,10 +86,11 @@ function EvolucaoPage() {
       {canWrite && (
         <div className="grid gap-4 lg:grid-cols-2">
           <BioUploadCard
-            alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""}
+            alunoId={alunoId}
+            alunoEmail={student?.email ?? user?.email ?? ""}
             onImported={() => refetch()}
           />
-          <PhotoUploadCard alunoEmail={alunoResp?.data?.email ?? user?.email ?? ""} />
+          <PhotoUploadCard alunoId={alunoId} alunoEmail={student?.email ?? user?.email ?? ""} />
         </div>
       )}
 
@@ -107,9 +105,9 @@ function EvolucaoPage() {
           <CardTitle className="text-lg">{METRICS[metric].label} ao longo do tempo</CardTitle>
           <Tabs value={metric} onValueChange={(v) => setMetric(v as Metric)}>
             <TabsList>
-              <TabsTrigger value="peso_kg">Peso</TabsTrigger>
-              <TabsTrigger value="gordura_pct">Gordura</TabsTrigger>
-              <TabsTrigger value="massa_muscular_kg">Músculo</TabsTrigger>
+              <TabsTrigger value="weight_kg">Peso</TabsTrigger>
+              <TabsTrigger value="fat_percentage">Gordura</TabsTrigger>
+              <TabsTrigger value="muscle_mass_kg">Músculo</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -156,7 +154,7 @@ function EvolucaoPage() {
                   contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }}
                   formatter={(v: number) => [v.toFixed(2), "IMC"]}
                 />
-                <Line type="monotone" dataKey="imc" stroke="var(--color-chart-3)" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="bmi" stroke="var(--color-chart-3)" strokeWidth={2.5} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -182,12 +180,12 @@ function EvolucaoPage() {
             </TableHeader>
             <TableBody>
               {[...data].reverse().map((p) => (
-                <TableRow key={p.data}>
-                  <TableCell>{p.data}</TableCell>
-                  <TableCell>{p.peso_kg} kg</TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.massa_muscular_kg} kg</TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.gordura_pct} %</TableCell>
-                  <TableCell>{p.imc}</TableCell>
+                <TableRow key={p.measured_on}>
+                  <TableCell>{p.measured_on}</TableCell>
+                  <TableCell>{p.weight_kg} kg</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.muscle_mass_kg} kg</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.fat_percentage} %</TableCell>
+                  <TableCell>{p.bmi}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -198,7 +196,7 @@ function EvolucaoPage() {
   );
 }
 
-function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: EvolucaoPonto[]; active: boolean; onClick: () => void }) {
+function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: BioimpedanceMeasurement[]; active: boolean; onClick: () => void }) {
   const cfg = METRICS[metric];
   const Icon = cfg.icon;
   const first = data[0]?.[metric] ?? 0;
@@ -234,7 +232,7 @@ function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: E
   );
 }
 
-function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImported: () => void }) {
+function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; alunoEmail: string; onImported: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<BioImportResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -244,10 +242,10 @@ function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImpor
   const handleProcess = async (f: File) => {
     setFile(f); setResult(null); setLoading(true);
     try {
-      const r = await apiProcessBioimpedanciaCsv(f);
+      const r = await importBioimpedanceCsv(alunoId, f);
       setResult(r);
-      if (r.erros.length === 0) toast.success(`${r.importados} registros importados para ${alunoEmail}`);
-      else toast.warning(`${r.importados} importados, ${r.erros.length} com erro`);
+      if (r.errors.length === 0) toast.success(`${r.imported} registros importados para ${alunoEmail}`);
+      else toast.warning(`${r.imported} importados, ${r.errors.length} com erro`);
       onImported();
     } catch {
       toast.error("Falha ao processar o arquivo");
@@ -293,10 +291,10 @@ function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImpor
         {result && (
           <div className="rounded-lg border border-border">
             <div className="flex items-center gap-2 border-b border-border p-3 text-sm">
-              {result.erros.length === 0 ? (
-                <><CheckCircle2 className="h-4 w-4 text-success" /> {result.importados} registros válidos</>
+              {result.errors.length === 0 ? (
+                <><CheckCircle2 className="h-4 w-4 text-success" /> {result.imported} registros válidos</>
               ) : (
-                <><AlertTriangle className="h-4 w-4 text-warning" /> {result.importados} ok · {result.erros.length} erros</>
+                <><AlertTriangle className="h-4 w-4 text-warning" /> {result.imported} ok · {result.errors.length} erros</>
               )}
             </div>
             <Table>
@@ -311,10 +309,10 @@ function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImpor
               <TableBody>
                 {result.preview.map((r, i) => (
                   <TableRow key={i}>
-                    <TableCell>{r.data}</TableCell>
-                    <TableCell>{r.peso_kg} kg</TableCell>
-                    <TableCell className="hidden md:table-cell">{r.massa_muscular_kg} kg</TableCell>
-                    <TableCell className="hidden md:table-cell">{r.gordura_pct}%</TableCell>
+                    <TableCell>{r.measured_on}</TableCell>
+                    <TableCell>{r.weight_kg} kg</TableCell>
+                    <TableCell className="hidden md:table-cell">{r.muscle_mass_kg} kg</TableCell>
+                    <TableCell className="hidden md:table-cell">{r.fat_percentage}%</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -326,12 +324,28 @@ function BioUploadCard({ alunoEmail, onImported }: { alunoEmail: string; onImpor
   );
 }
 
-function PhotoUploadCard({ alunoEmail }: { alunoEmail: string }) {
+function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail: string }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
+
+  const mut = useMutation({
+    mutationFn: async (file: File) => {
+      const imageUrl = await fileToDataUrl(file);
+      return createEvolutionPhoto(alunoId, {
+        taken_on: new Date().toISOString().slice(0, 10),
+        image_url: imageUrl,
+      });
+    },
+    onSuccess: () => {
+      toast.success(`Foto de evolução salva${alunoEmail ? ` para ${alunoEmail}` : ""}`);
+      setPendingFile(null);
+    },
+    onError: () => toast.error("Falha ao salvar a foto"),
+  });
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
@@ -341,13 +355,14 @@ function PhotoUploadCard({ alunoEmail }: { alunoEmail: string }) {
     const url = URL.createObjectURL(f);
     setPreview(url);
     setFileName(f.name);
-    toast.success(`Foto carregada${alunoEmail ? ` para ${alunoEmail}` : ""}`);
+    setPendingFile(f);
   };
 
   const clear = () => {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setFileName("");
+    setPendingFile(null);
   };
 
   return (
@@ -410,7 +425,27 @@ function PhotoUploadCard({ alunoEmail }: { alunoEmail: string }) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
+          {preview && pendingFile && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => mut.mutate(pendingFile)}
+                disabled={mut.isPending}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+              >
+                {mut.isPending ? "Salvando..." : "Salvar foto de evolução"}
+              </button>
+              <button
+                type="button"
+                onClick={clear}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => cameraRef.current?.click()}

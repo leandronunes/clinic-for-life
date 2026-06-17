@@ -24,19 +24,22 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  apiGetAluno,
-  apiListBiomecanica,
-  apiListBiomecanicaHistorico,
-  apiNovaAvaliacaoBiomecanica,
-  apiUploadBiomecanica,
-  apiDeleteBiomecanica,
-  apiGetEstrutural,
-  apiSetEstrutural,
-  ESTRUTURAL_ITENS,
-  type BiomecanicaSlot,
-  type BiomecanicaImagens,
-  type EstruturalItem,
-} from "@/lib/mock-api";
+  fetchBiomechanicsAssessments,
+  fetchCurrentBiomechanicsAssessment,
+  newBiomechanicsAssessment,
+  uploadBiomechanicsSlot,
+  removeBiomechanicsSlot,
+  type BiomechanicsSlotBackend,
+  type BiomechanicsImages,
+  type BiomechanicalAssessment,
+} from "@/lib/api/biomechanics";
+import {
+  fetchStructuralAssessment,
+  updateStructuralAssessment,
+  type StructuralAssessment,
+} from "@/lib/api/structural-assessment";
+import { fetchStudent } from "@/lib/api/students";
+import { fileToDataUrl } from "@/lib/api/evolution-photos";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -45,16 +48,32 @@ export const Route = createFileRoute("/_app/aluno/biomecanica")({
 });
 
 
-const PLANO_CORONAL: { slot: BiomecanicaSlot; label: string }[] = [
+const PLANO_CORONAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
   { slot: "frontal", label: "Visão Frontal" },
   { slot: "posterior", label: "Posterior" },
-  { slot: "flexao_tronco", label: "Flexão de tronco" },
+  { slot: "trunk_flexion", label: "Flexão de tronco" },
 ];
 
-const PLANO_SAGITAL: { slot: BiomecanicaSlot; label: string }[] = [
-  { slot: "lado_esquerdo", label: "Lado esquerdo" },
-  { slot: "lado_direito", label: "Lado direito" },
-  { slot: "flexao_perfil", label: "Flexão perfil" },
+const PLANO_SAGITAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
+  { slot: "left_side", label: "Lado esquerdo" },
+  { slot: "right_side", label: "Lado direito" },
+  { slot: "profile_flexion", label: "Flexão perfil" },
+];
+
+const STRUCTURAL_ITEMS: { key: keyof StructuralAssessment; label: string }[] = [
+  { key: "scoliosis", label: "Escoliose" },
+  { key: "spine_rotation", label: "Rotação de coluna" },
+  { key: "hip_rotation", label: "Rotação de quadril" },
+  { key: "scapular_girdle_imbalance", label: "Desequilíbrio da cintura escapular" },
+  { key: "scapular_dyskinesis", label: "Discinesia escapular" },
+  { key: "shortening", label: "Encurtamento" },
+  { key: "limb_length_difference", label: "Diferença no tamanho dos membros" },
+  { key: "pelvic_anteversion", label: "Anteverso pélvica" },
+  { key: "pelvic_retroversion", label: "Retroversão pélvica" },
+  { key: "knee_valgus", label: "Joelho valgo" },
+  { key: "knee_varus", label: "Joelho varo" },
+  { key: "cavus_foot_arch", label: "Arco plantar cavo" },
+  { key: "flat_foot_arch", label: "Arco plantar plano" },
 ];
 
 function BiomecanicaPage() {
@@ -62,17 +81,18 @@ function BiomecanicaPage() {
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const qc = useQueryClient();
 
-  const { data: imagens = {}, isLoading } = useQuery({
+  const { data: currentAssessment, isLoading } = useQuery({
     queryKey: ["biomecanica", alunoId],
-    queryFn: () => apiListBiomecanica(alunoId),
+    queryFn: () => fetchCurrentBiomechanicsAssessment(alunoId),
   });
+  const imagens: BiomechanicsImages = currentAssessment?.images ?? {};
 
-  const { data: alunoResp } = useQuery({
+  const { data: student } = useQuery({
     queryKey: ["aluno", alunoId],
-    queryFn: () => apiGetAluno(alunoId),
+    queryFn: () => fetchStudent(alunoId),
     enabled: isImpersonating,
   });
-  const alunoNome = alunoResp?.data?.nome;
+  const alunoNome = student?.name;
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["biomecanica", alunoId] });
@@ -85,7 +105,7 @@ function BiomecanicaPage() {
   const handleNovaAvaliacao = async () => {
     setNovaBusy(true);
     try {
-      await apiNovaAvaliacaoBiomecanica(alunoId);
+      await newBiomechanicsAssessment(alunoId);
       toast.success("Nova avaliação iniciada. O conjunto anterior foi arquivado no histórico.");
       refresh();
     } catch {
@@ -165,7 +185,7 @@ function BiomecanicaPage() {
 function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
   const { data: historico = [], isLoading } = useQuery({
     queryKey: ["biomecanica-hist", alunoId],
-    queryFn: () => apiListBiomecanicaHistorico(alunoId),
+    queryFn: () => fetchBiomechanicsAssessments(alunoId),
   });
 
   return (
@@ -189,8 +209,8 @@ function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
           </p>
         ) : (
           <Accordion type="single" collapsible className="w-full">
-            {historico.map((av, idx) => {
-              const data = new Date(av.criada_em);
+            {historico.map((av: BiomechanicalAssessment, idx: number) => {
+              const data = new Date(av.created_at);
               const dataFmt = data.toLocaleDateString("pt-BR", {
                 day: "2-digit",
                 month: "2-digit",
@@ -200,14 +220,14 @@ function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
                 hour: "2-digit",
                 minute: "2-digit",
               });
-              const total = Object.keys(av.imagens).length;
+              const total = Object.keys(av.images).length;
               return (
                 <AccordionItem key={av.id} value={av.id}>
                   <AccordionTrigger className="text-sm">
                     <span className="flex flex-1 items-center justify-between gap-2 pr-2">
                       <span>
                         Avaliação de {dataFmt}{" "}
-                        <span className="text-muted-foreground">às {horaFmt}</span>
+                        <span className="text-muted-foreground">aàs {horaFmt}</span>
                         {idx === 0 && (
                           <Badge variant="secondary" className="ml-2">
                             Mais recente
@@ -220,8 +240,8 @@ function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4">
-                    <HistoricoPlanoGrid titulo="Plano Coronal" slots={PLANO_CORONAL} imagens={av.imagens} />
-                    <HistoricoPlanoGrid titulo="Plano Sagital" slots={PLANO_SAGITAL} imagens={av.imagens} />
+                    <HistoricoPlanoGrid titulo="Plano Coronal" slots={PLANO_CORONAL} imagens={av.images} />
+                    <HistoricoPlanoGrid titulo="Plano Sagital" slots={PLANO_SAGITAL} imagens={av.images} />
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -239,8 +259,8 @@ function HistoricoPlanoGrid({
   imagens,
 }: {
   titulo: string;
-  slots: { slot: BiomecanicaSlot; label: string }[];
-  imagens: BiomecanicaImagens;
+  slots: { slot: BiomechanicsSlotBackend; label: string }[];
+  imagens: BiomechanicsImages;
 }) {
   return (
     <div>
@@ -278,16 +298,16 @@ function AvaliacaoEstruturalSection({
   canWrite: boolean;
 }) {
   const qc = useQueryClient();
-  const { data = {}, isLoading } = useQuery({
+  const { data: structural, isLoading } = useQuery({
     queryKey: ["estrutural", alunoId],
-    queryFn: () => apiGetEstrutural(alunoId),
+    queryFn: () => fetchStructuralAssessment(alunoId),
   });
-  const [pending, setPending] = useState<EstruturalItem | null>(null);
+  const [pending, setPending] = useState<keyof StructuralAssessment | null>(null);
 
-  const handleToggle = async (item: EstruturalItem, value: boolean) => {
-    setPending(item);
+  const handleToggle = async (key: keyof StructuralAssessment, value: boolean) => {
+    setPending(key);
     try {
-      await apiSetEstrutural(alunoId, item, value);
+      await updateStructuralAssessment(alunoId, { [key]: value });
       await qc.invalidateQueries({ queryKey: ["estrutural", alunoId] });
     } catch {
       toast.error("Falha ao salvar avaliação.");
@@ -313,8 +333,8 @@ function AvaliacaoEstruturalSection({
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {ESTRUTURAL_ITENS.map(({ key, label }) => {
-              const value = data[key];
+            {STRUCTURAL_ITEMS.map(({ key, label }) => {
+              const value = structural?.[key];
               return (
                 <li key={key} className="flex items-center justify-between py-3 gap-4">
                   <span className="text-sm">{label}</span>
@@ -363,8 +383,8 @@ function PlanoSection({
 }: {
   titulo: string;
   descricao: string;
-  slots: { slot: BiomecanicaSlot; label: string }[];
-  imagens: BiomecanicaImagens;
+  slots: { slot: BiomechanicsSlotBackend; label: string }[];
+  imagens: BiomechanicsImages;
   loading: boolean;
   alunoId: string;
   canWrite: boolean;
@@ -405,7 +425,7 @@ function SlotCard({
   canWrite,
   onChanged,
 }: {
-  slot: BiomecanicaSlot;
+  slot: BiomechanicsSlotBackend;
   label: string;
   url?: string;
   loading: boolean;
@@ -423,7 +443,8 @@ function SlotCard({
     }
     setBusy(true);
     try {
-      await apiUploadBiomecanica(alunoId, slot, file);
+      const imageDataUrl = await fileToDataUrl(file);
+      await uploadBiomechanicsSlot(alunoId, slot, imageDataUrl);
       toast.success(`Imagem "${label}" enviada.`);
       onChanged();
     } catch {
@@ -436,7 +457,7 @@ function SlotCard({
   const handleDelete = async () => {
     setBusy(true);
     try {
-      await apiDeleteBiomecanica(alunoId, slot);
+      await removeBiomechanicsSlot(alunoId, slot);
       toast.success(`Imagem "${label}" removida.`);
       onChanged();
     } catch {

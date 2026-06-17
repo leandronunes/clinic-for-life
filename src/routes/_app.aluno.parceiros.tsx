@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Handshake, Loader2, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiListParceiros } from "@/lib/mock-api";
+import { fetchPartners, CATEGORY_FROM_BACKEND } from "@/lib/api/partners";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 export const Route = createFileRoute("/_app/aluno/parceiros")({
@@ -23,9 +23,9 @@ function buildMemberId(seed: string) {
 
 function AlunoParceirosPage() {
   const { user, effectiveRole } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { data = [], isLoading } = useQuery({
     queryKey: ["parceiros"],
-    queryFn: () => apiListParceiros().then((r) => r.data),
+    queryFn: () => fetchPartners(),
   });
 
   const seed = user?.aluno_id ?? user?.id ?? user?.email ?? "anon";
@@ -99,7 +99,7 @@ function AlunoParceirosPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando parceiros…
           </div>
-        ) : (data?.length ?? 0) === 0 ? (
+        ) : data.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
               Nenhum parceiro cadastrado no momento.
@@ -107,36 +107,40 @@ function AlunoParceirosPage() {
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data!.map((p) => (
+            {data.map((p) => (
               <Card key={p.id} className="overflow-hidden">
                 <CardHeader className="flex-row items-center gap-3 space-y-0">
                   <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background">
-                    <img
-                      src={p.logo_url}
-                      alt={`Logo ${p.nome}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
+                    {p.logo_url && (
+                      <img
+                        src={p.logo_url}
+                        alt={`Logo ${p.name}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="truncate text-base">{p.nome}</CardTitle>
+                    <CardTitle className="truncate text-base">{p.name}</CardTitle>
                     <Badge variant="secondary" className="mt-1">
-                      {p.categoria}
+                      {CATEGORY_FROM_BACKEND[p.category]}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="line-clamp-3 text-sm text-muted-foreground">
-                    {p.descricao}
+                    {p.description}
                   </p>
-                  <a
-                    href={p.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                  >
-                    Acessar parceiro <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {p.link && (
+                    <a
+                      href={p.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Acessar parceiro <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </CardContent>
               </Card>
             ))}

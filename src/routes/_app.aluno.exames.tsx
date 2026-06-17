@@ -25,12 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  apiListExames,
-  apiUploadExame,
-  apiDeleteExame,
-  type ExameAluno,
-} from "@/lib/mock-api";
+import { fetchExams, createExam, deleteExam, type Exam } from "@/lib/api/exams";
+import { fileToDataUrl } from "@/lib/api/evolution-photos";
 import { useAuth } from "@/contexts/auth-context";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
@@ -67,14 +63,22 @@ function ExamesPage() {
 
   const { data: exames = [], isLoading } = useQuery({
     queryKey: ["exames", alunoId],
-    queryFn: () => apiListExames(alunoId),
+    queryFn: () => fetchExams(alunoId),
     enabled: !!alunoId,
   });
 
   const uploadMut = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!file) throw new Error("Selecione um arquivo");
-      return apiUploadExame(alunoId, file, { nome, descricao });
+      const fileUrl = await fileToDataUrl(file);
+      return createExam(alunoId, {
+        name: nome,
+        description: descricao || undefined,
+        file_url: fileUrl,
+        content_type: file.type,
+        size: file.size,
+        uploaded_at: new Date().toISOString(),
+      });
     },
     onSuccess: () => {
       toast.success("Exame enviado");
@@ -88,7 +92,7 @@ function ExamesPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => apiDeleteExame(alunoId, id),
+    mutationFn: (id: string) => deleteExam(alunoId, id),
     onSuccess: () => {
       toast.success("Exame removido");
       qc.invalidateQueries({ queryKey: ["exames", alunoId] });
@@ -210,7 +214,7 @@ function ExameCard({
   canDelete,
   onDelete,
 }: {
-  exame: ExameAluno;
+  exame: Exam;
   canDelete: boolean;
   onDelete: () => void;
 }) {
@@ -220,19 +224,19 @@ function ExameCard({
       <CardHeader className="space-y-1">
         <CardTitle className="flex items-center gap-2 text-sm">
           <FileText className="h-4 w-4 text-primary" />
-          <span className="truncate">{exame.nome}</span>
+          <span className="truncate">{exame.name}</span>
         </CardTitle>
         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <Calendar className="h-3 w-3" />
-          {new Date(exame.enviado_em).toLocaleDateString("pt-BR")} ·{" "}
-          {formatBytes(exame.tamanho)}
+          {new Date(exame.uploaded_at).toLocaleDateString("pt-BR")} ·{" "}
+          {formatBytes(exame.size)}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {isImage ? (
           <img
-            src={exame.arquivo_url}
-            alt={exame.nome}
+            src={exame.file_url}
+            alt={exame.name}
             className="h-32 w-full rounded-md border border-border object-cover"
             loading="lazy"
           />
@@ -241,16 +245,16 @@ function ExameCard({
             {exame.content_type || "Arquivo"}
           </div>
         )}
-        {exame.descricao && (
+        {exame.description && (
           <p className="line-clamp-3 text-xs text-muted-foreground">
-            {exame.descricao}
+            {exame.description}
           </p>
         )}
         <div className="flex items-center gap-2">
           <Button asChild size="sm" variant="secondary" className="flex-1">
             <a
-              href={exame.arquivo_url}
-              download={exame.nome}
+              href={exame.file_url}
+              download={exame.name}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -273,7 +277,7 @@ function ExameCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Remover exame?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta ação removerá permanentemente o arquivo "{exame.nome}".
+                    Esta ação removerá permanentemente o arquivo "{exame.name}".
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
