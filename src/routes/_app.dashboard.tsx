@@ -2,30 +2,47 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  Users, UserCog, Handshake, ClipboardList, Dumbbell, TrendingUp, TrendingDown,
+  Users,
+  UserCog,
+  Handshake,
+  ClipboardList,
+  Dumbbell,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiActivitySeries, apiDashboardKpis, type RangeFilter } from "@/lib/mock-api";
+import { fetchKpis, fetchActivity, type RangeFilter } from "@/lib/api/dashboard";
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
 });
 
-
-const ICONS = { users: Users, trainer: UserCog, handshake: Handshake, clipboard: ClipboardList, dumbbell: Dumbbell };
+const ICONS = {
+  users: Users,
+  trainer: UserCog,
+  handshake: Handshake,
+  clipboard: ClipboardList,
+  dumbbell: Dumbbell,
+};
 
 function DashboardPage() {
   const [range, setRange] = useState<RangeFilter>("month");
   const { data: kpis = [], isLoading: loadingKpis } = useQuery({
     queryKey: ["kpis", range],
-    queryFn: () => apiDashboardKpis(range),
+    queryFn: () => fetchKpis(range),
   });
   const { data: series = [] } = useQuery({
     queryKey: ["activity", range],
-    queryFn: () => apiActivitySeries(range),
+    queryFn: () => fetchActivity(range),
   });
 
   return (
@@ -46,7 +63,17 @@ function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {(loadingKpis ? Array.from({ length: 5 }).map((_, i) => ({ label: "—", value: 0, delta: 0, icon: "users" as const, _skel: true, _i: i })) : kpis).map((k, i) => {
+        {(loadingKpis
+          ? Array.from({ length: 5 }).map((_, i) => ({
+              label: "—",
+              value: 0,
+              delta: 0,
+              icon: "users" as const,
+              _skel: true,
+              _i: i,
+            }))
+          : kpis
+        ).map((k, i) => {
           const Icon = ICONS[k.icon];
           const up = k.delta >= 0;
           return (
@@ -65,9 +92,12 @@ function DashboardPage() {
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>
-                <div className={`mt-3 inline-flex items-center gap-1 text-xs font-medium ${up ? "text-success" : "text-destructive"}`}>
+                <div
+                  className={`mt-3 inline-flex items-center gap-1 text-xs font-medium ${up ? "text-success" : "text-destructive"}`}
+                >
                   {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {up ? "+" : ""}{k.delta.toFixed(1)}% vs período anterior
+                  {up ? "+" : ""}
+                  {k.delta.toFixed(1)}% vs período anterior
                 </div>
               </CardContent>
             </Card>
@@ -103,8 +133,22 @@ function DashboardPage() {
                     borderRadius: 8,
                   }}
                 />
-                <Area type="monotone" dataKey="treinos" name="Treinos" stroke="var(--color-chart-1)" fill="url(#g1)" strokeWidth={2} />
-                <Area type="monotone" dataKey="avaliacoes" name="Avaliações" stroke="var(--color-chart-2)" fill="url(#g2)" strokeWidth={2} />
+                <Area
+                  type="monotone"
+                  dataKey="treinos"
+                  name="Treinos"
+                  stroke="var(--color-chart-1)"
+                  fill="url(#g1)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="avaliacoes"
+                  name="Avaliações"
+                  stroke="var(--color-chart-2)"
+                  fill="url(#g2)"
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
