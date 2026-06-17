@@ -8,21 +8,37 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  apiCreateAluno, apiCreatePersonal, apiListAlunos, apiListPersonais,
-  apiUpdateAluno, apiUpdatePersonal,
-  type Aluno, type Personal,
-} from "@/lib/mock-api";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiCreateAluno, apiListAlunos, apiUpdateAluno, type Aluno } from "@/lib/mock-api";
+import { fetchTrainers, createTrainer, updateTrainer, type Trainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/usuarios")({
   component: UsuariosPage,
 });
-
 
 function UsuariosPage() {
   const { user, canWrite, hasRole } = useAuth();
@@ -45,7 +61,12 @@ function UsuariosPage() {
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="pl-9" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar..."
+            className="pl-9"
+          />
         </div>
       </div>
 
@@ -70,8 +91,16 @@ function UsuariosPage() {
 }
 
 function AlunosTab({
-  query, canWrite, personalId, isAdmin,
-}: { query: string; canWrite: boolean; personalId?: string; isAdmin: boolean }) {
+  query,
+  canWrite,
+  personalId,
+  isAdmin,
+}: {
+  query: string;
+  canWrite: boolean;
+  personalId?: string;
+  isAdmin: boolean;
+}) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { impersonateAluno } = useAuth();
@@ -79,7 +108,10 @@ function AlunosTab({
     queryKey: ["alunos", personalId ?? "all"],
     queryFn: () => apiListAlunos(personalId ? { personalId } : undefined),
   });
-  const { data: personais } = useQuery({ queryKey: ["personais"], queryFn: apiListPersonais });
+  const { data: trainers = [] } = useQuery({
+    queryKey: ["trainers"],
+    queryFn: () => fetchTrainers(),
+  });
   const filtered = (data?.data ?? []).filter(
     (a: Aluno) =>
       a.nome.toLowerCase().includes(query.toLowerCase()) ||
@@ -94,7 +126,7 @@ function AlunosTab({
           <div className="text-sm text-muted-foreground">{filtered.length} alunos</div>
           {canWrite && (
             <NovoAlunoDialog
-              personais={personais?.data ?? []}
+              trainers={trainers}
               lockedPersonalId={personalId}
               onCreated={() => qc.invalidateQueries({ queryKey: ["alunos"] })}
             />
@@ -114,37 +146,48 @@ function AlunosTab({
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : filtered.map((a: Aluno) => (
-                <TableRow
-                  key={a.id}
-                  className="cursor-pointer hover:bg-muted/40"
-                  onClick={() => {
-                    impersonateAluno(a.id);
-                    navigate({ to: "/aluno" });
-                  }}
-                >
-                  <TableCell>
-                    <div className="font-medium text-foreground">{a.nome}</div>
-                    <div className="text-xs text-muted-foreground md:hidden">{a.email}</div>
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    Carregando...
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{a.email}</TableCell>
-                  {isAdmin && <TableCell className="hidden lg:table-cell">{a.personal_nome}</TableCell>}
-                  <TableCell className="hidden sm:table-cell">{a.altura_cm} cm</TableCell>
-                  <TableCell>
-                    <Badge variant={a.status === "ativo" ? "default" : "secondary"} className={a.status === "ativo" ? "bg-success text-success-foreground" : ""}>
-                      {a.status}
-                    </Badge>
-                  </TableCell>
-                  {canWrite && (
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" onClick={() => setEditing(a)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  )}
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((a: Aluno) => (
+                  <TableRow
+                    key={a.id}
+                    className="cursor-pointer hover:bg-muted/40"
+                    onClick={() => {
+                      impersonateAluno(a.id);
+                      navigate({ to: "/aluno" });
+                    }}
+                  >
+                    <TableCell>
+                      <div className="font-medium text-foreground">{a.nome}</div>
+                      <div className="text-xs text-muted-foreground md:hidden">{a.email}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{a.email}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="hidden lg:table-cell">{a.personal_nome}</TableCell>
+                    )}
+                    <TableCell className="hidden sm:table-cell">{a.altura_cm} cm</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={a.status === "ativo" ? "default" : "secondary"}
+                        className={a.status === "ativo" ? "bg-success text-success-foreground" : ""}
+                      >
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+                    {canWrite && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button size="icon" variant="ghost" onClick={() => setEditing(a)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -153,10 +196,13 @@ function AlunosTab({
       {editing && (
         <EditAlunoDialog
           aluno={editing}
-          personais={personais?.data ?? []}
+          trainers={trainers}
           canChangePersonal={isAdmin}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["alunos"] }); }}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["alunos"] });
+          }}
         />
       )}
     </Card>
@@ -165,22 +211,33 @@ function AlunosTab({
 
 function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean }) {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["personais"], queryFn: apiListPersonais });
-  const filtered = (data?.data ?? []).filter(
-    (p: Personal) => p.nome.toLowerCase().includes(query.toLowerCase()) || p.cref.toLowerCase().includes(query.toLowerCase()),
+  const { data: trainers = [], isLoading } = useQuery({
+    queryKey: ["trainers"],
+    queryFn: () => fetchTrainers(),
+  });
+  const filtered = trainers.filter(
+    (p: Trainer) =>
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.cref.toLowerCase().includes(query.toLowerCase()),
   );
   const variantOf = (s: string) =>
-    s === "ativo" ? "bg-success text-success-foreground"
-      : s === "bloqueado" ? "bg-destructive text-destructive-foreground"
-      : "bg-muted text-muted-foreground";
-  const [editing, setEditing] = useState<Personal | null>(null);
+    s === "active"
+      ? "bg-success text-success-foreground"
+      : s === "blocked"
+        ? "bg-destructive text-destructive-foreground"
+        : "bg-muted text-muted-foreground";
+  const [editing, setEditing] = useState<Trainer | null>(null);
 
   return (
     <Card className="shadow-soft">
       <CardContent className="p-0">
         <div className="flex items-center justify-between border-b border-border p-4">
           <div className="text-sm text-muted-foreground">{filtered.length} personais</div>
-          {canWrite && <NovoPersonalDialog onCreated={() => qc.invalidateQueries({ queryKey: ["personais"] })} />}
+          {canWrite && (
+            <NovoPersonalDialog
+              onCreated={() => qc.invalidateQueries({ queryKey: ["trainers"] })}
+            />
+          )}
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -196,23 +253,33 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : filtered.map((p: Personal) => (
-                <TableRow key={p.id}>
-                  <TableCell><div className="font-medium">{p.nome}</div></TableCell>
-                  <TableCell className="hidden md:table-cell">{p.cref}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{p.email}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.alunos_count}</TableCell>
-                  <TableCell><Badge className={variantOf(p.status)}>{p.status}</Badge></TableCell>
-                  {canWrite && (
-                    <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => setEditing(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  )}
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    Carregando...
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((p: Trainer) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="font-medium">{p.name}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{p.cref}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{p.email}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{p.students_count}</TableCell>
+                    <TableCell>
+                      <Badge className={variantOf(p.status)}>{p.status}</Badge>
+                    </TableCell>
+                    {canWrite && (
+                      <TableCell className="text-right">
+                        <Button size="icon" variant="ghost" onClick={() => setEditing(p)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -220,9 +287,12 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
 
       {editing && (
         <EditPersonalDialog
-          personal={editing}
+          trainer={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["personais"] }); }}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["trainers"] });
+          }}
         />
       )}
     </Card>
@@ -230,36 +300,64 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
 }
 
 function NovoAlunoDialog({
-  personais, lockedPersonalId, onCreated,
-}: { personais: Personal[]; lockedPersonalId?: string; onCreated: () => void }) {
+  trainers,
+  lockedPersonalId,
+  onCreated,
+}: {
+  trainers: Trainer[];
+  lockedPersonalId?: string;
+  onCreated: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    nome: "", nascimento: "", sexo: "F" as "F" | "M" | "Outro",
-    altura_cm: 170, email: "", telefone: "",
-    personal_id: lockedPersonalId ?? personais[0]?.id ?? "",
+    nome: "",
+    nascimento: "",
+    sexo: "F" as "F" | "M" | "Outro",
+    altura_cm: 170,
+    email: "",
+    telefone: "",
+    personal_id: lockedPersonalId ?? trainers[0]?.id ?? "",
   });
   const mut = useMutation({
-    mutationFn: () => apiCreateAluno({ ...form, personal_id: lockedPersonalId ?? form.personal_id }),
-    onSuccess: () => { toast.success("Aluno cadastrado"); setOpen(false); onCreated(); },
+    mutationFn: () =>
+      apiCreateAluno({ ...form, personal_id: lockedPersonalId ?? form.personal_id }),
+    onSuccess: () => {
+      toast.success("Aluno cadastrado");
+      setOpen(false);
+      onCreated();
+    },
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm"><Plus className="mr-1 h-4 w-4" /> Novo aluno</Button>
+        <Button size="sm">
+          <Plus className="mr-1 h-4 w-4" /> Novo aluno
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Cadastrar aluno</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Cadastrar aluno</DialogTitle>
+        </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome" className="sm:col-span-2">
             <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
           </Field>
           <Field label="Nascimento">
-            <Input type="date" value={form.nascimento} onChange={(e) => setForm({ ...form, nascimento: e.target.value })} />
+            <Input
+              type="date"
+              value={form.nascimento}
+              onChange={(e) => setForm({ ...form, nascimento: e.target.value })}
+            />
           </Field>
           <Field label="Sexo">
-            <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v as "F" | "M" | "Outro" })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.sexo}
+              onValueChange={(v) => setForm({ ...form, sexo: v as "F" | "M" | "Outro" })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="F">Feminino</SelectItem>
                 <SelectItem value="M">Masculino</SelectItem>
@@ -268,20 +366,40 @@ function NovoAlunoDialog({
             </Select>
           </Field>
           <Field label="Altura (cm)">
-            <Input type="number" value={form.altura_cm} onChange={(e) => setForm({ ...form, altura_cm: Number(e.target.value) })} />
+            <Input
+              type="number"
+              value={form.altura_cm}
+              onChange={(e) => setForm({ ...form, altura_cm: Number(e.target.value) })}
+            />
           </Field>
           <Field label="E-mail">
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </Field>
           <Field label="Telefone">
-            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            <Input
+              value={form.telefone}
+              onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+            />
           </Field>
           {!lockedPersonalId && (
             <Field label="Personal responsável" className="sm:col-span-2">
-              <Select value={form.personal_id} onValueChange={(v) => setForm({ ...form, personal_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <Select
+                value={form.personal_id}
+                onValueChange={(v) => setForm({ ...form, personal_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
                 <SelectContent>
-                  {personais.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  {trainers.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -293,8 +411,13 @@ function NovoAlunoDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.nome || !form.email}>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending || !form.nome || !form.email}
+          >
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
@@ -304,39 +427,62 @@ function NovoAlunoDialog({
 }
 
 function EditAlunoDialog({
-  aluno, personais, canChangePersonal, onClose, onSaved,
+  aluno,
+  trainers,
+  canChangePersonal,
+  onClose,
+  onSaved,
 }: {
   aluno: Aluno;
-  personais: Personal[];
+  trainers: Trainer[];
   canChangePersonal: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [form, setForm] = useState<Aluno>(aluno);
   const mut = useMutation({
-    mutationFn: () => apiUpdateAluno(aluno.id, {
-      nome: form.nome, email: form.email, telefone: form.telefone,
-      altura_cm: form.altura_cm, sexo: form.sexo, nascimento: form.nascimento,
-      status: form.status,
-      ...(canChangePersonal ? { personal_id: form.personal_id } : {}),
-    }),
-    onSuccess: () => { toast.success("Aluno atualizado"); onSaved(); },
+    mutationFn: () =>
+      apiUpdateAluno(aluno.id, {
+        nome: form.nome,
+        email: form.email,
+        telefone: form.telefone,
+        altura_cm: form.altura_cm,
+        sexo: form.sexo,
+        nascimento: form.nascimento,
+        status: form.status,
+        ...(canChangePersonal ? { personal_id: form.personal_id } : {}),
+      }),
+    onSuccess: () => {
+      toast.success("Aluno atualizado");
+      onSaved();
+    },
   });
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Editar aluno</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Editar aluno</DialogTitle>
+        </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome" className="sm:col-span-2">
             <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
           </Field>
           <Field label="Nascimento">
-            <Input type="date" value={form.nascimento} onChange={(e) => setForm({ ...form, nascimento: e.target.value })} />
+            <Input
+              type="date"
+              value={form.nascimento}
+              onChange={(e) => setForm({ ...form, nascimento: e.target.value })}
+            />
           </Field>
           <Field label="Sexo">
-            <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v as Aluno["sexo"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.sexo}
+              onValueChange={(v) => setForm({ ...form, sexo: v as Aluno["sexo"] })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="F">Feminino</SelectItem>
                 <SelectItem value="M">Masculino</SelectItem>
@@ -345,17 +491,33 @@ function EditAlunoDialog({
             </Select>
           </Field>
           <Field label="Altura (cm)">
-            <Input type="number" value={form.altura_cm} onChange={(e) => setForm({ ...form, altura_cm: Number(e.target.value) })} />
+            <Input
+              type="number"
+              value={form.altura_cm}
+              onChange={(e) => setForm({ ...form, altura_cm: Number(e.target.value) })}
+            />
           </Field>
           <Field label="E-mail">
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </Field>
           <Field label="Telefone">
-            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            <Input
+              value={form.telefone}
+              onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+            />
           </Field>
           <Field label="Status">
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Aluno["status"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v as Aluno["status"] })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ativo">Ativo</SelectItem>
                 <SelectItem value="inativo">Inativo</SelectItem>
@@ -364,17 +526,28 @@ function EditAlunoDialog({
           </Field>
           {canChangePersonal && (
             <Field label="Personal responsável">
-              <Select value={form.personal_id} onValueChange={(v) => setForm({ ...form, personal_id: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.personal_id}
+                onValueChange={(v) => setForm({ ...form, personal_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {personais.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  {trainers.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
           <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
@@ -387,25 +560,39 @@ function EditAlunoDialog({
 function NovoPersonalDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    nome: "", cpf: "", cref: "", email: "", telefone: "",
-    status: "ativo" as "ativo" | "bloqueado" | "inativo",
+    name: "",
+    cpf: "",
+    cref: "",
+    email: "",
+    phone: "",
+    status: "active" as "active" | "blocked" | "inactive",
   });
   const mut = useMutation({
-    mutationFn: () => apiCreatePersonal(form),
-    onSuccess: () => { toast.success("Personal cadastrado"); setOpen(false); onCreated(); },
+    mutationFn: () => createTrainer(form),
+    onSuccess: () => {
+      toast.success("Personal cadastrado");
+      setOpen(false);
+      onCreated();
+    },
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm"><Plus className="mr-1 h-4 w-4" /> Novo personal</Button>
+        <Button size="sm">
+          <Plus className="mr-1 h-4 w-4" /> Novo personal
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Cadastrar personal</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Cadastrar personal</DialogTitle>
+        </DialogHeader>
         <PersonalFormFields form={form} setForm={setForm} />
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.nome || !form.cref}>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.name || !form.cref}>
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
@@ -415,23 +602,40 @@ function NovoPersonalDialog({ onCreated }: { onCreated: () => void }) {
 }
 
 function EditPersonalDialog({
-  personal, onClose, onSaved,
-}: { personal: Personal; onClose: () => void; onSaved: () => void }) {
+  trainer,
+  onClose,
+  onSaved,
+}: {
+  trainer: Trainer;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [form, setForm] = useState({
-    nome: personal.nome, cpf: personal.cpf, cref: personal.cref, email: personal.email,
-    telefone: personal.telefone, status: personal.status,
+    name: trainer.name,
+    cpf: trainer.cpf,
+    cref: trainer.cref,
+    email: trainer.email,
+    phone: trainer.phone,
+    status: trainer.status,
   });
   const mut = useMutation({
-    mutationFn: () => apiUpdatePersonal(personal.id, form),
-    onSuccess: () => { toast.success("Personal atualizado"); onSaved(); },
+    mutationFn: () => updateTrainer(trainer.id, form),
+    onSuccess: () => {
+      toast.success("Personal atualizado");
+      onSaved();
+    },
   });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Editar personal</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Editar personal</DialogTitle>
+        </DialogHeader>
         <PersonalFormFields form={form} setForm={setForm} />
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
           <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
@@ -442,29 +646,54 @@ function EditPersonalDialog({
 }
 
 type PersonalFormState = {
-  nome: string; cpf: string; cref: string; email: string; telefone: string;
-  status: "ativo" | "bloqueado" | "inativo";
+  name: string;
+  cpf: string;
+  cref: string;
+  email: string;
+  phone: string;
+  status: "active" | "blocked" | "inactive";
 };
 
 function PersonalFormFields({
-  form, setForm,
-}: { form: PersonalFormState; setForm: (f: PersonalFormState) => void }) {
+  form,
+  setForm,
+}: {
+  form: PersonalFormState;
+  setForm: (f: PersonalFormState) => void;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field label="Nome" className="sm:col-span-2">
-        <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </Field>
-      <Field label="CPF"><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></Field>
-      <Field label="CREF"><Input value={form.cref} onChange={(e) => setForm({ ...form, cref: e.target.value })} /></Field>
-      <Field label="E-mail"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-      <Field label="Telefone"><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
+      <Field label="CPF">
+        <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+      </Field>
+      <Field label="CREF">
+        <Input value={form.cref} onChange={(e) => setForm({ ...form, cref: e.target.value })} />
+      </Field>
+      <Field label="E-mail">
+        <Input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+      </Field>
+      <Field label="Telefone">
+        <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      </Field>
       <Field label="Status" className="sm:col-span-2">
-        <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as PersonalFormState["status"] })}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select
+          value={form.status}
+          onValueChange={(v) => setForm({ ...form, status: v as PersonalFormState["status"] })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="bloqueado">Bloqueado</SelectItem>
-            <SelectItem value="inativo">Inativo</SelectItem>
+            <SelectItem value="active">Ativo</SelectItem>
+            <SelectItem value="blocked">Bloqueado</SelectItem>
+            <SelectItem value="inactive">Inativo</SelectItem>
           </SelectContent>
         </Select>
       </Field>
@@ -472,7 +701,15 @@ function PersonalFormFields({
   );
 }
 
-function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <Label className="text-xs">{label}</Label>
