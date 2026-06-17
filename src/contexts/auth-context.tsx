@@ -1,6 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { AuthSession, AuthUser, UserRole } from "@/lib/mock-api";
-import { apiLogin } from "@/lib/mock-api";
+import { login, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
+import { setAuthTokenGetter } from "@/lib/api/http";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -25,25 +35,79 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "forlife.session";
 const IMPERSONATE_KEY = "forlife.impersonate";
 
+/** Maps backend English fields to the shape the app currently consumes. */
+export function mapBackendUser(u: BackendUser): AuthUser {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role === "student" ? "aluno" : (u.role as UserRole),
+    avatar_url: u.avatar_url ?? undefined,
+    personal_id: u.trainer_id ?? undefined,
+    aluno_id: u.student_id ?? undefined,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [impersonatedAlunoId, setImpersonatedAlunoId] = useState<string | null>(null);
+  const sessionRef = useRef<AuthSession | null>(null);
+  sessionRef.current = session;
 
+  // Register a stable token getter so the HTTP client always reads the latest token.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setSession(JSON.parse(raw));
-      const imp = localStorage.getItem(IMPERSONATE_KEY);
-      if (imp) setImpersonatedAlunoId(imp);
-    } catch {
-      /* ignore */
+    setAuthTokenGetter(() => sessionRef.current?.token ?? null);
+  }, []);
+
+  // Restore session from storage and revalidate with the backend.
+  useEffect(() => {
+    let cancelled = false;
+    async function boot() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const imp = localStorage.getItem(IMPERSONATE_KEY);
+        if (raw) {
+          const stored: AuthSession = JSON.parse(raw);
+          if (!cancelled) {
+            setSession(stored);
+            if (imp) setImpersonatedAlunoId(imp);
+          }
+          // Revalidate token; sign out if expired/invalid.
+          try {
+            const backendUser = await fetchCurrentUser();
+            if (!cancelled) {
+              const fresh: AuthSession = { ...stored, user: mapBackendUser(backendUser) };
+              setSession(fresh);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+            }
+          } catch {
+            if (!cancelled) {
+              setSession(null);
+              setImpersonatedAlunoId(null);
+              localStorage.removeItem(STORAGE_KEY);
+              localStorage.removeItem(IMPERSONATE_KEY);
+            }
+          }
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+      if (!cancelled) setLoading(false);
     }
-    setLoading(false);
+    boot();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const s = await apiLogin(email, password);
+    const res = await login({ email, password });
+    const s: AuthSession = {
+      token: res.token,
+      user: mapBackendUser(res.user),
+      expires_at: res.expires_at,
+    };
     setSession(s);
     setImpersonatedAlunoId(null);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
