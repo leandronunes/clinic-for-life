@@ -592,7 +592,7 @@ function NovoPersonalDialog({ onCreated }: { onCreated: () => void }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.name || !form.cref}>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.name}>
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
@@ -666,10 +666,10 @@ function PersonalFormFields({
       <Field label="Nome" className="sm:col-span-2">
         <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </Field>
-      <Field label="CPF">
+      <Field label="CPF (opcional)">
         <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
       </Field>
-      <Field label="CREF">
+      <Field label="CREF (opcional)">
         <Input value={form.cref} onChange={(e) => setForm({ ...form, cref: e.target.value })} />
       </Field>
       <Field label="E-mail">
