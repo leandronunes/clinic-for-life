@@ -49,51 +49,65 @@ export function mapBackendUser(u: BackendUser): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(null);
+  // Initialize session synchronously from storage to avoid auth race on reload.
+  const initialSession: AuthSession | null = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as AuthSession) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const initialImpersonation: string | null = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.localStorage.getItem(IMPERSONATE_KEY);
+    } catch {
+      return null;
+    }
+  })();
+
+  const [session, setSession] = useState<AuthSession | null>(initialSession);
   const [loading, setLoading] = useState(true);
-  const [impersonatedAlunoId, setImpersonatedAlunoId] = useState<string | null>(null);
-  const sessionRef = useRef<AuthSession | null>(null);
+  const [impersonatedAlunoId, setImpersonatedAlunoId] = useState<string | null>(
+    initialImpersonation,
+  );
+  const sessionRef = useRef<AuthSession | null>(initialSession);
   sessionRef.current = session;
 
-  // Register a stable token getter so the HTTP client always reads the latest token.
-  useEffect(() => {
-    setAuthTokenGetter(() => sessionRef.current?.token ?? null);
-  }, []);
+  // Register the token getter synchronously so the HTTP client has the bearer
+  // available before any effect or query fires after a reload.
+  setAuthTokenGetter(() => sessionRef.current?.token ?? null);
 
-  // Restore session from storage and revalidate with the backend.
+  // Revalidate the restored session against the backend (does not gate UI on success).
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const imp = localStorage.getItem(IMPERSONATE_KEY);
-        if (raw) {
-          const stored: AuthSession = JSON.parse(raw);
-          if (!cancelled) {
-            setSession(stored);
-            if (imp) setImpersonatedAlunoId(imp);
-          }
-          // Revalidate token; sign out if expired/invalid.
-          try {
-            const backendUser = await fetchCurrentUser();
-            if (!cancelled) {
-              const fresh: AuthSession = { ...stored, user: mapBackendUser(backendUser) };
-              setSession(fresh);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-            }
-          } catch {
-            if (!cancelled) {
-              setSession(null);
-              setImpersonatedAlunoId(null);
-              localStorage.removeItem(STORAGE_KEY);
-              localStorage.removeItem(IMPERSONATE_KEY);
-            }
-          }
-        }
-      } catch {
-        /* ignore storage errors */
+      if (!initialSession) {
+        if (!cancelled) setLoading(false);
+        return;
       }
-      if (!cancelled) setLoading(false);
+      try {
+        const backendUser = await fetchCurrentUser();
+        if (!cancelled) {
+          const fresh: AuthSession = { ...initialSession, user: mapBackendUser(backendUser) };
+          setSession(fresh);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+        }
+      } catch (err) {
+        // Only sign the user out for real auth failures (401/403). Network errors
+        // or transient 5xx must NOT wipe the session — keep the user logged in.
+        const status = (err as { status?: number } | undefined)?.status;
+        if (!cancelled && (status === 401 || status === 403)) {
+          setSession(null);
+          setImpersonatedAlunoId(null);
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(IMPERSONATE_KEY);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     boot();
     return () => {
