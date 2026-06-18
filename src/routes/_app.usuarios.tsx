@@ -592,7 +592,7 @@ function NovoPersonalDialog({ onCreated }: { onCreated: () => void }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.name || !form.cref}>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.name}>
             {mut.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
