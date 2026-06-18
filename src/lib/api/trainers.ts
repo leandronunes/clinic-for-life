@@ -16,8 +16,8 @@ export interface Trainer {
 
 export interface CreateTrainerPayload {
   name: string;
-  cpf: string;
-  cref: string;
+  cpf?: string;
+  cref?: string;
   email: string;
   phone: string;
   status?: TrainerStatus;
