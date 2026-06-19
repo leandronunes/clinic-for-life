@@ -488,6 +488,7 @@ function ExercicioFormDialog({
           </Field>
           <Field label="Vídeo de demonstração" className="sm:col-span-2">
             <ExercicioVideoInput
+              studentId={alunoId}
               value={form.video_url}
               onChange={(url) => setForm({ ...form, video_url: url })}
               onUploadingChange={setVideoUploading}

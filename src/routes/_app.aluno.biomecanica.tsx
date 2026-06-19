@@ -445,7 +445,7 @@ function SlotCard({
     }
     setBusy(true);
     try {
-      const s3Url = await uploadBiomechanicalImageToS3(file);
+      const s3Url = await uploadBiomechanicalImageToS3(alunoId, file);
       await uploadBiomechanicsSlot(alunoId, slot, s3Url);
       toast.success(`Imagem "${label}" enviada.`);
       onChanged();

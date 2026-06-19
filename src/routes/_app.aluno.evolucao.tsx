@@ -578,7 +578,7 @@ function PhotoUploadCard({
     mutationFn: async (file: File) => {
       if (!measurementId) throw new Error("Selecione a medição correspondente à foto");
       setUploadProgress(0);
-      const imageUrl = await uploadPhotoToS3(file, setUploadProgress);
+      const imageUrl = await uploadPhotoToS3(alunoId, file, setUploadProgress);
       return createEvolutionPhoto(alunoId, {
         bioimpedance_measurement_id: measurementId,
         image_url: imageUrl,

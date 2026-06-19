@@ -70,7 +70,7 @@ function ExamesPage() {
   const uploadMut = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("Selecione um arquivo");
-      const fileUrl = await uploadExamToS3(file);
+      const fileUrl = await uploadExamToS3(alunoId, file);
       return createExam(alunoId, {
         name: nome,
         description: descricao || undefined,

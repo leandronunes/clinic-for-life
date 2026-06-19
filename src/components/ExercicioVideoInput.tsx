@@ -17,12 +17,13 @@ export function isUploadedVideo(url?: string) {
 }
 
 type Props = {
+  studentId: string;
   value: string;
   onChange: (url: string) => void;
   onUploadingChange?: (uploading: boolean) => void;
 };
 
-export function ExercicioVideoInput({ value, onChange, onUploadingChange }: Props) {
+export function ExercicioVideoInput({ studentId, value, onChange, onUploadingChange }: Props) {
   const initialTab = isUploadedVideo(value) ? "upload" : "youtube";
   const [tab, setTab] = useState<"youtube" | "upload">(initialTab);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -69,7 +70,7 @@ export function ExercicioVideoInput({ value, onChange, onUploadingChange }: Prop
     try {
       const ext = file.name.split(".").pop() ?? "mp4";
       const filename = `exercise_${Date.now()}.${ext}`;
-      const s3Url = await uploadVideoToS3(file, filename, file.type, setProgress);
+      const s3Url = await uploadVideoToS3(studentId, file, filename, file.type, setProgress);
       onChange(s3Url);
       toast.success("Vídeo enviado com sucesso");
     } catch (err) {
@@ -116,7 +117,7 @@ export function ExercicioVideoInput({ value, onChange, onUploadingChange }: Prop
         setUploadingState(true);
         try {
           const filename = `exercise_recorded_${Date.now()}.webm`;
-          const s3Url = await uploadVideoToS3(blob, filename, contentType, setProgress);
+          const s3Url = await uploadVideoToS3(studentId, blob, filename, contentType, setProgress);
           onChange(s3Url);
           toast.success("Gravação enviada com sucesso");
         } catch (err) {

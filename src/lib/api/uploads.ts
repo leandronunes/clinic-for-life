@@ -9,6 +9,7 @@ function requestPresignedUrl(params: {
   filename: string;
   content_type: string;
   context: string;
+  student_id: string;
 }): Promise<PresignResponse> {
   return http.post<PresignResponse>("/api/v1/uploads/presign", params);
 }
@@ -38,6 +39,7 @@ function uploadToS3(
 }
 
 export async function uploadVideoToS3(
+  studentId: string,
   file: File | Blob,
   filename: string,
   contentType: string,
@@ -51,12 +53,14 @@ export async function uploadVideoToS3(
     filename,
     content_type: contentType,
     context: "exercise_video",
+    student_id: studentId,
   });
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
 }
 
 export async function uploadPhotoToS3(
+  studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
@@ -65,12 +69,14 @@ export async function uploadPhotoToS3(
     filename: file.name,
     content_type: mimeType,
     context: "evolution_photo",
+    student_id: studentId,
   });
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
 }
 
 export async function uploadBiomechanicalImageToS3(
+  studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
@@ -79,12 +85,14 @@ export async function uploadBiomechanicalImageToS3(
     filename: file.name,
     content_type: mimeType,
     context: "biomechanical_image",
+    student_id: studentId,
   });
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
 }
 
 export async function uploadExamToS3(
+  studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
@@ -93,6 +101,7 @@ export async function uploadExamToS3(
     filename: file.name,
     content_type: mimeType,
     context: "exam",
+    student_id: studentId,
   });
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
