@@ -17,6 +17,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  signUp: (params: RegisterParams) => Promise<AuthUser>;
   signOut: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
   canWrite: boolean;
