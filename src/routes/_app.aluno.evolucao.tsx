@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -29,8 +29,16 @@ import {
   X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
 import { importBioimpedanceCsv, type BioImportResult } from "@/lib/api/bioimpedance-import";
@@ -42,19 +50,43 @@ export const Route = createFileRoute("/_app/aluno/evolucao")({
   component: EvolucaoPage,
 });
 
-
 type Metric = "weight_kg" | "fat_percentage" | "muscle_mass_kg";
 
-const METRICS: Record<Metric, { label: string; color: string; suffix: string; better: "down" | "up"; icon: typeof Scale }> = {
-  weight_kg: { label: "Peso", color: "var(--color-chart-1)", suffix: " kg", better: "down", icon: Scale },
-  fat_percentage: { label: "Gordura corporal", color: "var(--color-chart-4)", suffix: " %", better: "down", icon: Flame },
-  muscle_mass_kg: { label: "Massa muscular", color: "var(--color-chart-2)", suffix: " kg", better: "up", icon: Activity },
+const METRICS: Record<
+  Metric,
+  { label: string; color: string; suffix: string; better: "down" | "up"; icon: typeof Scale }
+> = {
+  weight_kg: {
+    label: "Peso",
+    color: "var(--color-chart-1)",
+    suffix: " kg",
+    better: "down",
+    icon: Scale,
+  },
+  fat_percentage: {
+    label: "Gordura corporal",
+    color: "var(--color-chart-4)",
+    suffix: " %",
+    better: "down",
+    icon: Flame,
+  },
+  muscle_mass_kg: {
+    label: "Massa muscular",
+    color: "var(--color-chart-2)",
+    suffix: " kg",
+    better: "up",
+    icon: Activity,
+  },
 };
 
 function EvolucaoPage() {
   const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
-  const { data = [], isLoading, refetch } = useQuery({
+  const {
+    data = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["evolucao", alunoId],
     queryFn: () => fetchMeasurements(alunoId),
   });
@@ -69,7 +101,10 @@ function EvolucaoPage() {
     () =>
       data.map((d) => ({
         ...d,
-        label: new Date(d.measured_on).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+        label: new Date(d.measured_on).toLocaleDateString("pt-BR", {
+          month: "short",
+          year: "2-digit",
+        }),
       })),
     [data],
   );
@@ -96,7 +131,13 @@ function EvolucaoPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {(Object.keys(METRICS) as Metric[]).map((m) => (
-          <MetricCard key={m} metric={m} data={data} active={metric === m} onClick={() => setMetric(m)} />
+          <MetricCard
+            key={m}
+            metric={m}
+            data={data}
+            active={metric === m}
+            onClick={() => setMetric(m)}
+          />
         ))}
       </div>
 
@@ -114,7 +155,9 @@ function EvolucaoPage() {
         <CardContent>
           <div className="h-80 w-full">
             {isLoading ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">Carregando...</div>
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                Carregando...
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={formatted}>
@@ -126,12 +169,29 @@ function EvolucaoPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                   <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--color-muted-foreground)" fontSize={12} domain={["auto", "auto"]} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }}
-                    formatter={(v: number) => [`${v.toFixed(1)}${METRICS[metric].suffix}`, METRICS[metric].label]}
+                  <YAxis
+                    stroke="var(--color-muted-foreground)"
+                    fontSize={12}
+                    domain={["auto", "auto"]}
                   />
-                  <Area type="monotone" dataKey={metric} stroke={METRICS[metric].color} fill="url(#metricGrad)" strokeWidth={2.5} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                    }}
+                    formatter={(v: number) => [
+                      `${v.toFixed(1)}${METRICS[metric].suffix}`,
+                      METRICS[metric].label,
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={metric}
+                    stroke={METRICS[metric].color}
+                    fill="url(#metricGrad)"
+                    strokeWidth={2.5}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -149,12 +209,26 @@ function EvolucaoPage() {
               <LineChart data={formatted}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} domain={["auto", "auto"]} />
+                <YAxis
+                  stroke="var(--color-muted-foreground)"
+                  fontSize={12}
+                  domain={["auto", "auto"]}
+                />
                 <Tooltip
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }}
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 8,
+                  }}
                   formatter={(v: number) => [v.toFixed(2), "IMC"]}
                 />
-                <Line type="monotone" dataKey="bmi" stroke="var(--color-chart-3)" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="bmi"
+                  stroke="var(--color-chart-3)"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -196,7 +270,17 @@ function EvolucaoPage() {
   );
 }
 
-function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: BioimpedanceMeasurement[]; active: boolean; onClick: () => void }) {
+function MetricCard({
+  metric,
+  data,
+  active,
+  onClick,
+}: {
+  metric: Metric;
+  data: BioimpedanceMeasurement[];
+  active: boolean;
+  onClick: () => void;
+}) {
   const cfg = METRICS[metric];
   const Icon = cfg.icon;
   const first = data[0]?.[metric] ?? 0;
@@ -213,18 +297,25 @@ function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: B
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{cfg.label}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {cfg.label}
+              </div>
               <div className="mt-2 text-3xl font-bold">
-                {last.toFixed(1)}<span className="text-base font-normal text-muted-foreground">{cfg.suffix}</span>
+                {last.toFixed(1)}
+                <span className="text-base font-normal text-muted-foreground">{cfg.suffix}</span>
               </div>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-lg brand-gradient text-primary-foreground">
               <Icon className="h-5 w-5" />
             </div>
           </div>
-          <div className={`mt-3 inline-flex items-center gap-1 text-xs font-medium ${positive ? "text-success" : "text-destructive"}`}>
+          <div
+            className={`mt-3 inline-flex items-center gap-1 text-xs font-medium ${positive ? "text-success" : "text-destructive"}`}
+          >
             {diff < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-            {diff > 0 ? "+" : ""}{diff.toFixed(1)}{cfg.suffix} no período
+            {diff > 0 ? "+" : ""}
+            {diff.toFixed(1)}
+            {cfg.suffix} no período
           </div>
         </CardContent>
       </Card>
@@ -232,7 +323,15 @@ function MetricCard({ metric, data, active, onClick }: { metric: Metric; data: B
   );
 }
 
-function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; alunoEmail: string; onImported: () => void }) {
+function BioUploadCard({
+  alunoId,
+  alunoEmail,
+  onImported,
+}: {
+  alunoId: string;
+  alunoEmail: string;
+  onImported: () => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<BioImportResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -240,16 +339,21 @@ function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; a
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleProcess = async (f: File) => {
-    setFile(f); setResult(null); setLoading(true);
+    setFile(f);
+    setResult(null);
+    setLoading(true);
     try {
       const r = await importBioimpedanceCsv(alunoId, f);
       setResult(r);
-      if (r.errors.length === 0) toast.success(`${r.imported} registros importados para ${alunoEmail}`);
+      if (r.errors.length === 0)
+        toast.success(`${r.imported} registros importados para ${alunoEmail}`);
       else toast.warning(`${r.imported} importados, ${r.errors.length} com erro`);
       onImported();
     } catch {
       toast.error("Falha ao processar o arquivo");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -257,27 +361,45 @@ function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; a
       <CardHeader>
         <CardTitle className="text-base">Upload de Bioimpedância (InBody)</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Esta área é visível apenas para administradores e personais. Envie o CSV exportado do InBody para registrar a avaliação deste aluno.
+          Esta área é visível apenas para administradores e personais. Envie o CSV exportado do
+          InBody para registrar a avaliação deste aluno.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div
-          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDrag(true);
+          }}
           onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) handleProcess(f); }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDrag(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleProcess(f);
+          }}
           onClick={() => inputRef.current?.click()}
           className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
             drag ? "border-accent bg-accent/5" : "border-border hover:bg-muted/30"
           }`}
         >
           <input
-            ref={inputRef} type="file" accept=".csv,text/csv" className="hidden"
+            ref={inputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
             onChange={(e) => e.target.files?.[0] && handleProcess(e.target.files[0])}
           />
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full brand-gradient text-primary-foreground">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Upload className="h-5 w-5" />
+            )}
           </div>
-          <h3 className="mt-3 font-semibold">{loading ? "Processando..." : "Arraste o CSV ou clique para enviar"}</h3>
+          <h3 className="mt-3 font-semibold">
+            {loading ? "Processando..." : "Arraste o CSV ou clique para enviar"}
+          </h3>
           <p className="mt-1 text-xs text-muted-foreground">
             Colunas: <code>email,peso_kg,massa_muscular_kg,gordura_pct,data</code>
           </p>
@@ -292,9 +414,15 @@ function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; a
           <div className="rounded-lg border border-border">
             <div className="flex items-center gap-2 border-b border-border p-3 text-sm">
               {result.errors.length === 0 ? (
-                <><CheckCircle2 className="h-4 w-4 text-success" /> {result.imported} registros válidos</>
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-success" /> {result.imported} registros
+                  válidos
+                </>
               ) : (
-                <><AlertTriangle className="h-4 w-4 text-warning" /> {result.imported} ok · {result.errors.length} erros</>
+                <>
+                  <AlertTriangle className="h-4 w-4 text-warning" /> {result.imported} ok ·{" "}
+                  {result.errors.length} erros
+                </>
               )}
             </div>
             <Table>
@@ -324,12 +452,102 @@ function BioUploadCard({ alunoId, alunoEmail, onImported }: { alunoId: string; a
   );
 }
 
+function CameraDialog({
+  open,
+  onCapture,
+  onClose,
+}: {
+  open: boolean;
+  onCapture: (file: File) => void;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      })
+      .catch(() => {
+        toast.error("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+        onClose();
+      });
+
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [open, onClose]);
+
+  const capture = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" });
+        onCapture(file);
+        onClose();
+      },
+      "image/jpeg",
+      0.92,
+    );
+  }, [onCapture, onClose]);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Tirar foto</DialogTitle>
+        </DialogHeader>
+        <video ref={videoRef} autoPlay playsInline muted className="w-full rounded-lg bg-black" />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={capture}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            <Camera className="h-4 w-4" /> Capturar
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            Cancelar
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail: string }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
   const mut = useMutation({
@@ -370,7 +588,8 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
       <CardHeader>
         <CardTitle className="text-base">Upload de Foto de Evolução</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Tire uma foto agora pelo celular ou envie uma imagem já existente para registrar a evolução visual deste aluno.
+          Tire uma foto agora pelo celular ou envie uma imagem já existente para registrar a
+          evolução visual deste aluno.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -381,13 +600,11 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
           className="hidden"
           onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
         />
-        <input
-          ref={cameraRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+
+        <CameraDialog
+          open={cameraOpen}
+          onCapture={handleFile}
+          onClose={() => setCameraOpen(false)}
         />
 
         {preview ? (
@@ -409,9 +626,17 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
           </div>
         ) : (
           <div
-            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
             onDragLeave={() => setDrag(false)}
-            onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDrag(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) handleFile(f);
+            }}
             onClick={() => galleryRef.current?.click()}
             className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
               drag ? "border-accent bg-accent/5" : "border-border hover:bg-muted/30"
@@ -425,30 +650,30 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
           </div>
         )}
 
-          {preview && pendingFile && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => mut.mutate(pendingFile)}
-                disabled={mut.isPending}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-              >
-                {mut.isPending ? "Salvando..." : "Salvar foto de evolução"}
-              </button>
-              <button
-                type="button"
-                onClick={clear}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
+        {preview && pendingFile && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => mut.mutate(pendingFile)}
+              disabled={mut.isPending}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            >
+              {mut.isPending ? "Salvando..." : "Salvar foto de evolução"}
+            </button>
+            <button
+              type="button"
+              onClick={clear}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => cameraRef.current?.click()}
+            onClick={() => setCameraOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
           >
             <Camera className="h-4 w-4" /> Tirar foto
