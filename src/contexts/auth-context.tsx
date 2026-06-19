@@ -8,8 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AuthSession, AuthUser, UserRole } from "@/lib/api/auth";
-import { login, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
+import type { AuthSession, AuthUser, RegisterParams, UserRole } from "@/lib/api/auth";
+import { login, register, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 
 interface AuthContextValue {
