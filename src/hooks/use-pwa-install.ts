@@ -5,34 +5,41 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function detectStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
+function detectIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as { MSStream?: unknown }).MSStream;
+}
+
 export function usePwaInstall() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const isIOS = detectIOS();
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in window.navigator &&
-        (window.navigator as { standalone?: boolean }).standalone === true);
-
-    if (isStandalone) {
-      setIsInstalled(true);
+    if (detectStandalone()) {
+      setIsStandalone(true);
       return;
     }
 
-    const handler = (e: Event) => {
+    const handlePrompt = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    const handleInstalled = () => setIsStandalone(true);
 
-    const installedHandler = () => setIsInstalled(true);
-    window.addEventListener("appinstalled", installedHandler);
+    window.addEventListener("beforeinstallprompt", handlePrompt);
+    window.addEventListener("appinstalled", handleInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      window.removeEventListener("appinstalled", installedHandler);
+      window.removeEventListener("beforeinstallprompt", handlePrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
     };
   }, []);
 
@@ -41,10 +48,15 @@ export function usePwaInstall() {
     await prompt.prompt();
     const { outcome } = await prompt.userChoice;
     if (outcome === "accepted") {
-      setIsInstalled(true);
+      setIsStandalone(true);
       setPrompt(null);
     }
   };
 
-  return { canInstall: !!prompt && !isInstalled, isInstalled, install };
+  return {
+    canInstall: !!prompt && !isStandalone,
+    isInstalled: isStandalone,
+    isIOS,
+    install,
+  };
 }
