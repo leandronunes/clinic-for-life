@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Loader2, Trash2, ImageIcon, Check, X, History, Plus } from "lucide-react";
+import { Upload, Camera, Loader2, Trash2, ImageIcon, Check, X, History, Plus } from "lucide-react";
+import { CameraCapture } from "@/components/CameraCapture";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -39,7 +40,7 @@ import {
   type StructuralAssessment,
 } from "@/lib/api/structural-assessment";
 import { fetchStudent } from "@/lib/api/students";
-import { fileToDataUrl } from "@/lib/api/evolution-photos";
+import { uploadBiomechanicalImageToS3 } from "@/lib/api/uploads";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -434,6 +435,7 @@ function SlotCard({
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File) => {
@@ -443,8 +445,8 @@ function SlotCard({
     }
     setBusy(true);
     try {
-      const imageDataUrl = await fileToDataUrl(file);
-      await uploadBiomechanicsSlot(alunoId, slot, imageDataUrl);
+      const s3Url = await uploadBiomechanicalImageToS3(file);
+      await uploadBiomechanicsSlot(alunoId, slot, s3Url);
       toast.success(`Imagem "${label}" enviada.`);
       onChanged();
     } catch {
@@ -519,16 +521,33 @@ function SlotCard({
               e.target.value = "";
             }}
           />
-          <Button
-            size="sm"
-            variant={url ? "outline" : "default"}
-            className="w-full"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-          >
-            <Upload className="mr-2 h-3.5 w-3.5" />
-            {url ? "Substituir imagem" : "Fazer upload"}
-          </Button>
+          <CameraCapture
+            open={cameraOpen}
+            onClose={() => setCameraOpen(false)}
+            onCapture={(file) => handleUpload(file)}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setCameraOpen(true)}
+              disabled={busy}
+            >
+              <Camera className="mr-1.5 h-3.5 w-3.5" />
+              Tirar foto
+            </Button>
+            <Button
+              size="sm"
+              variant={url ? "outline" : "default"}
+              className="w-full"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+            >
+              <Upload className="mr-1.5 h-3.5 w-3.5" />
+              {url ? "Substituir" : "Enviar"}
+            </Button>
+          </div>
         </>
       )}
     </div>

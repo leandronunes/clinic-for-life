@@ -69,3 +69,17 @@ export async function uploadPhotoToS3(
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
 }
+
+export async function uploadBiomechanicalImageToS3(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  const mimeType = file.type || "image/jpeg";
+  const { upload_url, public_url } = await requestPresignedUrl({
+    filename: file.name,
+    content_type: mimeType,
+    context: "biomechanical_image",
+  });
+  await uploadToS3(upload_url, file, mimeType, onProgress);
+  return public_url;
+}
