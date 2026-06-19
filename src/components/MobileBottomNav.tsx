@@ -13,8 +13,11 @@ import {
   LogOut,
   Menu,
   FileText,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { UserRole } from "@/lib/api/auth";
 import {
   Sheet,
@@ -53,6 +56,7 @@ const EXTRA_ALUNO: NavItem[] = [
 
 export function MobileBottomNav() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
+  const { canInstall, isInstalled, isIOS, install } = usePwaInstall();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const role = pathname.startsWith("/aluno") ? "aluno" : (effectiveRole ?? user?.role);
@@ -159,6 +163,33 @@ export function MobileBottomNav() {
                       </Link>
                     </SheetClose>
                   )}
+                  {!isInstalled && (
+                    <SheetClose asChild>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (canInstall) {
+                            install();
+                          } else if (isIOS) {
+                            toast.info(
+                              "No Safari: toque em Compartilhar → Adicionar à Tela de Início",
+                              { duration: 6000 },
+                            );
+                          } else {
+                            toast.info(
+                              'Abra o menu do Chrome (⋮) → "Instalar aplicativo" ou toque no ícone + na barra de endereços',
+                              { duration: 6000 },
+                            );
+                          }
+                        }}
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent text-left text-primary"
+                      >
+                        <Download className="h-5 w-5" />
+                        Instalar app
+                      </button>
+                    </SheetClose>
+                  )}
+
                   {isImpersonating ? (
                     <SheetClose asChild>
                       <button

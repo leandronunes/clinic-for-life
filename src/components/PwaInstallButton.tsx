@@ -14,10 +14,11 @@ export function PwaInstallButton() {
         variant="outline"
         size="sm"
         onClick={install}
-        className="hidden gap-1.5 text-xs sm:flex"
+        className="flex gap-1.5 text-xs"
+        title="Instalar aplicativo"
       >
-        <Download className="h-3.5 w-3.5" />
-        Instalar app
+        <Download className="h-3.5 w-3.5 shrink-0" />
+        <span className="hidden sm:inline">Instalar app</span>
       </Button>
     );
   }
@@ -28,10 +29,11 @@ export function PwaInstallButton() {
         <Button
           variant="outline"
           size="sm"
-          className="hidden gap-1.5 text-xs sm:flex"
+          className="flex gap-1.5 text-xs"
+          title="Instalar aplicativo"
         >
-          <Download className="h-3.5 w-3.5" />
-          Instalar app
+          <Download className="h-3.5 w-3.5 shrink-0" />
+          <span className="hidden sm:inline">Instalar app</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" className="w-72 text-sm">
@@ -40,13 +42,16 @@ export function PwaInstallButton() {
             <p className="font-semibold">Instalar no iPhone / iPad</p>
             <ol className="list-decimal pl-4 space-y-1 text-muted-foreground">
               <li>
-                Toque em <Share className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />
+                Toque em{" "}
+                <Share className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />
                 <strong> Compartilhar</strong> no Safari
               </li>
               <li>
                 Selecione <strong>"Adicionar à Tela de Início"</strong>
               </li>
-              <li>Toque em <strong>Adicionar</strong></li>
+              <li>
+                Toque em <strong>Adicionar</strong>
+              </li>
             </ol>
           </div>
         ) : (
@@ -54,13 +59,13 @@ export function PwaInstallButton() {
             <p className="font-semibold">Instalar no dispositivo</p>
             <p className="text-muted-foreground">
               Procure o ícone{" "}
-              <MonitorSmartphone className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />
-              na barra de endereços do seu browser e clique em{" "}
+              <MonitorSmartphone className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />{" "}
+              na barra de endereços do browser e toque em{" "}
               <strong>"Instalar"</strong>.
             </p>
             <p className="text-xs text-muted-foreground">
-              Se o ícone não aparecer, abra o menu do browser
-              (⋮) e procure <strong>"Instalar aplicativo"</strong> ou{" "}
+              Se não aparecer, abra o menu do browser (⋮) e procure{" "}
+              <strong>"Instalar aplicativo"</strong> ou{" "}
               <strong>"Adicionar à tela inicial"</strong>.
             </p>
           </div>
