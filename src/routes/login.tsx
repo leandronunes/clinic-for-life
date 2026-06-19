@@ -162,21 +162,6 @@ function LoginPage() {
               </CardContent>
             </Card>
 
-            <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs">
-              <div className="mb-2 font-medium text-foreground">Contas de demonstração</div>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" onClick={() => fillCredential("admin")}>
-                  Admin
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => fillCredential("personal")}>
-                  Personal
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => fillCredential("aluno")}>
-                  Aluno
-                </Button>
-              </div>
-            </div>
-
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Ainda não tem uma conta?{" "}
               <Link to="/cadastro" className="font-medium text-primary hover:underline">
