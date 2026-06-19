@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { validateStrongPassword } from "@/lib/utils";
 import { toast } from "sonner";
+import type { AuthUser } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/cadastro")({
   component: CadastroPage,
@@ -26,6 +28,14 @@ function CadastroPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pwErrors, setPwErrors] = useState<string[]>([]);
+
+  const handleGoogleSuccess = useCallback(
+    (user: AuthUser) => {
+      toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+      navigate({ to: user.role === "aluno" ? "/aluno" : "/dashboard" });
+    },
+    [navigate],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +198,13 @@ function CadastroPage() {
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Criar conta
                   </Button>
+
+                  <div className="relative my-2 text-center text-xs text-muted-foreground">
+                    <span className="bg-card px-2 relative z-10">ou continue com</span>
+                    <div className="absolute inset-x-0 top-1/2 -z-0 h-px bg-border" />
+                  </div>
+
+                  <GoogleLoginButton className="w-full" onSuccess={handleGoogleSuccess} />
                 </form>
               </CardContent>
             </Card>

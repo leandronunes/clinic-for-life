@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchKpis, fetchActivity, type RangeFilter } from "@/lib/api/dashboard";
+import { useAuth } from "@/contexts/auth-context";
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
 });
@@ -34,12 +35,17 @@ const ICONS = {
   dumbbell: Dumbbell,
 };
 
+const ADMIN_ONLY_ICONS = new Set(["trainer", "handshake"]);
+
 function DashboardPage() {
+  const { hasRole } = useAuth();
+  const isAdminOnly = hasRole("admin");
   const [range, setRange] = useState<RangeFilter>("month");
-  const { data: kpis = [], isLoading: loadingKpis } = useQuery({
+  const { data: kpisRaw = [], isLoading: loadingKpis } = useQuery({
     queryKey: ["kpis", range],
     queryFn: () => fetchKpis(range),
   });
+  const kpis = kpisRaw.filter((k) => isAdminOnly || !ADMIN_ONLY_ICONS.has(k.icon));
   const { data: series = [] } = useQuery({
     queryKey: ["activity", range],
     queryFn: () => fetchActivity(range),
@@ -64,7 +70,7 @@ function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {(loadingKpis
-          ? Array.from({ length: 5 }).map((_, i) => ({
+          ? Array.from({ length: isAdminOnly ? 5 : 3 }).map((_, i) => ({
               label: "—",
               value: 0,
               delta: 0,

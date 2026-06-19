@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { validateStrongPassword } from "@/lib/utils";
 import { toast } from "sonner";
+import type { AuthUser } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -24,6 +26,14 @@ function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pwErrors, setPwErrors] = useState<string[]>([]);
+
+  const handleGoogleSuccess = useCallback(
+    (user: AuthUser) => {
+      toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+      navigate({ to: user.role === "aluno" ? "/aluno" : "/dashboard" });
+    },
+    [navigate],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,10 +161,8 @@ function LoginPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" onClick={() => toast.info("Social login mockado")}>
-                    <GoogleIcon /> Google
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => toast.info("Social login mockado")}>
+                  <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+                  <Button type="button" variant="outline" disabled>
                     <AppleIcon /> Apple
                   </Button>
                 </div>
@@ -192,13 +200,6 @@ function LoginPage() {
   );
 }
 
-function GoogleIcon() {
-  return (
-    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-      <path fill="#EA4335" d="M12 11v3.2h5.3c-.2 1.4-1.6 4.2-5.3 4.2-3.2 0-5.8-2.6-5.8-5.9S8.8 6.6 12 6.6c1.8 0 3 .8 3.7 1.5l2.5-2.4C16.7 4.2 14.6 3.2 12 3.2 6.9 3.2 2.8 7.3 2.8 12.5S6.9 21.8 12 21.8c6.9 0 9.4-4.8 9.4-7.3 0-.5-.1-.9-.1-1.3H12z" />
-    </svg>
-  );
-}
 function AppleIcon() {
   return (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">

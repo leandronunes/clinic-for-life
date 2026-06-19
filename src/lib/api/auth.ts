@@ -61,6 +61,10 @@ export function login(params: LoginParams): Promise<LoginResponse> {
   return http.post<LoginResponse>("/api/v1/auth/login", params);
 }
 
+export function googleLogin(accessToken: string): Promise<LoginResponse> {
+  return http.post<LoginResponse>("/api/v1/auth/google", { access_token: accessToken });
+}
+
 /**
  * Self-service registration. Backend endpoint:
  * POST /api/v1/auth/register

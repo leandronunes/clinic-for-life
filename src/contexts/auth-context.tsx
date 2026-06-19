@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthSession, AuthUser, RegisterParams, UserRole } from "@/lib/api/auth";
-import { login, register, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
+import { login, register, googleLogin, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 
 interface AuthContextValue {
@@ -18,6 +18,7 @@ interface AuthContextValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (params: RegisterParams) => Promise<AuthUser>;
+  signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
   signOut: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
   canWrite: boolean;
@@ -144,6 +145,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s.user;
   };
 
+  const signInWithGoogle = async (accessToken: string) => {
+    const res = await googleLogin(accessToken);
+    const s: AuthSession = {
+      token: res.token,
+      user: mapBackendUser(res.user),
+      expires_at: res.expires_at,
+    };
+    setSession(s);
+    setImpersonatedAlunoId(null);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    localStorage.removeItem(IMPERSONATE_KEY);
+    return s.user;
+  };
+
   const signOut = () => {
     setSession(null);
     setImpersonatedAlunoId(null);
@@ -176,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       hasRole: (...roles: UserRole[]) => !!role && roles.includes(role),
       canWrite: role === "admin" || role === "personal",

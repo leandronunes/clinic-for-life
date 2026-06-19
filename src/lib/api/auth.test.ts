@@ -1,5 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { login, fetchCurrentUser, type BackendUser, type LoginResponse } from "./auth";
+import {
+  login,
+  register,
+  googleLogin,
+  fetchCurrentUser,
+  type BackendUser,
+  type LoginResponse,
+} from "./auth";
 
 vi.mock("./http", () => ({
   http: {
