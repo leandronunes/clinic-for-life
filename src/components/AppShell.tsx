@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "@tanstack/react-router";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { PwaInstallButton } from "./PwaInstallButton";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "./BrandLogo";
 
@@ -32,6 +33,7 @@ export function AppShell() {
               <BrandLogo size={28} withWordmark />
             </div>
             <div className="ml-auto flex items-center gap-3">
+              <PwaInstallButton />
               <div className="hidden text-right text-xs md:block">
                 <div className="font-medium text-foreground">{user.name}</div>
                 <div className="text-muted-foreground capitalize">{user.role}</div>
