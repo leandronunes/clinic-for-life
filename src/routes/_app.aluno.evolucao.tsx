@@ -42,7 +42,8 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
 import { importBioimpedanceCsv, type BioImportResult } from "@/lib/api/bioimpedance-import";
-import { createEvolutionPhoto, fileToDataUrl } from "@/lib/api/evolution-photos";
+import { createEvolutionPhoto } from "@/lib/api/evolution-photos";
+import { uploadPhotoToS3 } from "@/lib/api/uploads";
 import { fetchStudent } from "@/lib/api/students";
 import { toast } from "sonner";
 
@@ -547,12 +548,14 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
   const [fileName, setFileName] = useState<string>("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
   const mut = useMutation({
     mutationFn: async (file: File) => {
-      const imageUrl = await fileToDataUrl(file);
+      setUploadProgress(0);
+      const imageUrl = await uploadPhotoToS3(file, setUploadProgress);
       return createEvolutionPhoto(alunoId, {
         taken_on: new Date().toISOString().slice(0, 10),
         image_url: imageUrl,
@@ -561,8 +564,12 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
     onSuccess: () => {
       toast.success(`Foto de evolução salva${alunoEmail ? ` para ${alunoEmail}` : ""}`);
       setPendingFile(null);
+      setUploadProgress(0);
     },
-    onError: () => toast.error("Falha ao salvar a foto"),
+    onError: () => {
+      toast.error("Falha ao salvar a foto");
+      setUploadProgress(0);
+    },
   });
 
   const handleFile = (f: File) => {
@@ -651,22 +658,36 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
         )}
 
         {preview && pendingFile && (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => mut.mutate(pendingFile)}
-              disabled={mut.isPending}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-            >
-              {mut.isPending ? "Salvando..." : "Salvar foto de evolução"}
-            </button>
-            <button
-              type="button"
-              onClick={clear}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
-            >
-              Cancelar
-            </button>
+          <div className="space-y-2">
+            {mut.isPending && (
+              <div className="space-y-1">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full brand-gradient transition-all duration-200"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-right text-xs text-muted-foreground">{uploadProgress}%</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => mut.mutate(pendingFile)}
+                disabled={mut.isPending}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+              >
+                {mut.isPending ? "Enviando..." : "Salvar foto de evolução"}
+              </button>
+              <button
+                type="button"
+                onClick={clear}
+                disabled={mut.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
