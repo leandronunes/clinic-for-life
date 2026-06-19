@@ -74,7 +74,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 p-2">
-          <BrandLogo size={36} withWordmark />
+          <BrandLogo size={36} withWordmark inverted />
         </div>
       </SidebarHeader>
 
