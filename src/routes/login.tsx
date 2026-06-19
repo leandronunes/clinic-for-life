@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
+import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { validateStrongPassword } from "@/lib/utils";
 import { toast } from "sonner";
@@ -186,6 +187,7 @@ function LoginPage() {
         </div>
       </div>
       <ParceirosVitrine />
+      <PwaInstallBanner />
     </main>
   );
 }
