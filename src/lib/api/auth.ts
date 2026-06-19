@@ -47,8 +47,30 @@ export interface LoginParams {
   password: string;
 }
 
+export interface RegisterParams {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  phone?: string;
+  /** Default role: "student" (aluno). Backend may restrict this. */
+  role?: BackendRole;
+}
+
 export function login(params: LoginParams): Promise<LoginResponse> {
   return http.post<LoginResponse>("/api/v1/auth/login", params);
+}
+
+/**
+ * Self-service registration. Backend endpoint:
+ * POST /api/v1/auth/register
+ * Returns the same envelope as login so we can sign the user in immediately.
+ */
+export function register(params: RegisterParams): Promise<LoginResponse> {
+  return http.post<LoginResponse>("/api/v1/auth/register", {
+    role: "student",
+    ...params,
+  });
 }
 
 export function fetchCurrentUser(): Promise<BackendUser> {

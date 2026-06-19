@@ -8,8 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AuthSession, AuthUser, UserRole } from "@/lib/api/auth";
-import { login, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
+import type { AuthSession, AuthUser, RegisterParams, UserRole } from "@/lib/api/auth";
+import { login, register, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 
 interface AuthContextValue {
@@ -17,6 +17,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  signUp: (params: RegisterParams) => Promise<AuthUser>;
   signOut: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
   canWrite: boolean;
@@ -129,6 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s.user;
   };
 
+  const signUp = async (params: RegisterParams) => {
+    const res = await register(params);
+    const s: AuthSession = {
+      token: res.token,
+      user: mapBackendUser(res.user),
+      expires_at: res.expires_at,
+    };
+    setSession(s);
+    setImpersonatedAlunoId(null);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    localStorage.removeItem(IMPERSONATE_KEY);
+    return s.user;
+  };
+
   const signOut = () => {
     setSession(null);
     setImpersonatedAlunoId(null);
@@ -160,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: session?.token ?? null,
       loading,
       signIn,
+      signUp,
       signOut,
       hasRole: (...roles: UserRole[]) => !!role && roles.includes(role),
       canWrite: role === "admin" || role === "personal",

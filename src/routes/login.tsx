@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -176,6 +176,13 @@ function LoginPage() {
               </Button>
             </div>
           </div>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Ainda não tem uma conta?{" "}
+            <Link to="/cadastro" className="font-medium text-primary hover:underline">
+              Criar conta
+            </Link>
+          </p>
         </div>
       </div>
       </div>
