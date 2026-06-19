@@ -27,13 +27,15 @@ function ComparativoPage() {
     queryFn: () => fetchMeasurements(alunoId),
   });
 
-  const snapshots = measurements.filter((m) => m.photo_url);
+  const snapshots = measurements
+    .filter((m) => m.photo_url)
+    .sort((a, b) => a.measured_on.localeCompare(b.measured_on));
 
   const [antesId, setAntesId] = useState<string>("");
   const [depoisId, setDepoisId] = useState<string>("");
 
   useEffect(() => {
-    if (snapshots.length >= 2 && !antesId && !depoisId) {
+    if (snapshots.length >= 1 && !antesId && !depoisId) {
       setAntesId(snapshots[0].id);
       setDepoisId(snapshots[snapshots.length - 1].id);
     }
