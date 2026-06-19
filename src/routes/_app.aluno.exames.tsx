@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { fetchExams, createExam, deleteExam, type Exam } from "@/lib/api/exams";
-import { fileToDataUrl } from "@/lib/api/evolution-photos";
+import { uploadExamToS3 } from "@/lib/api/uploads";
 import { useAuth } from "@/contexts/auth-context";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ function ExamesPage() {
   const uploadMut = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("Selecione um arquivo");
-      const fileUrl = await fileToDataUrl(file);
+      const fileUrl = await uploadExamToS3(file);
       return createExam(alunoId, {
         name: nome,
         description: descricao || undefined,
