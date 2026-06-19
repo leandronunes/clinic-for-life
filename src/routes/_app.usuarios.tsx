@@ -139,7 +139,6 @@ function AlunosTab({
                 <TableHead>Nome</TableHead>
                 <TableHead className="hidden md:table-cell">E-mail</TableHead>
                 {isAdmin && <TableHead className="hidden lg:table-cell">Personal</TableHead>}
-                <TableHead className="hidden sm:table-cell">Altura</TableHead>
                 <TableHead>Status</TableHead>
                 {canWrite && <TableHead className="w-24 text-right">Ações</TableHead>}
               </TableRow>
@@ -169,7 +168,6 @@ function AlunosTab({
                     {isAdmin && (
                       <TableCell className="hidden lg:table-cell">{a.trainer_name}</TableCell>
                     )}
-                    <TableCell className="hidden sm:table-cell">{a.height_cm} cm</TableCell>
                     <TableCell>
                       <Badge
                         variant={a.status === "active" ? "default" : "secondary"}
@@ -313,7 +311,6 @@ function NovoAlunoDialog({
     name: "",
     birth_date: "",
     sex: "female" as Student["sex"],
-    height_cm: 170,
     email: "",
     phone: "",
     trainer_id: lockedPersonalId ?? trainers[0]?.id ?? "",
@@ -364,13 +361,6 @@ function NovoAlunoDialog({
                 <SelectItem value="other">Outro</SelectItem>
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="Altura (cm)">
-            <Input
-              type="number"
-              value={form.height_cm}
-              onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })}
-            />
           </Field>
           <Field label="E-mail">
             <Input
@@ -446,7 +436,6 @@ function EditAlunoDialog({
         name: form.name,
         email: form.email,
         phone: form.phone,
-        height_cm: form.height_cm,
         sex: form.sex,
         birth_date: form.birth_date,
         status: form.status,
@@ -489,13 +478,6 @@ function EditAlunoDialog({
                 <SelectItem value="other">Outro</SelectItem>
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="Altura (cm)">
-            <Input
-              type="number"
-              value={form.height_cm}
-              onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })}
-            />
           </Field>
           <Field label="E-mail">
             <Input

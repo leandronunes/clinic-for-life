@@ -8,7 +8,6 @@ export interface Student {
   name: string;
   birth_date: string;
   sex: StudentSex;
-  height_cm: number;
   email: string;
   phone: string;
   trainer_id: string;
@@ -23,7 +22,6 @@ export interface CreateStudentPayload {
   name: string;
   birth_date: string;
   sex: StudentSex;
-  height_cm: number;
   email: string;
   phone: string;
   trainer_id?: string;

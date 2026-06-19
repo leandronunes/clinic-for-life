@@ -24,7 +24,6 @@ const student: Student = {
   name: "Júlia Ferreira",
   birth_date: "1996-05-12",
   sex: "female",
-  height_cm: 168,
   email: "julia@email.com",
   phone: "(11) 97777-1010",
   trainer_id: "t1",
@@ -83,7 +82,6 @@ describe("students API", () => {
         name: "Júlia",
         birth_date: "1996-05-12",
         sex: "female",
-        height_cm: 168,
         email: "julia@email.com",
         phone: "(11) 97777-1010",
       });
