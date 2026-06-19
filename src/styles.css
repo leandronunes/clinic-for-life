@@ -6,8 +6,9 @@
 
 /* ===========================================================
  * Núcleo For Life — Design System
- * Paleta extraída do logotipo: navy profundo + teal vivo.
- * Tema clínico-fitness: limpo, confiável, energético.
+ * Paleta oficial Vita (Institucional) + sidebar Pulse.
+ * Tipografia: Space Grotesk (interface) · Fraunces (títulos)
+ *             JetBrains Mono (dados)
  * =========================================================== */
 
 @theme inline {
@@ -55,97 +56,99 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 :root {
   --radius: 0.75rem;
 
-  /* Surfaces */
-  --background: oklch(0.985 0.005 220);
-  --foreground: oklch(0.22 0.05 260);
+  /* Surfaces — Névoa #EEF5F6 */
+  --background: oklch(0.97 0.007 207);
+  --foreground: oklch(0.12 0.020 225);     /* Preto Suave #0C1418 */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.05 260);
+  --card-foreground: oklch(0.12 0.020 225);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.05 260);
+  --popover-foreground: oklch(0.12 0.020 225);
 
-  /* Navy do logo "FOR" #1B3A6B */
-  --primary: oklch(0.34 0.09 258);
-  --primary-foreground: oklch(0.985 0.005 220);
+  /* Azul Profundo #0E3A53 */
+  --primary: oklch(0.29 0.076 228);
+  --primary-foreground: oklch(0.97 0.007 207);
 
-  /* Teal do logo "LIFE" #1FB5A8 */
-  --accent: oklch(0.72 0.12 188);
-  --accent-foreground: oklch(0.18 0.05 260);
+  /* Verde-Água #16B8A6 */
+  --accent: oklch(0.69 0.114 183);
+  --accent-foreground: oklch(0.12 0.020 225);
 
-  --secondary: oklch(0.96 0.012 220);
-  --secondary-foreground: oklch(0.28 0.06 260);
+  --secondary: oklch(0.94 0.015 207);
+  --secondary-foreground: oklch(0.28 0.060 225);
 
-  --muted: oklch(0.96 0.008 220);
-  --muted-foreground: oklch(0.52 0.03 250);
+  --muted: oklch(0.93 0.010 207);
+  --muted-foreground: oklch(0.52 0.030 220);
 
-  --destructive: oklch(0.6 0.22 27);
+  --destructive: oklch(0.60 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
   --success: oklch(0.66 0.15 155);
   --success-foreground: oklch(0.99 0 0);
 
   --warning: oklch(0.78 0.15 75);
-  --warning-foreground: oklch(0.22 0.05 260);
+  --warning-foreground: oklch(0.12 0.020 225);
 
-  --border: oklch(0.91 0.012 230);
-  --input: oklch(0.91 0.012 230);
-  --ring: oklch(0.72 0.12 188);
+  --border: oklch(0.89 0.015 207);
+  --input: oklch(0.89 0.015 207);
+  --ring: oklch(0.69 0.114 183);
 
-  /* Chart palette — derivada do logo */
-  --chart-1: oklch(0.34 0.09 258); /* navy */
-  --chart-2: oklch(0.72 0.12 188); /* teal */
-  --chart-3: oklch(0.6 0.18 250);  /* azul */
-  --chart-4: oklch(0.78 0.15 75);  /* amber */
-  --chart-5: oklch(0.6 0.22 27);   /* coral */
+  /* Chart — Azul Profundo · Verde-Água · Azul Claro #8FD7E6 */
+  --chart-1: oklch(0.29 0.076 228);
+  --chart-2: oklch(0.69 0.114 183);
+  --chart-3: oklch(0.85 0.065 207);
+  --chart-4: oklch(0.78 0.15 75);
+  --chart-5: oklch(0.60 0.22 27);
 
-  /* Sidebar — navy escuro */
-  --sidebar: oklch(0.26 0.07 258);
-  --sidebar-foreground: oklch(0.95 0.01 220);
-  --sidebar-primary: oklch(0.72 0.12 188);
-  --sidebar-primary-foreground: oklch(0.18 0.05 260);
-  --sidebar-accent: oklch(0.32 0.08 258);
-  --sidebar-accent-foreground: oklch(0.98 0.005 220);
-  --sidebar-border: oklch(0.32 0.07 258);
-  --sidebar-ring: oklch(0.72 0.12 188);
+  /* Sidebar — Marinho #0A1A2F (Pulse) */
+  --sidebar: oklch(0.15 0.046 237);
+  --sidebar-foreground: oklch(0.95 0.008 207);
+  --sidebar-primary: oklch(0.69 0.114 183);
+  --sidebar-primary-foreground: oklch(0.12 0.020 225);
+  --sidebar-accent: oklch(0.21 0.055 233);
+  --sidebar-accent-foreground: oklch(0.97 0.005 207);
+  --sidebar-border: oklch(0.23 0.055 233);
+  --sidebar-ring: oklch(0.69 0.114 183);
 
   /* Gradientes & sombras semânticas */
-  --gradient-brand: linear-gradient(135deg, oklch(0.34 0.09 258), oklch(0.72 0.12 188));
-  --gradient-surface: linear-gradient(180deg, oklch(0.99 0.003 220), oklch(0.96 0.01 220));
-  --shadow-soft: 0 1px 2px oklch(0.22 0.05 260 / 0.04), 0 4px 16px oklch(0.22 0.05 260 / 0.06);
-  --shadow-elevated: 0 8px 24px oklch(0.22 0.05 260 / 0.12);
-  --shadow-glow: 0 0 0 1px oklch(0.72 0.12 188 / 0.25), 0 12px 32px oklch(0.34 0.09 258 / 0.18);
+  --gradient-brand: linear-gradient(135deg, oklch(0.29 0.076 228), oklch(0.69 0.114 183));
+  --gradient-surface: linear-gradient(180deg, oklch(0.99 0.003 207), oklch(0.94 0.012 207));
+  --shadow-soft: 0 1px 2px oklch(0.12 0.020 225 / 0.04), 0 4px 16px oklch(0.12 0.020 225 / 0.06);
+  --shadow-elevated: 0 8px 24px oklch(0.12 0.020 225 / 0.12);
+  --shadow-glow: 0 0 0 1px oklch(0.69 0.114 183 / 0.25), 0 12px 32px oklch(0.29 0.076 228 / 0.18);
 }
 
 .dark {
-  --background: oklch(0.18 0.04 258);
-  --foreground: oklch(0.97 0.005 220);
-  --card: oklch(0.22 0.05 258);
-  --card-foreground: oklch(0.97 0.005 220);
-  --popover: oklch(0.22 0.05 258);
-  --popover-foreground: oklch(0.97 0.005 220);
-  --primary: oklch(0.72 0.12 188);
-  --primary-foreground: oklch(0.18 0.05 260);
-  --secondary: oklch(0.28 0.06 258);
-  --secondary-foreground: oklch(0.97 0.005 220);
-  --muted: oklch(0.28 0.05 258);
-  --muted-foreground: oklch(0.72 0.02 230);
-  --accent: oklch(0.72 0.12 188);
-  --accent-foreground: oklch(0.18 0.05 260);
-  --destructive: oklch(0.65 0.2 27);
+  --background: oklch(0.15 0.040 230);
+  --foreground: oklch(0.97 0.005 207);
+  --card: oklch(0.19 0.048 230);
+  --card-foreground: oklch(0.97 0.005 207);
+  --popover: oklch(0.19 0.048 230);
+  --popover-foreground: oklch(0.97 0.005 207);
+  --primary: oklch(0.69 0.114 183);
+  --primary-foreground: oklch(0.12 0.020 225);
+  --secondary: oklch(0.23 0.055 230);
+  --secondary-foreground: oklch(0.97 0.005 207);
+  --muted: oklch(0.23 0.048 230);
+  --muted-foreground: oklch(0.72 0.020 220);
+  --accent: oklch(0.69 0.114 183);
+  --accent-foreground: oklch(0.12 0.020 225);
+  --destructive: oklch(0.65 0.20 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.7 0.15 155);
+  --success: oklch(0.70 0.15 155);
   --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.8 0.15 75);
-  --warning-foreground: oklch(0.18 0.05 260);
+  --warning: oklch(0.80 0.15 75);
+  --warning-foreground: oklch(0.12 0.020 225);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.72 0.12 188);
+  --ring: oklch(0.69 0.114 183);
 }
 
 @utility brand-gradient {
@@ -177,11 +180,12 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: var(--font-sans);
+    font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   h1, h2, h3, h4 {
-    letter-spacing: -0.015em;
+    font-family: "Fraunces", serif;
+    letter-spacing: -0.02em;
   }
 }
