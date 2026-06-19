@@ -5,12 +5,29 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../contexts/auth-context";
 import { Toaster } from "../components/ui/sonner";
+import { SplashScreen } from "../components/SplashScreen";
+
+function isPwaStandalone() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
+function shouldShowSplash() {
+  if (!isPwaStandalone()) return false;
+  const key = "forlife-splash-seen";
+  if (sessionStorage.getItem(key)) return false;
+  sessionStorage.setItem(key, "1");
+  return true;
+}
 
 function NotFoundComponent() {
   return (
@@ -81,11 +98,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ?? "";
+  const [showSplash, setShowSplash] = useState(() => shouldShowSplash());
+  const handleSplashDone = useCallback(() => setShowSplash(false), []);
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          {showSplash && <SplashScreen onDone={handleSplashDone} />}
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <Toaster richColors position="top-right" />
