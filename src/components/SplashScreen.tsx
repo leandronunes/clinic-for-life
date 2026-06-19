@@ -55,9 +55,9 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
         )}
       >
         <img
-          src="/forlife-logo.jpeg"
+          src="/icon.svg"
           alt="Núcleo For Life"
-          className="h-20 w-20 object-cover"
+          className="h-20 w-20 object-contain bg-white p-3"
         />
       </div>
 

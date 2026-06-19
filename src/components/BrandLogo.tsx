@@ -8,7 +8,7 @@ export function BrandLogo({ size = 40, withWordmark = false, className }: BrandL
   return (
     <div className={`flex items-center gap-3 ${className ?? ""}`}>
       <img
-        src="/forlife-logo.jpeg"
+        src="/icon.svg"
         alt="Núcleo For Life"
         style={{ width: size, height: size, objectFit: "contain" }}
         className="rounded-md bg-white p-1 shadow-soft"
