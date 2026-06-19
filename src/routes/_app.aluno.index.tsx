@@ -433,14 +433,15 @@ function ExercicioFormDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="flex flex-col max-w-lg max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>{mode === "create" ? "Adicionar exercício" : "Editar exercício"}</DialogTitle>
           <DialogDescription>
             Cadastre o exercício com séries, repetições, carga e descanso.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="overflow-y-auto">
+          <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome" className="sm:col-span-2">
             <Input
               placeholder="Ex.: Supino reto com barra"
@@ -503,6 +504,7 @@ function ExercicioFormDialog({
               rows={2}
             />
           </Field>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
