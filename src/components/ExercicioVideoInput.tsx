@@ -47,6 +47,15 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
     };
   }, []);
 
+  // After the live preview <video> element is mounted (recording=true),
+  // attach the stream that was captured before the element existed in the DOM.
+  useEffect(() => {
+    if (recording && livePreviewRef.current && liveStreamRef.current) {
+      livePreviewRef.current.srcObject = liveStreamRef.current;
+      livePreviewRef.current.play().catch(() => {});
+    }
+  }, [recording]);
+
   function setUploadingState(v: boolean) {
     setUploading(v);
     onUploadingChange?.(v);
@@ -90,10 +99,6 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
         audio: true,
       });
       liveStreamRef.current = stream;
-      if (livePreviewRef.current) {
-        livePreviewRef.current.srcObject = stream;
-        livePreviewRef.current.play().catch(() => {});
-      }
       const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
         ? "video/webm;codecs=vp9,opus"
         : MediaRecorder.isTypeSupported("video/webm")
@@ -145,7 +150,7 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
   };
 
   // The URL to render in the preview: prefer local blob while uploading, else the persisted S3 URL
-  const displayUrl = uploading ? previewUrl : (isUploadedVideo(value) ? value : null);
+  const displayUrl = uploading ? previewUrl : isUploadedVideo(value) ? value : null;
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "youtube" | "upload")}>
