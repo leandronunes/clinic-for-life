@@ -79,7 +79,7 @@ function CadastroPage() {
       <div className="grid flex-1 lg:grid-cols-2">
         {/* Painel visual à esquerda */}
         <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex brand-gradient">
-          <BrandLogo size={56} />
+          <BrandLogo size={56} withWordmark inverted />
           <div className="relative z-10 max-w-md">
             <h1 className="text-4xl font-bold leading-tight">
               Crie sua conta e comece a sua <span className="text-accent">jornada</span>.

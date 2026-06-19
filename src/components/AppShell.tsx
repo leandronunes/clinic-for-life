@@ -12,7 +12,7 @@ export function AppShell() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <BrandLogo size={56} />
+        <BrandLogo size={56} withWordmark />
       </div>
     );
   }
