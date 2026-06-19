@@ -23,6 +23,10 @@ export function createEvolutionPhoto(
   return http.post<EvolutionPhoto>(`/api/v1/students/${studentId}/evolution/photos`, payload);
 }
 
+export function deleteEvolutionPhoto(studentId: string, photoId: string): Promise<void> {
+  return http.del<void>(`/api/v1/students/${studentId}/evolution/photos/${photoId}`);
+}
+
 /** Converts a File to a base64 data-URL for API transport. */
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
