@@ -130,6 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s.user;
   };
 
+  const signUp = async (params: RegisterParams) => {
+    const res = await register(params);
+    const s: AuthSession = {
+      token: res.token,
+      user: mapBackendUser(res.user),
+      expires_at: res.expires_at,
+    };
+    setSession(s);
+    setImpersonatedAlunoId(null);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    localStorage.removeItem(IMPERSONATE_KEY);
+    return s.user;
+  };
+
   const signOut = () => {
     setSession(null);
     setImpersonatedAlunoId(null);
