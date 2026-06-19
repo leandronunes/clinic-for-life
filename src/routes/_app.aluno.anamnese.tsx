@@ -10,6 +10,7 @@ import { fetchAnamnesis, updateAnamnesis, type Anamnesis } from "@/lib/api/anamn
 import { fetchStudent } from "@/lib/api/students";
 import { useAuth } from "@/contexts/auth-context";
 import { pageHead } from "@/lib/seo";
+import { ANAMNESE_SECOES } from "@/lib/anamnese-secoes";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/anamnese")({
@@ -23,47 +24,6 @@ export const Route = createFileRoute("/_app/aluno/anamnese")({
   component: AnamnesePage,
 });
 type AnamnesisKey = keyof Anamnesis;
-
-const ANAMNESE_SECOES: { titulo: string; itens: { key: AnamnesisKey; label: string }[] }[] = [
-  {
-    titulo: "Objetivos e Saúde",
-    itens: [
-      { key: "objectives", label: "Objetivos" },
-      { key: "medicines", label: "Remédios em uso" },
-      { key: "supplements", label: "Reposições / suplementos" },
-      { key: "notes", label: "Observações gerais" },
-    ],
-  },
-  {
-    titulo: "Dados Clínicos",
-    itens: [
-      { key: "systolic_pressure", label: "Pressão sistólica" },
-      { key: "diastolic_pressure", label: "Pressão diastólica" },
-      { key: "variable_glycemia", label: "Glicemia variável" },
-      { key: "height", label: "Altura (cm)" },
-      { key: "weight", label: "Peso (kg)" },
-    ],
-  },
-  {
-    titulo: "Histórico Ortopédico",
-    itens: [
-      { key: "fracture", label: "Fraturas" },
-      { key: "dislocations", label: "Luxações" },
-      { key: "pain", label: "Dores" },
-      { key: "orthopedic_notes", label: "Observações ortopédicas" },
-    ],
-  },
-  {
-    titulo: "Hábitos de Vida",
-    itens: [
-      { key: "meals", label: "Refeições por dia" },
-      { key: "hydration", label: "Hidratação" },
-      { key: "sleep", label: "Sono" },
-      { key: "stool", label: "Fezes" },
-      { key: "urine", label: "Urina" },
-    ],
-  },
-];
 
 function AnamnesePage() {
   const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();
@@ -82,7 +42,9 @@ function AnamnesePage() {
   });
   const alunoNome = student?.name;
 
-  const [draft, setDraft] = useState<Record<AnamnesisKey, string>>({} as Record<AnamnesisKey, string>);
+  const [draft, setDraft] = useState<Record<AnamnesisKey, string>>(
+    {} as Record<AnamnesisKey, string>,
+  );
   const [savingItem, setSavingItem] = useState<AnamnesisKey | null>(null);
 
   useEffect(() => {
@@ -100,7 +62,13 @@ function AnamnesePage() {
     setSavingItem(key);
     try {
       const raw = draft[key] ?? "";
-      const numericKeys: AnamnesisKey[] = ["systolic_pressure", "diastolic_pressure", "height", "weight", "meals"];
+      const numericKeys: AnamnesisKey[] = [
+        "systolic_pressure",
+        "diastolic_pressure",
+        "height",
+        "weight",
+        "meals",
+      ];
       const booleanKeys: AnamnesisKey[] = ["variable_glycemia"];
       let value: Anamnesis[typeof key];
       if (numericKeys.includes(key)) {
@@ -157,9 +125,7 @@ function AnamnesePage() {
                           id={`anamnese-${key}`}
                           rows={3}
                           value={value}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, [key]: e.target.value }))
-                          }
+                          onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
                           placeholder={`Informe ${label.toLowerCase()}…`}
                         />
                         <div className="flex justify-end">
@@ -179,9 +145,7 @@ function AnamnesePage() {
                       </>
                     ) : (
                       <p className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
-                        {original || (
-                          <span className="text-muted-foreground">Não informado.</span>
-                        )}
+                        {original || <span className="text-muted-foreground">Não informado.</span>}
                       </p>
                     )}
                   </div>
