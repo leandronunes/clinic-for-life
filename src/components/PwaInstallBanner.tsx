@@ -8,17 +8,17 @@ const SESSION_KEY = "forlife-pwa-banner-dismissed";
 
 export function PwaInstallBanner() {
   const { canInstall, isInstalled, isIOS, install } = usePwaInstall();
-  const [show, setShow] = useState(false);
+  const [timerFired, setTimerFired] = useState(false);
 
   useEffect(() => {
     if (isInstalled) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
-    const timer = setTimeout(() => setShow(true), 1800);
+    const timer = setTimeout(() => setTimerFired(true), 1800);
     return () => clearTimeout(timer);
   }, [isInstalled]);
 
   const dismiss = () => {
-    setShow(false);
+    setTimerFired(false);
     sessionStorage.setItem(SESSION_KEY, "1");
   };
 
@@ -27,6 +27,10 @@ export function PwaInstallBanner() {
     dismiss();
   };
 
+  // Só exibe quando há ação direta: iOS (Share nativo) ou Android com prompt disponível
+  const actionable = isIOS || canInstall;
+  const visible = timerFired && actionable && !isInstalled;
+
   if (isInstalled) return null;
 
   return (
@@ -34,7 +38,7 @@ export function PwaInstallBanner() {
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50 md:hidden",
         "transition-transform duration-500 ease-out",
-        show ? "translate-y-0" : "translate-y-full",
+        visible ? "translate-y-0" : "translate-y-full",
       )}
       aria-live="polite"
     >
@@ -50,13 +54,9 @@ export function PwaInstallBanner() {
             className="h-11 w-11 shrink-0 rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">
-              Instale o For Life
-            </p>
+            <p className="text-sm font-semibold text-white">Instale o For Life</p>
             <p className="mt-0.5 text-xs text-white/55">
-              {isIOS
-                ? "Acesse pelo ícone, sem abrir o Safari."
-                : "Acesso rápido, sem abrir o browser."}
+              {isIOS ? "Acesse pelo ícone, sem abrir o Safari." : "Acesso rápido, sem abrir o browser."}
             </p>
           </div>
           <button
@@ -79,7 +79,7 @@ export function PwaInstallBanner() {
                 <strong className="text-white">Adicionar à Tela de Início</strong>.
               </span>
             </div>
-          ) : canInstall ? (
+          ) : (
             <Button
               size="sm"
               onClick={handleInstall}
@@ -88,14 +88,6 @@ export function PwaInstallBanner() {
               <Download className="mr-2 h-4 w-4" />
               Instalar agora
             </Button>
-          ) : (
-            <div className="flex items-start gap-2 rounded-xl bg-white/8 px-3 py-2.5 text-xs text-white/70">
-              <Download className="mt-0.5 h-4 w-4 shrink-0 text-[#16B8A6]" />
-              <span>
-                Abra o menu <strong className="text-white">⋮</strong> do Chrome e toque em{" "}
-                <strong className="text-white">Instalar aplicativo</strong>.
-              </span>
-            </div>
           )}
         </div>
       </div>
