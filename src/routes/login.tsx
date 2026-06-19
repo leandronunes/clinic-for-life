@@ -177,8 +177,15 @@ function LoginPage() {
             </div>
           </div>
         </div>
-      </div>
-      </div>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Ainda não tem uma conta?{" "}
+            <Link to="/cadastro" className="font-medium text-primary hover:underline">
+              Criar conta
+            </Link>
+          </p>
+        </div>
       <ParceirosVitrine />
     </main>
 
