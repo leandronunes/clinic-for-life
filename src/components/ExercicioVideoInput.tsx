@@ -1,23 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Link as LinkIcon, Upload, Square, Video } from "lucide-react";
+import { Camera, Link as LinkIcon, Upload, Square, Video, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { uploadVideoToS3 } from "@/lib/api/uploads";
+
+const YOUTUBE_RE = /youtube\.com|youtu\.be/i;
 
 export function isUploadedVideo(url?: string) {
-  return !!url && (url.startsWith("blob:") || url.startsWith("data:video"));
+  if (!url) return false;
+  if (url.startsWith("blob:") || url.startsWith("data:video")) return true;
+  // S3 or other direct video host (not YouTube)
+  return url.startsWith("https://") && !YOUTUBE_RE.test(url);
 }
 
 type Props = {
   value: string;
   onChange: (url: string) => void;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
-export function ExercicioVideoInput({ value, onChange }: Props) {
+export function ExercicioVideoInput({ value, onChange, onUploadingChange }: Props) {
   const initialTab = isUploadedVideo(value) ? "upload" : "youtube";
   const [tab, setTab] = useState<"youtube" | "upload">(initialTab);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Local blob URL used only for preview while uploading
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   // Recording state
   const [recording, setRecording] = useState(false);
@@ -29,22 +42,45 @@ export function ExercicioVideoInput({ value, onChange }: Props) {
   useEffect(() => {
     return () => {
       liveStreamRef.current?.getTracks().forEach((t) => t.stop());
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, []);
 
-  const handleFile = (file: File) => {
+  function setUploadingState(v: boolean) {
+    setUploading(v);
+    onUploadingChange?.(v);
+  }
+
+  async function handleFile(file: File) {
     if (!file.type.startsWith("video/")) {
       toast.error("Selecione um arquivo de vídeo");
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Vídeo muito grande (máx. 50 MB)");
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error("Vídeo muito grande (máx. 200 MB)");
       return;
     }
-    const url = URL.createObjectURL(file);
-    onChange(url);
-    toast.success("Vídeo carregado");
-  };
+
+    const blob = URL.createObjectURL(file);
+    setPreviewUrl(blob);
+    setProgress(0);
+    setUploadingState(true);
+
+    try {
+      const ext = file.name.split(".").pop() ?? "mp4";
+      const filename = `exercise_${Date.now()}.${ext}`;
+      const s3Url = await uploadVideoToS3(file, filename, file.type, setProgress);
+      onChange(s3Url);
+      toast.success("Vídeo enviado com sucesso");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha no upload do vídeo — tente novamente");
+      setPreviewUrl(null);
+      onChange("");
+    } finally {
+      setUploadingState(false);
+    }
+  }
 
   const startRecording = async () => {
     try {
@@ -67,14 +103,30 @@ export function ExercicioVideoInput({ value, onChange }: Props) {
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
-      mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mime || "video/webm" });
-        const url = URL.createObjectURL(blob);
-        onChange(url);
+      mr.onstop = async () => {
+        const contentType = mime || "video/webm";
+        const blob = new Blob(chunksRef.current, { type: contentType });
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewUrl(blobUrl);
         stream.getTracks().forEach((t) => t.stop());
         liveStreamRef.current = null;
         if (livePreviewRef.current) livePreviewRef.current.srcObject = null;
-        toast.success("Gravação concluída");
+
+        setProgress(0);
+        setUploadingState(true);
+        try {
+          const filename = `exercise_recorded_${Date.now()}.webm`;
+          const s3Url = await uploadVideoToS3(blob, filename, contentType, setProgress);
+          onChange(s3Url);
+          toast.success("Gravação enviada com sucesso");
+        } catch (err) {
+          console.error(err);
+          toast.error("Falha no upload da gravação — tente novamente");
+          setPreviewUrl(null);
+          onChange("");
+        } finally {
+          setUploadingState(false);
+        }
       };
       mr.start();
       mediaRecorderRef.current = mr;
@@ -90,6 +142,9 @@ export function ExercicioVideoInput({ value, onChange }: Props) {
     mediaRecorderRef.current = null;
     setRecording(false);
   };
+
+  // The URL to render in the preview: prefer local blob while uploading, else the persisted S3 URL
+  const displayUrl = uploading ? previewUrl : (isUploadedVideo(value) ? value : null);
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as "youtube" | "upload")}>
@@ -128,11 +183,23 @@ export function ExercicioVideoInput({ value, onChange }: Props) {
           }}
         />
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading || recording}
+            onClick={() => fileRef.current?.click()}
+          >
             <Upload className="mr-1 h-4 w-4" /> Enviar arquivo
           </Button>
           {!recording ? (
-            <Button type="button" variant="outline" size="sm" onClick={startRecording}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploading}
+              onClick={startRecording}
+            >
               <Camera className="mr-1 h-4 w-4" /> Gravar agora
             </Button>
           ) : (
@@ -142,20 +209,30 @@ export function ExercicioVideoInput({ value, onChange }: Props) {
           )}
         </div>
 
+        {uploading && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Enviando para o servidor… {progress}%
+            </div>
+            <Progress value={progress} className="h-1.5" />
+          </div>
+        )}
+
         {recording && (
           <div className="overflow-hidden rounded-md border bg-black">
             <video ref={livePreviewRef} muted playsInline className="h-48 w-full object-contain" />
           </div>
         )}
 
-        {!recording && isUploadedVideo(value) && (
+        {!recording && displayUrl && (
           <div className="overflow-hidden rounded-md border bg-black">
-            <video src={value} controls playsInline className="h-48 w-full object-contain" />
+            <video src={displayUrl} controls playsInline className="h-48 w-full object-contain" />
           </div>
         )}
 
         <p className="text-[11px] text-muted-foreground">
-          Formatos de vídeo aceitos (máx. 50 MB). No celular, "Gravar agora" abre a câmera.
+          Formatos de vídeo aceitos (máx. 200 MB). No celular, "Gravar agora" abre a câmera.
         </p>
       </TabsContent>
     </Tabs>

@@ -392,6 +392,7 @@ function ExercicioFormDialog({
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
   const emptyForm = {
     name: "", muscle_group: "", sets: 3, reps: "10-12",
     load_kg: undefined as number | undefined,
@@ -489,6 +490,7 @@ function ExercicioFormDialog({
             <ExercicioVideoInput
               value={form.video_url}
               onChange={(url) => setForm({ ...form, video_url: url })}
+              onUploadingChange={setVideoUploading}
             />
           </Field>
           <Field label="Observação" className="sm:col-span-2">
@@ -505,9 +507,9 @@ function ExercicioFormDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => mut.mutate()}
-            disabled={mut.isPending || !form.name.trim() || !form.muscle_group.trim() || !form.reps.trim()}
+            disabled={mut.isPending || videoUploading || !form.name.trim() || !form.muscle_group.trim() || !form.reps.trim()}
           >
-            {mut.isPending ? "Salvando..." : mode === "create" ? "Adicionar" : "Salvar alterações"}
+            {videoUploading ? "Aguardando vídeo..." : mut.isPending ? "Salvando..." : mode === "create" ? "Adicionar" : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>
