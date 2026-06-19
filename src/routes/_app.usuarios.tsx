@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -31,8 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchStudents, createStudent, updateStudent, toBackendSex, fromBackendSex, type Student } from "@/lib/api/students";
-import { fetchTrainers, createTrainer, updateTrainer, type Trainer } from "@/lib/api/trainers";
+import { fetchStudents, createStudent, updateStudent, deleteStudent, toBackendSex, fromBackendSex, type Student } from "@/lib/api/students";
+import { fetchTrainers, createTrainer, updateTrainer, deleteTrainer, type Trainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -77,10 +87,10 @@ function UsuariosPage() {
             <TabsTrigger value="personais">Personais</TabsTrigger>
           </TabsList>
           <TabsContent value="alunos" className="mt-4">
-            <AlunosTab query={q} canWrite={canWrite} isAdmin />
+            <AlunosTab query={q} canWrite={canWrite} isAdmin={isAdmin} />
           </TabsContent>
           <TabsContent value="personais" className="mt-4">
-            <PersonaisTab query={q} canWrite={canWrite} />
+            <PersonaisTab query={q} canWrite={canWrite} isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>
       ) : (
@@ -118,6 +128,17 @@ function AlunosTab({
       a.email.toLowerCase().includes(query.toLowerCase()),
   );
   const [editing, setEditing] = useState<Student | null>(null);
+  const [deleting, setDeleting] = useState<Student | null>(null);
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteStudent(id),
+    onSuccess: () => {
+      toast.success("Aluno removido permanentemente.");
+      setDeleting(null);
+      qc.invalidateQueries({ queryKey: ["alunos"] });
+    },
+    onError: () => toast.error("Falha ao remover aluno."),
+  });
 
   return (
     <Card className="shadow-soft">
@@ -140,7 +161,7 @@ function AlunosTab({
                 <TableHead className="hidden md:table-cell">E-mail</TableHead>
                 {isAdmin && <TableHead className="hidden lg:table-cell">Personal</TableHead>}
                 <TableHead>Status</TableHead>
-                {canWrite && <TableHead className="w-24 text-right">Ações</TableHead>}
+                {canWrite && <TableHead className="w-28 text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -181,6 +202,16 @@ function AlunosTab({
                         <Button size="icon" variant="ghost" onClick={() => setEditing(a)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {isAdmin && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleting(a)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -203,11 +234,42 @@ function AlunosTab({
           }}
         />
       )}
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover aluno permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O aluno <strong>{deleting?.name}</strong> e todos os seus dados serão removidos
+              permanentemente — incluindo imagens de avaliação biomecânica, fotos de evolução,
+              exames e demais arquivos armazenados. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMut.isPending}
+              onClick={() => deleting && deleteMut.mutate(deleting.id)}
+            >
+              {deleteMut.isPending ? "Removendo…" : "Remover permanentemente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
 
-function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean }) {
+function PersonaisTab({
+  query,
+  canWrite,
+  isAdmin,
+}: {
+  query: string;
+  canWrite: boolean;
+  isAdmin: boolean;
+}) {
   const qc = useQueryClient();
   const { data: trainers = [], isLoading } = useQuery({
     queryKey: ["trainers"],
@@ -225,6 +287,17 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
         ? "bg-destructive text-destructive-foreground"
         : "bg-muted text-muted-foreground";
   const [editing, setEditing] = useState<Trainer | null>(null);
+  const [deleting, setDeleting] = useState<Trainer | null>(null);
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteTrainer(id),
+    onSuccess: () => {
+      toast.success("Personal removido permanentemente.");
+      setDeleting(null);
+      qc.invalidateQueries({ queryKey: ["trainers"] });
+    },
+    onError: () => toast.error("Falha ao remover personal."),
+  });
 
   return (
     <Card className="shadow-soft">
@@ -246,7 +319,7 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
                 <TableHead className="hidden lg:table-cell">E-mail</TableHead>
                 <TableHead className="hidden sm:table-cell">Alunos</TableHead>
                 <TableHead>Status</TableHead>
-                {canWrite && <TableHead className="w-24 text-right">Ações</TableHead>}
+                {canWrite && <TableHead className="w-28 text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,6 +346,16 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
                         <Button size="icon" variant="ghost" onClick={() => setEditing(p)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {isAdmin && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleting(p)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -293,6 +376,34 @@ function PersonaisTab({ query, canWrite }: { query: string; canWrite: boolean })
           }}
         />
       )}
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover personal permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O personal <strong>{deleting?.name}</strong> será removido permanentemente.
+              {deleting && deleting.students_count > 0 && (
+                <span className="mt-2 block rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+                  Atenção: este personal possui{" "}
+                  <strong>{deleting.students_count} aluno(s)</strong> associado(s). Os alunos
+                  perderão o vínculo mas seus dados serão mantidos.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMut.isPending}
+              onClick={() => deleting && deleteMut.mutate(deleting.id)}
+            >
+              {deleteMut.isPending ? "Removendo…" : "Remover permanentemente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

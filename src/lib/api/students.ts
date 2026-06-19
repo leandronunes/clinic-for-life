@@ -73,3 +73,11 @@ export function updateStudent(
 ): Promise<Student> {
   return http.patch<Student>(`/api/v1/students/${id}`, payload);
 }
+
+/**
+ * Permanently deletes the student and triggers server-side cleanup of all
+ * associated S3 assets (biomechanical images, evolution photos, exam files).
+ */
+export function deleteStudent(id: string): Promise<void> {
+  return http.del<void>(`/api/v1/students/${id}`);
+}

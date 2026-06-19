@@ -43,3 +43,8 @@ export function createTrainer(payload: CreateTrainerPayload): Promise<Trainer> {
 export function updateTrainer(id: string, payload: UpdateTrainerPayload): Promise<Trainer> {
   return http.patch<Trainer>(`/api/v1/trainers/${id}`, payload);
 }
+
+/** Permanently deletes the trainer account. */
+export function deleteTrainer(id: string): Promise<void> {
+  return http.del<void>(`/api/v1/trainers/${id}`);
+}

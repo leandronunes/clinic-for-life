@@ -4,13 +4,14 @@ import {
   fetchStudent,
   createStudent,
   updateStudent,
+  deleteStudent,
   toBackendSex,
   fromBackendSex,
   type Student,
 } from "./students";
 
 vi.mock("./http", () => ({
-  http: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+  http: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() },
 }));
 
 import { http } from "./http";
@@ -18,6 +19,7 @@ import { http } from "./http";
 const mockGet = vi.mocked(http.get);
 const mockPost = vi.mocked(http.post);
 const mockPatch = vi.mocked(http.patch);
+const mockDel = vi.mocked(http.del);
 
 const student: Student = {
   id: "s1",
@@ -97,6 +99,14 @@ describe("students API", () => {
       mockPatch.mockResolvedValue({ ...student, status: "inactive" });
       await updateStudent("s1", { status: "inactive" });
       expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1", { status: "inactive" });
+    });
+  });
+
+  describe("deleteStudent()", () => {
+    it("calls DELETE /api/v1/students/:id", async () => {
+      mockDel.mockResolvedValue(undefined);
+      await deleteStudent("s1");
+      expect(mockDel).toHaveBeenCalledWith("/api/v1/students/s1");
     });
   });
 });

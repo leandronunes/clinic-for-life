@@ -4,6 +4,7 @@ import {
   fetchTrainer,
   createTrainer,
   updateTrainer,
+  deleteTrainer,
   type Trainer,
   type CreateTrainerPayload,
 } from "./trainers";
@@ -13,6 +14,7 @@ vi.mock("./http", () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    del: vi.fn(),
   },
 }));
 
@@ -21,6 +23,7 @@ import { http } from "./http";
 const mockGet = vi.mocked(http.get);
 const mockPost = vi.mocked(http.post);
 const mockPatch = vi.mocked(http.patch);
+const mockDel = vi.mocked(http.del);
 
 const trainer: Trainer = {
   id: "t1",
@@ -88,6 +91,14 @@ describe("trainers API", () => {
       mockPatch.mockResolvedValue({ ...trainer, status: "blocked" });
       await updateTrainer("t1", { status: "blocked" });
       expect(mockPatch).toHaveBeenCalledWith("/api/v1/trainers/t1", { status: "blocked" });
+    });
+  });
+
+  describe("deleteTrainer()", () => {
+    it("calls DELETE /api/v1/trainers/:id", async () => {
+      mockDel.mockResolvedValue(undefined);
+      await deleteTrainer("t1");
+      expect(mockDel).toHaveBeenCalledWith("/api/v1/trainers/t1");
     });
   });
 });

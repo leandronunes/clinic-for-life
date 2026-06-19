@@ -9,7 +9,7 @@ function requestPresignedUrl(params: {
   filename: string;
   content_type: string;
   context: string;
-  student_id: string;
+  student_id?: string;
 }): Promise<PresignResponse> {
   return http.post<PresignResponse>("/api/v1/uploads/presign", params);
 }
@@ -86,6 +86,20 @@ export async function uploadBiomechanicalImageToS3(
     content_type: mimeType,
     context: "biomechanical_image",
     student_id: studentId,
+  });
+  await uploadToS3(upload_url, file, mimeType, onProgress);
+  return public_url;
+}
+
+export async function uploadPartnerLogoToS3(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  const mimeType = file.type || "image/jpeg";
+  const { upload_url, public_url } = await requestPresignedUrl({
+    filename: file.name,
+    content_type: mimeType,
+    context: "partner_logo",
   });
   await uploadToS3(upload_url, file, mimeType, onProgress);
   return public_url;
