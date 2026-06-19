@@ -175,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: session?.token ?? null,
       loading,
       signIn,
+      signUp,
       signOut,
       hasRole: (...roles: UserRole[]) => !!role && roles.includes(role),
       canWrite: role === "admin" || role === "personal",
