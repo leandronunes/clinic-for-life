@@ -30,6 +30,13 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -126,7 +133,11 @@ function EvolucaoPage() {
             alunoEmail={student?.email ?? user?.email ?? ""}
             onImported={() => refetch()}
           />
-          <PhotoUploadCard alunoId={alunoId} alunoEmail={student?.email ?? user?.email ?? ""} />
+          <PhotoUploadCard
+            alunoId={alunoId}
+            alunoEmail={student?.email ?? user?.email ?? ""}
+            measurements={data}
+          />
         </div>
       )}
 
@@ -543,31 +554,47 @@ function CameraDialog({
   );
 }
 
-function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail: string }) {
+function PhotoUploadCard({
+  alunoId,
+  alunoEmail,
+  measurements,
+}: {
+  alunoId: string;
+  alunoEmail: string;
+  measurements: import("@/lib/api/bioimpedance").BioimpedanceMeasurement[];
+}) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [measurementId, setMeasurementId] = useState<string>("");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
+  const availableMeasurements = measurements.filter((m) => !m.photo_url);
+
   const mut = useMutation({
     mutationFn: async (file: File) => {
+      if (!measurementId) throw new Error("Selecione a medição correspondente à foto");
       setUploadProgress(0);
       const imageUrl = await uploadPhotoToS3(file, setUploadProgress);
       return createEvolutionPhoto(alunoId, {
-        taken_on: new Date().toISOString().slice(0, 10),
+        bioimpedance_measurement_id: measurementId,
         image_url: imageUrl,
       });
     },
     onSuccess: () => {
       toast.success(`Foto de evolução salva${alunoEmail ? ` para ${alunoEmail}` : ""}`);
       setPendingFile(null);
+      setPreview(null);
+      setFileName("");
+      setMeasurementId("");
       setUploadProgress(0);
     },
-    onError: () => {
-      toast.error("Falha ao salvar a foto");
+    onError: (err: unknown) => {
+      const message = (err as { message?: string })?.message ?? "Falha ao salvar a foto";
+      toast.error(message);
       setUploadProgress(0);
     },
   });
@@ -658,7 +685,36 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
         )}
 
         {preview && pendingFile && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-foreground">
+                A qual medição InBody esta foto se refere?
+              </p>
+              {availableMeasurements.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Todas as medições já possuem foto associada.
+                </p>
+              ) : (
+                <Select value={measurementId} onValueChange={setMeasurementId}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Selecione a data da medição" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMeasurements.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {new Date(m.measured_on).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })}{" "}
+                        — {m.weight_kg.toFixed(1)} kg
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             {mut.isPending && (
               <div className="space-y-1">
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -673,8 +729,8 @@ function PhotoUploadCard({ alunoId, alunoEmail }: { alunoId: string; alunoEmail:
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => mut.mutate(pendingFile)}
-                disabled={mut.isPending}
+                onClick={() => pendingFile && mut.mutate(pendingFile)}
+                disabled={mut.isPending || !measurementId}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
               >
                 {mut.isPending ? "Enviando..." : "Salvar foto de evolução"}

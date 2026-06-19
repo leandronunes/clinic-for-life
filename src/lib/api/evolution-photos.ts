@@ -2,19 +2,14 @@ import { http } from "./http";
 
 export interface EvolutionPhoto {
   id: string;
+  measurement_id: string | null;
   taken_on: string;
   image_url: string;
-  weight_kg?: number | null;
-  fat_percentage?: number | null;
-  muscle_mass_kg?: number | null;
 }
 
 export interface CreateEvolutionPhotoPayload {
-  taken_on: string;
+  bioimpedance_measurement_id: string;
   image_url: string;
-  weight_kg?: number;
-  fat_percentage?: number;
-  muscle_mass_kg?: number;
 }
 
 export function fetchEvolutionPhotos(studentId: string): Promise<EvolutionPhoto[]> {
@@ -25,10 +20,7 @@ export function createEvolutionPhoto(
   studentId: string,
   payload: CreateEvolutionPhotoPayload,
 ): Promise<EvolutionPhoto> {
-  return http.post<EvolutionPhoto>(
-    `/api/v1/students/${studentId}/evolution/photos`,
-    payload,
-  );
+  return http.post<EvolutionPhoto>(`/api/v1/students/${studentId}/evolution/photos`, payload);
 }
 
 /** Converts a File to a base64 data-URL for API transport. */

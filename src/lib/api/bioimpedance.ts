@@ -10,6 +10,8 @@ export interface BioimpedanceMeasurement {
   visceral_fat?: number | null;
   bmi: number;
   source: "manual" | "import";
+  photo_id?: string | null;
+  photo_url?: string | null;
 }
 
 export interface CreateMeasurementPayload {

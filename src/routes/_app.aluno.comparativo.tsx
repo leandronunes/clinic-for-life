@@ -12,86 +12,135 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
-import { fetchEvolutionPhotos, type EvolutionPhoto } from "@/lib/api/evolution-photos";
+import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
+
 export const Route = createFileRoute("/_app/aluno/comparativo")({
   component: ComparativoPage,
 });
 
-
 function ComparativoPage() {
   const { user, effectiveAlunoId } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
-  const { data: fotos = [], isLoading } = useQuery({
-    queryKey: ["fotos", alunoId],
-    queryFn: () => fetchEvolutionPhotos(alunoId),
+
+  const { data: measurements = [], isLoading } = useQuery({
+    queryKey: ["evolucao", alunoId],
+    queryFn: () => fetchMeasurements(alunoId),
   });
+
+  const snapshots = measurements.filter((m) => m.photo_url);
 
   const [antesId, setAntesId] = useState<string>("");
   const [depoisId, setDepoisId] = useState<string>("");
 
   useEffect(() => {
-    if (fotos.length >= 2 && !antesId && !depoisId) {
-      setAntesId(fotos[0].id);
-      setDepoisId(fotos[fotos.length - 1].id);
+    if (snapshots.length >= 2 && !antesId && !depoisId) {
+      setAntesId(snapshots[0].id);
+      setDepoisId(snapshots[snapshots.length - 1].id);
     }
-  }, [fotos, antesId, depoisId]);
+  }, [snapshots, antesId, depoisId]);
 
-  const antes = fotos.find((f) => f.id === antesId);
-  const depois = fotos.find((f) => f.id === depoisId);
+  const antes = snapshots.find((m) => m.id === antesId);
+  const depois = snapshots.find((m) => m.id === depoisId);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Antes & Depois</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Antes &amp; Depois</h1>
         <p className="text-sm text-muted-foreground">
           Compare lado a lado dois momentos da sua evolução.
         </p>
       </div>
 
-      <Card className="shadow-soft">
-        <CardContent className="p-4">
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Antes</Label>
-              <Select value={antesId} onValueChange={setAntesId}>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Escolha uma data" /></SelectTrigger>
-                <SelectContent>
-                  {fotos.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{formatDate(f.taken_on)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <ArrowRight className="hidden h-6 w-6 self-center text-muted-foreground sm:block" />
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Depois</Label>
-              <Select value={depoisId} onValueChange={setDepoisId}>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Escolha uma data" /></SelectTrigger>
-                <SelectContent>
-                  {fotos.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{formatDate(f.taken_on)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {isLoading && (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">
+            Carregando...
+          </CardContent>
+        </Card>
+      )}
 
-      {isLoading && <Card><CardContent className="p-10 text-center text-muted-foreground">Carregando...</CardContent></Card>}
+      {!isLoading && snapshots.length === 0 && (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">
+            Nenhuma medição com foto registrada ainda. Faça o upload de uma medição InBody e associe
+            uma foto na seção de Evolução.
+          </CardContent>
+        </Card>
+      )}
+
+      {snapshots.length > 0 && (
+        <Card className="shadow-soft">
+          <CardContent className="p-4">
+            <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Antes
+                </Label>
+                <Select value={antesId} onValueChange={setAntesId}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="Escolha uma data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {snapshots.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {formatDate(m.measured_on)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <ArrowRight className="hidden h-6 w-6 self-center text-muted-foreground sm:block" />
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Depois
+                </Label>
+                <Select value={depoisId} onValueChange={setDepoisId}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="Escolha uma data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {snapshots.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {formatDate(m.measured_on)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {antes && depois && (
         <>
           <div className="grid gap-4 md:grid-cols-2">
-            <PhotoCard label="Antes" foto={antes} accent="muted" />
-            <PhotoCard label="Depois" foto={depois} accent="brand" />
+            <SnapshotCard label="Antes" measurement={antes} accent="muted" />
+            <SnapshotCard label="Depois" measurement={depois} accent="brand" />
           </div>
 
           <Card className="shadow-soft">
             <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
-              <DiffRow label="Peso" antes={antes.weight_kg ?? 0} depois={depois.weight_kg ?? 0} suffix=" kg" betterDown />
-              <DiffRow label="Gordura corporal" antes={antes.fat_percentage ?? 0} depois={depois.fat_percentage ?? 0} suffix=" %" betterDown />
-              <DiffRow label="Massa muscular" antes={antes.muscle_mass_kg ?? 0} depois={depois.muscle_mass_kg ?? 0} suffix=" kg" />
+              <DiffRow
+                label="Peso"
+                antes={antes.weight_kg}
+                depois={depois.weight_kg}
+                suffix=" kg"
+                betterDown
+              />
+              <DiffRow
+                label="Gordura corporal"
+                antes={antes.fat_percentage}
+                depois={depois.fat_percentage}
+                suffix=" %"
+                betterDown
+              />
+              <DiffRow
+                label="Massa muscular"
+                antes={antes.muscle_mass_kg}
+                depois={depois.muscle_mass_kg}
+                suffix=" kg"
+              />
             </CardContent>
           </Card>
         </>
@@ -101,26 +150,60 @@ function ComparativoPage() {
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return new Date(d).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-function PhotoCard({ label, foto, accent }: { label: string; foto: EvolutionPhoto; accent: "muted" | "brand" }) {
+function SnapshotCard({
+  label,
+  measurement,
+  accent,
+}: {
+  label: string;
+  measurement: BioimpedanceMeasurement;
+  accent: "muted" | "brand";
+}) {
   return (
     <Card className="overflow-hidden shadow-soft">
       <div className="relative aspect-[3/4] w-full bg-muted">
-        <img src={foto.image_url} alt={`${label} - ${foto.taken_on}`} className="h-full w-full object-cover" />
-        <div className={`absolute left-3 top-3 rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground ${accent === "brand" ? "brand-gradient" : "bg-foreground/70"}`}>
+        <img
+          src={measurement.photo_url!}
+          alt={`${label} - ${measurement.measured_on}`}
+          className="h-full w-full object-cover"
+        />
+        <div
+          className={`absolute left-3 top-3 rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground ${
+            accent === "brand" ? "brand-gradient" : "bg-foreground/70"
+          }`}
+        >
           {label}
         </div>
       </div>
       <CardContent className="space-y-2 p-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" /> {formatDate(foto.taken_on)}
+          <Calendar className="h-4 w-4" /> {formatDate(measurement.measured_on)}
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <Stat label="Peso" value={foto.weight_kg != null ? `${foto.weight_kg.toFixed(1)} kg` : "—"} />
-          <Stat label="Gordura" value={foto.fat_percentage != null ? `${foto.fat_percentage.toFixed(1)} %` : "—"} />
-          <Stat label="Músculo" value={foto.muscle_mass_kg != null ? `${foto.muscle_mass_kg.toFixed(1)} kg` : "—"} />
+          <Stat label="Peso" value={`${measurement.weight_kg.toFixed(1)} kg`} />
+          <Stat
+            label="Gordura"
+            value={
+              measurement.fat_percentage != null
+                ? `${measurement.fat_percentage.toFixed(1)} %`
+                : "—"
+            }
+          />
+          <Stat
+            label="Músculo"
+            value={
+              measurement.muscle_mass_kg != null
+                ? `${measurement.muscle_mass_kg.toFixed(1)} kg`
+                : "—"
+            }
+          />
         </div>
       </CardContent>
     </Card>
@@ -136,20 +219,45 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DiffRow({ label, antes, depois, suffix, betterDown }: { label: string; antes: number; depois: number; suffix: string; betterDown?: boolean }) {
+function DiffRow({
+  label,
+  antes,
+  depois,
+  suffix,
+  betterDown,
+}: {
+  label: string;
+  antes: number;
+  depois: number;
+  suffix: string;
+  betterDown?: boolean;
+}) {
   const diff = depois - antes;
-  const pct = (diff / antes) * 100;
+  const pct = antes !== 0 ? (diff / antes) * 100 : 0;
   const positive = betterDown ? diff < 0 : diff > 0;
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-bold">{depois.toFixed(1)}{suffix}</span>
-        <span className="text-sm text-muted-foreground">de {antes.toFixed(1)}{suffix}</span>
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
       </div>
-      <div className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${positive ? "text-success" : "text-destructive"}`}>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-bold">
+          {depois.toFixed(1)}
+          {suffix}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          de {antes.toFixed(1)}
+          {suffix}
+        </span>
+      </div>
+      <div
+        className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${positive ? "text-success" : "text-destructive"}`}
+      >
         {diff < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-        {diff > 0 ? "+" : ""}{diff.toFixed(1)}{suffix} ({pct > 0 ? "+" : ""}{pct.toFixed(1)}%)
+        {diff > 0 ? "+" : ""}
+        {diff.toFixed(1)}
+        {suffix} ({pct > 0 ? "+" : ""}
+        {pct.toFixed(1)}%)
       </div>
     </div>
   );
