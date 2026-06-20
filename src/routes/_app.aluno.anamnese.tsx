@@ -25,6 +25,21 @@ export const Route = createFileRoute("/_app/aluno/anamnese")({
 });
 type AnamnesisKey = keyof Anamnesis;
 
+const NUMERIC_KEYS: AnamnesisKey[] = [
+  "systolic_pressure",
+  "diastolic_pressure",
+  "height",
+  "weight",
+  "meals",
+];
+const BOOLEAN_KEYS: AnamnesisKey[] = ["variable_glycemia"];
+
+function castValue(key: AnamnesisKey, raw: string): Anamnesis[typeof key] {
+  if (NUMERIC_KEYS.includes(key)) return raw === "" ? null : Number(raw);
+  if (BOOLEAN_KEYS.includes(key)) return raw === "true" ? true : raw === "false" ? false : null;
+  return raw || null;
+}
+
 function AnamnesePage() {
   const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
@@ -45,7 +60,7 @@ function AnamnesePage() {
   const [draft, setDraft] = useState<Record<AnamnesisKey, string>>(
     {} as Record<AnamnesisKey, string>,
   );
-  const [savingItem, setSavingItem] = useState<AnamnesisKey | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -58,33 +73,28 @@ function AnamnesePage() {
     }
   }, [data]);
 
-  const handleSave = async (key: AnamnesisKey) => {
-    setSavingItem(key);
+  const isDirty =
+    !!data &&
+    ANAMNESE_SECOES.flatMap((s) => s.itens).some(
+      ({ key }) => (draft[key] ?? "") !== String(data[key] ?? ""),
+    );
+
+  const handleSave = async () => {
+    setIsSaving(true);
     try {
-      const raw = draft[key] ?? "";
-      const numericKeys: AnamnesisKey[] = [
-        "systolic_pressure",
-        "diastolic_pressure",
-        "height",
-        "weight",
-        "meals",
-      ];
-      const booleanKeys: AnamnesisKey[] = ["variable_glycemia"];
-      let value: Anamnesis[typeof key];
-      if (numericKeys.includes(key)) {
-        value = raw === "" ? null : Number(raw);
-      } else if (booleanKeys.includes(key)) {
-        value = raw === "true" ? true : raw === "false" ? false : null;
-      } else {
-        value = raw || null;
-      }
-      await updateAnamnesis(alunoId, { [key]: value });
+      const payload = Object.fromEntries(
+        (Object.keys(draft) as AnamnesisKey[]).map((key) => [
+          key,
+          castValue(key, draft[key] ?? ""),
+        ]),
+      ) as Partial<Anamnesis>;
+      await updateAnamnesis(alunoId, payload);
       await qc.invalidateQueries({ queryKey: ["anamnese", alunoId] });
       toast.success("Anamnese atualizada.");
     } catch {
       toast.error("Falha ao salvar.");
     } finally {
-      setSavingItem(null);
+      setIsSaving(false);
     }
   };
 
@@ -115,34 +125,17 @@ function AnamnesePage() {
               secao.itens.map(({ key, label }) => {
                 const value = draft[key] ?? "";
                 const original = data ? String(data[key] ?? "") : "";
-                const dirty = value !== original;
                 return (
                   <div key={key} className="space-y-2">
                     <Label htmlFor={`anamnese-${key}`}>{label}</Label>
                     {canWrite ? (
-                      <>
-                        <Textarea
-                          id={`anamnese-${key}`}
-                          rows={3}
-                          value={value}
-                          onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                          placeholder={`Informe ${label.toLowerCase()}…`}
-                        />
-                        <div className="flex justify-end">
-                          <Button
-                            size="sm"
-                            disabled={!dirty || savingItem === key}
-                            onClick={() => handleSave(key)}
-                          >
-                            {savingItem === key ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Save className="mr-2 h-4 w-4" />
-                            )}
-                            Salvar
-                          </Button>
-                        </div>
-                      </>
+                      <Textarea
+                        id={`anamnese-${key}`}
+                        rows={3}
+                        value={value}
+                        onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                        placeholder={`Informe ${label.toLowerCase()}…`}
+                      />
                     ) : (
                       <p className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
                         {original || <span className="text-muted-foreground">Não informado.</span>}
@@ -155,6 +148,19 @@ function AnamnesePage() {
           </CardContent>
         </Card>
       ))}
+
+      {canWrite && (
+        <div className="flex justify-end">
+          <Button size="lg" disabled={!isDirty || isSaving} onClick={handleSave}>
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Salvar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
