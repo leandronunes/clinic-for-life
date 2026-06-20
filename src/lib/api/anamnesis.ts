@@ -6,7 +6,7 @@ export interface Anamnesis {
   supplements?: string | null;
   systolic_pressure?: number | null;
   diastolic_pressure?: number | null;
-  variable_glycemia?: boolean | null;
+  variable_glycemia?: number | null;
   notes?: string | null;
   height?: number | null;
   weight?: number | null;

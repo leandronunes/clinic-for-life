@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { fetchAnamnesis, updateAnamnesis, type Anamnesis } from "@/lib/api/anamnesis";
 import { fetchStudent } from "@/lib/api/students";
 import { useAuth } from "@/contexts/auth-context";
@@ -28,15 +29,13 @@ type AnamnesisKey = keyof Anamnesis;
 const NUMERIC_KEYS: AnamnesisKey[] = [
   "systolic_pressure",
   "diastolic_pressure",
+  "variable_glycemia",
   "height",
   "weight",
   "meals",
 ];
-const BOOLEAN_KEYS: AnamnesisKey[] = ["variable_glycemia"];
-
 function castValue(key: AnamnesisKey, raw: string): Anamnesis[typeof key] {
   if (NUMERIC_KEYS.includes(key)) return raw === "" ? null : Number(raw);
-  if (BOOLEAN_KEYS.includes(key)) return raw === "true" ? true : raw === "false" ? false : null;
   return raw || null;
 }
 
@@ -82,11 +81,9 @@ function AnamnesePage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const editableKeys = ANAMNESE_SECOES.flatMap((s) => s.itens.map((i) => i.key));
       const payload = Object.fromEntries(
-        (Object.keys(draft) as AnamnesisKey[]).map((key) => [
-          key,
-          castValue(key, draft[key] ?? ""),
-        ]),
+        editableKeys.map((key) => [key, castValue(key, draft[key] ?? "")]),
       ) as Partial<Anamnesis>;
       await updateAnamnesis(alunoId, payload);
       await qc.invalidateQueries({ queryKey: ["anamnese", alunoId] });
@@ -129,13 +126,24 @@ function AnamnesePage() {
                   <div key={key} className="space-y-2">
                     <Label htmlFor={`anamnese-${key}`}>{label}</Label>
                     {canWrite ? (
-                      <Textarea
-                        id={`anamnese-${key}`}
-                        rows={3}
-                        value={value}
-                        onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                        placeholder={`Informe ${label.toLowerCase()}…`}
-                      />
+                      NUMERIC_KEYS.includes(key) ? (
+                        <Input
+                          id={`anamnese-${key}`}
+                          type="number"
+                          step="any"
+                          value={value}
+                          onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                          placeholder={`Informe ${label.toLowerCase()}…`}
+                        />
+                      ) : (
+                        <Textarea
+                          id={`anamnese-${key}`}
+                          rows={3}
+                          value={value}
+                          onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                          placeholder={`Informe ${label.toLowerCase()}…`}
+                        />
+                      )
                     ) : (
                       <p className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
                         {original || <span className="text-muted-foreground">Não informado.</span>}
