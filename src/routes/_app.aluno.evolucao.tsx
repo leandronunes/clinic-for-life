@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import {
   Area,
@@ -24,9 +24,21 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -36,7 +48,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
-import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
+import {
+  fetchMeasurements,
+  deleteMeasurement,
+  type BioimpedanceMeasurement,
+} from "@/lib/api/bioimpedance";
 import { importBioimpedanceCsv, type BioImportResult } from "@/lib/api/bioimpedance-import";
 import { fetchStudent } from "@/lib/api/students";
 import { PhotoUploadCard } from "@/components/PhotoUploadCard";
@@ -78,6 +94,7 @@ const METRICS: Record<
 function EvolucaoPage() {
   const { user, effectiveAlunoId, canWrite, isImpersonating } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
+  const qc = useQueryClient();
   const {
     data = [],
     isLoading,
@@ -92,6 +109,23 @@ function EvolucaoPage() {
     enabled: isImpersonating,
   });
   const [metric, setMetric] = useState<Metric>("weight_kg");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingId) return;
+    setIsDeleting(true);
+    try {
+      await deleteMeasurement(alunoId, deletingId);
+      await qc.invalidateQueries({ queryKey: ["evolucao", alunoId] });
+      toast.success("Avaliação removida.");
+    } catch {
+      toast.error("Falha ao remover avaliação.");
+    } finally {
+      setIsDeleting(false);
+      setDeletingId(null);
+    }
+  };
 
   const formatted = useMemo(
     () =>
@@ -251,6 +285,7 @@ function EvolucaoPage() {
                 <TableHead className="hidden sm:table-cell">Massa muscular</TableHead>
                 <TableHead className="hidden sm:table-cell">Gordura</TableHead>
                 <TableHead>IMC</TableHead>
+                {canWrite && <TableHead className="w-12" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -261,12 +296,48 @@ function EvolucaoPage() {
                   <TableCell className="hidden sm:table-cell">{p.muscle_mass_kg} kg</TableCell>
                   <TableCell className="hidden sm:table-cell">{p.fat_percentage} %</TableCell>
                   <TableCell>{p.bmi}</TableCell>
+                  {canWrite && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeletingId(p.id)}
+                        aria-label={`Remover avaliação de ${p.measured_on}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover avaliação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá permanentemente a avaliação e a foto vinculada, se houver. Deseja
+              continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={handleDeleteConfirm}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

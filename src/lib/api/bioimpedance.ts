@@ -38,3 +38,9 @@ export function createMeasurement(
     payload,
   );
 }
+
+export function deleteMeasurement(studentId: string, measurementId: string): Promise<void> {
+  return http.del<void>(
+    `/api/v1/students/${studentId}/bioimpedance_measurements/${measurementId}`,
+  );
+}

@@ -1,14 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchMeasurements, createMeasurement, type BioimpedanceMeasurement } from "./bioimpedance";
+import {
+  fetchMeasurements,
+  createMeasurement,
+  deleteMeasurement,
+  type BioimpedanceMeasurement,
+} from "./bioimpedance";
 
 vi.mock("./http", () => ({
-  http: { get: vi.fn(), post: vi.fn() },
+  http: { get: vi.fn(), post: vi.fn(), del: vi.fn() },
 }));
 
 import { http } from "./http";
 
 const mockGet = vi.mocked(http.get);
 const mockPost = vi.mocked(http.post);
+const mockDel = vi.mocked(http.del);
 
 const measurement: BioimpedanceMeasurement = {
   id: "m1",
@@ -30,6 +36,14 @@ describe("bioimpedance API", () => {
       const result = await fetchMeasurements("s1");
       expect(mockGet).toHaveBeenCalledWith("/api/v1/students/s1/bioimpedance_measurements");
       expect(result).toEqual([measurement]);
+    });
+  });
+
+  describe("deleteMeasurement()", () => {
+    it("calls DELETE /api/v1/students/:id/bioimpedance_measurements/:mid", async () => {
+      mockDel.mockResolvedValue(undefined);
+      await deleteMeasurement("s1", "m1");
+      expect(mockDel).toHaveBeenCalledWith("/api/v1/students/s1/bioimpedance_measurements/m1");
     });
   });
 
