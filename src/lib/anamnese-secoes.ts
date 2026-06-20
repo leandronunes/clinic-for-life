@@ -19,6 +19,14 @@ export const ANAMNESE_SECOES: { titulo: string; itens: { key: AnamnesisKey; labe
       ],
     },
     {
+      titulo: "Quadro Clínico",
+      itens: [
+        { key: "medicines", label: "Remédios em uso" },
+        { key: "supplements", label: "Reposições / suplementos" },
+        { key: "notes", label: "Observações gerais" },
+      ],
+    },
+    {
       titulo: "Histórico Ortopédico",
       itens: [
         { key: "fracture", label: "Fraturas" },
@@ -35,14 +43,6 @@ export const ANAMNESE_SECOES: { titulo: string; itens: { key: AnamnesisKey; labe
         { key: "sleep", label: "Sono" },
         { key: "stool", label: "Fezes" },
         { key: "urine", label: "Urina" },
-      ],
-    },
-    {
-      titulo: "Quadro Clínico",
-      itens: [
-        { key: "medicines", label: "Remédios em uso" },
-        { key: "supplements", label: "Reposições / suplementos" },
-        { key: "notes", label: "Observações gerais" },
       ],
     },
   ];

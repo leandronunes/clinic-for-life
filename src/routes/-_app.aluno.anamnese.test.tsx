@@ -9,9 +9,9 @@ describe("ANAMNESE_SECOES — estrutura de seções", () => {
     expect(titulos).toEqual([
       "Objetivos",
       "Dados Clínicos",
+      "Quadro Clínico",
       "Histórico Ortopédico",
       "Hábitos de Vida",
-      "Quadro Clínico",
     ]);
   });
 
@@ -27,8 +27,8 @@ describe("ANAMNESE_SECOES — estrutura de seções", () => {
     expect(keys).toEqual(["medicines", "supplements", "notes"]);
   });
 
-  it("Quadro Clínico é a última seção", () => {
-    expect(ANAMNESE_SECOES.at(-1)!.titulo).toBe("Quadro Clínico");
+  it("Quadro Clínico é a terceira seção (após Dados Clínicos)", () => {
+    expect(ANAMNESE_SECOES[2].titulo).toBe("Quadro Clínico");
   });
 
   it("medicines, supplements e notes NÃO aparecem na seção Objetivos", () => {
