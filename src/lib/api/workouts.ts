@@ -104,6 +104,12 @@ export function updateExercise(
   );
 }
 
+export function reorderWorkouts(studentId: string, orderedIds: string[]): Promise<Workout[]> {
+  return http.patch<Workout[]>(`/api/v1/students/${studentId}/workouts/reorder`, {
+    ordered_ids: orderedIds,
+  });
+}
+
 export function reorderExercises(
   studentId: string,
   workoutId: string,

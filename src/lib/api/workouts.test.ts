@@ -9,6 +9,7 @@ import {
   updateExercise,
   deleteExercise,
   reorderExercises,
+  reorderWorkouts,
   type Workout,
   type Exercise,
 } from "./workouts";
@@ -148,6 +149,21 @@ describe("workouts API", () => {
       const result = await reorderExercises("s1", "w1", ["e2", "e1"]);
       expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/exercises/reorder", {
         ordered_ids: ["e2", "e1"],
+      });
+      expect(result).toEqual(reordered);
+    });
+  });
+
+  describe("reorderWorkouts()", () => {
+    it("patches the workouts reorder endpoint with ordered IDs", async () => {
+      const reordered = [
+        { ...workout, id: "w2", position: 1 },
+        { ...workout, id: "w1", position: 2 },
+      ];
+      mockPatch.mockResolvedValue(reordered);
+      const result = await reorderWorkouts("s1", ["w2", "w1"]);
+      expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1/workouts/reorder", {
+        ordered_ids: ["w2", "w1"],
       });
       expect(result).toEqual(reordered);
     });

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Play,
   Clock,
@@ -28,10 +28,12 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  rectSortingStrategy,
   useSortable,
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +72,7 @@ import {
   updateExercise,
   deleteExercise,
   reorderExercises,
+  reorderWorkouts,
   type Exercise,
   type Workout,
 } from "@/lib/api/workouts";
@@ -87,14 +90,51 @@ function MeuTreinoPage() {
     queryKey: ["treinos", alunoId],
     queryFn: () => fetchWorkouts(alunoId),
   });
-  const [posicao, setPosicao] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercise | null>(null);
+  const qc = useQueryClient();
 
-  const lista = [...(view === "ativos" ? (data?.active ?? []) : (data?.archived ?? []))].sort(
-    (a, b) => a.position - b.position,
+  const serverLista = useMemo(
+    () =>
+      [...(view === "ativos" ? (data?.active ?? []) : (data?.archived ?? []))].sort(
+        (a, b) => a.position - b.position,
+      ),
+    [view, data],
   );
-  const treinoAtual = lista.find((t) => t.position === posicao) ?? lista[0];
+  const [localLista, setLocalLista] = useState<Workout[]>([]);
+
+  useEffect(() => {
+    setLocalLista(serverLista);
+  }, [serverLista]);
+
+  const treinoAtual = localLista.find((t) => t.id === selectedId) ?? localLista[0];
+
+  const workoutSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const reorderWorkoutsMut = useMutation({
+    mutationFn: (orderedIds: string[]) => reorderWorkouts(alunoId, orderedIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treinos", alunoId] }),
+    onError: () => {
+      toast.error("Falha ao salvar a nova ordem dos treinos");
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+    },
+  });
+
+  function handleWorkoutDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setLocalLista((prev) => {
+      const oldIdx = prev.findIndex((t) => t.id === active.id);
+      const newIdx = prev.findIndex((t) => t.id === over.id);
+      const reordered = arrayMove(prev, oldIdx, newIdx);
+      reorderWorkoutsMut.mutate(reordered.map((t) => t.id));
+      return reordered;
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +149,7 @@ function MeuTreinoPage() {
           <NovoTreinoDialog
             alunoId={alunoId}
             personalNome={user?.role === "personal" ? user.name : undefined}
-            onCreated={(t) => setPosicao(t.position)}
+            onCreated={(t) => setSelectedId(t.id)}
           />
         )}
       </div>
@@ -118,7 +158,7 @@ function MeuTreinoPage() {
         value={view}
         onValueChange={(v) => {
           setView(v as "ativos" | "arquivados");
-          setPosicao(null);
+          setSelectedId(null);
         }}
       >
         <TabsList>
@@ -146,7 +186,7 @@ function MeuTreinoPage() {
             </Card>
           )}
 
-          {!isLoading && lista.length === 0 && (
+          {!isLoading && localLista.length === 0 && (
             <Card>
               <CardContent className="p-10 text-center text-muted-foreground">
                 Nenhum treino {view === "ativos" ? "ativo" : "arquivado"}.
@@ -154,23 +194,47 @@ function MeuTreinoPage() {
             </Card>
           )}
 
-          {!isLoading && lista.length > 0 && (
+          {!isLoading && localLista.length > 0 && (
             <>
-              <div className="flex flex-wrap gap-2">
-                {lista.map((t) => {
-                  const active = treinoAtual?.position === t.position;
-                  return (
-                    <Button
-                      key={t.id}
-                      variant={active ? "default" : "outline"}
-                      onClick={() => setPosicao(t.position)}
-                      className={active ? "brand-gradient text-primary-foreground" : ""}
-                    >
-                      Treino {t.position}
-                    </Button>
-                  );
-                })}
-              </div>
+              {canWrite ? (
+                <DndContext
+                  sensors={workoutSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleWorkoutDragEnd}
+                >
+                  <SortableContext
+                    items={localLista.map((t) => t.id)}
+                    strategy={rectSortingStrategy}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      {localLista.map((t) => (
+                        <SortableWorkoutButton
+                          key={t.id}
+                          treino={t}
+                          active={treinoAtual?.id === t.id}
+                          onClick={() => setSelectedId(t.id)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {localLista.map((t) => {
+                    const isActive = treinoAtual?.id === t.id;
+                    return (
+                      <Button
+                        key={t.id}
+                        variant={isActive ? "default" : "outline"}
+                        onClick={() => setSelectedId(t.id)}
+                        className={isActive ? "brand-gradient text-primary-foreground" : ""}
+                      >
+                        Treino {t.position}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
 
               {treinoAtual && (
                 <TreinoCard
@@ -216,6 +280,41 @@ function MeuTreinoPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SortableWorkoutButton({
+  treino,
+  active,
+  onClick,
+}: {
+  treino: Workout;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: treino.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, display: "inline-flex" }}
+      className={cn(isDragging && "opacity-50")}
+    >
+      <Button
+        variant={active ? "default" : "outline"}
+        onClick={onClick}
+        className={cn(
+          "touch-none cursor-grab active:cursor-grabbing",
+          active && "brand-gradient text-primary-foreground",
+        )}
+        {...attributes}
+        {...listeners}
+      >
+        Treino {treino.position}
+      </Button>
     </div>
   );
 }

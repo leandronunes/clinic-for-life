@@ -11,6 +11,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
     archiveWorkout: vi.fn(),
     unarchiveWorkout: vi.fn(),
     reorderExercises: vi.fn().mockResolvedValue([]),
+    reorderWorkouts: vi.fn().mockResolvedValue([]),
     createExercise: vi.fn(),
     updateExercise: vi.fn(),
     deleteExercise: vi.fn(),
