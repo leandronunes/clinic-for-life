@@ -58,7 +58,7 @@ const PLANO_CORONAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
 const PLANO_SAGITAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
   { slot: "left_side", label: "Lado esquerdo" },
   { slot: "right_side", label: "Lado direito" },
-  { slot: "profile_flexion", label: "Flexão perfil" },
+  { slot: "profile_flexion", label: "Flexão de tronco" },
 ];
 
 const STRUCTURAL_ITEMS: { key: keyof StructuralAssessment; label: string }[] = [
