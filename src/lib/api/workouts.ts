@@ -77,6 +77,10 @@ export function archiveWorkout(studentId: string, workoutId: string): Promise<Wo
   return http.post<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}/archive`);
 }
 
+export function unarchiveWorkout(studentId: string, workoutId: string): Promise<Workout> {
+  return http.post<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}/unarchive`);
+}
+
 export function createExercise(
   studentId: string,
   workoutId: string,

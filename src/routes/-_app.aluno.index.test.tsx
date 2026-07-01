@@ -9,6 +9,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
   return {
     ...actual,
     archiveWorkout: vi.fn(),
+    unarchiveWorkout: vi.fn(),
     reorderExercises: vi.fn().mockResolvedValue([]),
     createExercise: vi.fn(),
     updateExercise: vi.fn(),
@@ -104,6 +105,30 @@ describe("TreinoCard", () => {
     const badges = document.querySelectorAll(".bg-muted.font-bold");
     const numbers = Array.from(badges).map((el) => el.textContent);
     expect(numbers).toEqual(["1", "2"]);
+  });
+
+  it("shows unarchive button when canUnarchive is true", () => {
+    const archivedWorkout: Workout = { ...mockWorkout, status: "archived" };
+    render(
+      <TreinoCard
+        treino={archivedWorkout}
+        alunoId="s1"
+        onWatch={vi.fn()}
+        canEdit={false}
+        canUnarchive={true}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByLabelText("Reativar treino")).toBeInTheDocument();
+  });
+
+  it("hides unarchive button when canUnarchive is false", () => {
+    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Reativar treino")).not.toBeInTheDocument();
   });
 
   it("shows empty state when workout has no exercises", () => {

@@ -6,6 +6,7 @@ import {
   Clock,
   Dumbbell,
   Archive,
+  ArchiveRestore,
   CheckCircle2,
   Info,
   Plus,
@@ -64,6 +65,7 @@ import {
   createWorkout,
   updateWorkout,
   archiveWorkout,
+  unarchiveWorkout,
   createExercise,
   updateExercise,
   deleteExercise,
@@ -176,6 +178,7 @@ function MeuTreinoPage() {
                   alunoId={alunoId}
                   onWatch={setVideoEx}
                   canEdit={canWrite && treinoAtual.status === "active"}
+                  canUnarchive={canWrite && treinoAtual.status === "archived"}
                 />
               )}
             </>
@@ -222,11 +225,13 @@ export function TreinoCard({
   alunoId,
   onWatch,
   canEdit,
+  canUnarchive = false,
 }: {
   treino: Workout;
   alunoId: string;
   onWatch: (e: Exercise) => void;
   canEdit: boolean;
+  canUnarchive?: boolean;
 }) {
   const qc = useQueryClient();
 
@@ -251,6 +256,15 @@ export function TreinoCard({
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
     },
     onError: () => toast.error("Não foi possível arquivar o treino"),
+  });
+
+  const unarchiveMut = useMutation({
+    mutationFn: () => unarchiveWorkout(alunoId, treino.id),
+    onSuccess: () => {
+      toast.success("Treino reativado");
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível reativar o treino"),
   });
 
   const reorderMut = useMutation({
@@ -333,6 +347,32 @@ export function TreinoCard({
                 </AlertDialogContent>
               </AlertDialog>
             </>
+          )}
+          {canUnarchive && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" aria-label="Reativar treino">
+                  <ArchiveRestore className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reativar este treino?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O treino voltará para a aba "Ativos" e poderá ser editado novamente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => unarchiveMut.mutate()}
+                    disabled={unarchiveMut.isPending}
+                  >
+                    {unarchiveMut.isPending ? "Reativando..." : "Reativar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </CardHeader>

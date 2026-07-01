@@ -4,6 +4,7 @@ import {
   createWorkout,
   updateWorkout,
   archiveWorkout,
+  unarchiveWorkout,
   createExercise,
   updateExercise,
   deleteExercise,
@@ -95,6 +96,14 @@ describe("workouts API", () => {
       mockPost.mockResolvedValue({ ...workout, status: "archived" });
       await archiveWorkout("s1", "w1");
       expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/archive");
+    });
+  });
+
+  describe("unarchiveWorkout()", () => {
+    it("posts to the unarchive action", async () => {
+      mockPost.mockResolvedValue({ ...workout, status: "active" });
+      await unarchiveWorkout("s1", "w1");
+      expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/unarchive");
     });
   });
 
