@@ -54,6 +54,8 @@ const EXTRA_ALUNO: NavItem[] = [
   { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },
 ];
 
+const EXTRA_ADMIN: NavItem[] = [{ title: "Parceiros", url: "/parceiros", icon: Handshake }];
+
 export function MobileBottomNav() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
   const { canInstall, isInstalled, isIOS, install } = usePwaInstall();
@@ -142,6 +144,18 @@ export function MobileBottomNav() {
                 <div className="mt-4 flex flex-col gap-1">
                   {role === "aluno" &&
                     EXTRA_ALUNO.map((it) => (
+                      <SheetClose asChild key={it.url}>
+                        <Link
+                          to={it.url}
+                          className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                        >
+                          <it.icon className="h-5 w-5" />
+                          {it.title}
+                        </Link>
+                      </SheetClose>
+                    ))}
+                  {role === "admin" &&
+                    EXTRA_ADMIN.map((it) => (
                       <SheetClose asChild key={it.url}>
                         <Link
                           to={it.url}
