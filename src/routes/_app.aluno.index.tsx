@@ -1,7 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Play, Clock, Dumbbell, Archive, CheckCircle2, Info, Plus, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Play,
+  Clock,
+  Dumbbell,
+  Archive,
+  CheckCircle2,
+  Info,
+  Plus,
+  Pencil,
+  Trash2,
+  GripVertical,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +39,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  fetchWorkouts, createWorkout, updateWorkout, archiveWorkout,
-  createExercise, updateExercise, deleteExercise,
-  type Exercise, type Workout,
+  fetchWorkouts,
+  createWorkout,
+  updateWorkout,
+  archiveWorkout,
+  createExercise,
+  updateExercise,
+  deleteExercise,
+  reorderExercises,
+  type Exercise,
+  type Workout,
 } from "@/lib/api/workouts";
 import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
 import { toast } from "sonner";
@@ -28,7 +77,6 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/aluno/")({
   component: MeuTreinoPage,
 });
-
 
 function MeuTreinoPage() {
   const { user, effectiveAlunoId, canWrite } = useAuth();
@@ -41,7 +89,7 @@ function MeuTreinoPage() {
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercise | null>(null);
 
-  const lista = [...(view === "ativos" ? data?.active ?? [] : data?.archived ?? [])].sort(
+  const lista = [...(view === "ativos" ? (data?.active ?? []) : (data?.archived ?? []))].sort(
     (a, b) => a.position - b.position,
   );
   const treinoAtual = lista.find((t) => t.position === posicao) ?? lista[0];
@@ -64,8 +112,13 @@ function MeuTreinoPage() {
         )}
       </div>
 
-
-      <Tabs value={view} onValueChange={(v) => { setView(v as "ativos" | "arquivados"); setPosicao(null); }}>
+      <Tabs
+        value={view}
+        onValueChange={(v) => {
+          setView(v as "ativos" | "arquivados");
+          setPosicao(null);
+        }}
+      >
         <TabsList>
           <TabsTrigger value="ativos" className="gap-2">
             <CheckCircle2 className="h-4 w-4" /> Ativos
@@ -83,17 +136,27 @@ function MeuTreinoPage() {
             </div>
           )}
 
-          {isLoading && <Card><CardContent className="p-8 text-center text-muted-foreground">Carregando...</CardContent></Card>}
+          {isLoading && (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Carregando...
+              </CardContent>
+            </Card>
+          )}
 
           {!isLoading && lista.length === 0 && (
-            <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum treino {view === "ativos" ? "ativo" : "arquivado"}.</CardContent></Card>
+            <Card>
+              <CardContent className="p-10 text-center text-muted-foreground">
+                Nenhum treino {view === "ativos" ? "ativo" : "arquivado"}.
+              </CardContent>
+            </Card>
           )}
 
           {!isLoading && lista.length > 0 && (
             <>
               <div className="flex flex-wrap gap-2">
                 {lista.map((t) => {
-                    const active = treinoAtual?.position === t.position;
+                  const active = treinoAtual?.position === t.position;
                   return (
                     <Button
                       key={t.id}
@@ -131,12 +194,7 @@ function MeuTreinoPage() {
           {videoEx && (
             <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
               {isUploadedVideo(videoEx.video_url) ? (
-                <video
-                  src={videoEx.video_url}
-                  controls
-                  playsInline
-                  className="h-full w-full"
-                />
+                <video src={videoEx.video_url} controls playsInline className="h-full w-full" />
               ) : (
                 <iframe
                   src={videoEx.video_url}
@@ -159,10 +217,33 @@ function MeuTreinoPage() {
   );
 }
 
-function TreinoCard({
-  treino, alunoId, onWatch, canEdit,
-}: { treino: Workout; alunoId: string; onWatch: (e: Exercise) => void; canEdit: boolean }) {
+export function TreinoCard({
+  treino,
+  alunoId,
+  onWatch,
+  canEdit,
+}: {
+  treino: Workout;
+  alunoId: string;
+  onWatch: (e: Exercise) => void;
+  canEdit: boolean;
+}) {
   const qc = useQueryClient();
+
+  const [localExercises, setLocalExercises] = useState(() =>
+    [...treino.exercises].sort((a, b) => a.position - b.position),
+  );
+
+  // Sync with server data when exercises are added, removed, or reordered
+  useEffect(() => {
+    setLocalExercises([...treino.exercises].sort((a, b) => a.position - b.position));
+  }, [treino.exercises]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   const archiveMut = useMutation({
     mutationFn: () => archiveWorkout(alunoId, treino.id),
     onSuccess: () => {
@@ -171,6 +252,28 @@ function TreinoCard({
     },
     onError: () => toast.error("Não foi possível arquivar o treino"),
   });
+
+  const reorderMut = useMutation({
+    mutationFn: (orderedIds: string[]) => reorderExercises(alunoId, treino.id, orderedIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treinos", alunoId] }),
+    onError: () => {
+      toast.error("Falha ao salvar a nova ordem dos exercícios");
+      setLocalExercises([...treino.exercises].sort((a, b) => a.position - b.position));
+    },
+  });
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setLocalExercises((prev) => {
+      const oldIdx = prev.findIndex((e) => e.id === active.id);
+      const newIdx = prev.findIndex((e) => e.id === over.id);
+      const reordered = arrayMove(prev, oldIdx, newIdx);
+      reorderMut.mutate(reordered.map((e) => e.id));
+      return reordered;
+    });
+  }
 
   return (
     <Card className="shadow-soft">
@@ -187,7 +290,10 @@ function TreinoCard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={treino.status === "active" ? "default" : "secondary"} className={treino.status === "active" ? "bg-success text-success-foreground" : ""}>
+          <Badge
+            variant={treino.status === "active" ? "default" : "secondary"}
+            className={treino.status === "active" ? "bg-success text-success-foreground" : ""}
+          >
             {treino.status === "active" ? "Ativo" : "Arquivado"}
           </Badge>
           {canEdit && (
@@ -217,7 +323,10 @@ function TreinoCard({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => archiveMut.mutate()} disabled={archiveMut.isPending}>
+                    <AlertDialogAction
+                      onClick={() => archiveMut.mutate()}
+                      disabled={archiveMut.isPending}
+                    >
                       {archiveMut.isPending ? "Arquivando..." : "Arquivar"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -228,54 +337,52 @@ function TreinoCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {treino.exercises.length === 0 && (
+        {localExercises.length === 0 && (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Nenhum exercício neste treino ainda.
           </div>
         )}
-        {treino.exercises.map((ex, idx) => (
-          <div
-            key={ex.id}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between"
+
+        {canEdit ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div className="flex items-start gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-sm font-bold text-muted-foreground">
-                {idx + 1}
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{ex.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{ex.muscle_group}</Badge>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><Dumbbell className="h-3 w-3" />{ex.sets}×{ex.reps}{ex.load_kg ? ` · ${ex.load_kg}kg` : ""}</span>
-                  <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{ex.rest_seconds}s descanso</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              <Button size="sm" variant="outline" onClick={() => onWatch(ex)}>
-                <Play className="mr-1 h-4 w-4" /> Ver execução
-              </Button>
-              {canEdit && (
-                <>
-                  <ExercicioFormDialog
-                    mode="edit"
+            <SortableContext
+              items={localExercises.map((e) => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {localExercises.map((ex, idx) => (
+                  <SortableExerciseItem
+                    key={ex.id}
+                    exercise={ex}
+                    idx={idx}
                     treinoId={treino.id}
                     alunoId={alunoId}
-                    exercicio={ex}
-                    trigger={
-                      <Button size="icon" variant="ghost" aria-label="Editar exercício">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    }
+                    onWatch={onWatch}
+                    canEdit
                   />
-                  <DeleteExercicioButton treinoId={treino.id} alunoId={alunoId} exercicio={ex} />
-                </>
-              )}
-            </div>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <div className="space-y-3">
+            {localExercises.map((ex, idx) => (
+              <ExerciseRowContent
+                key={ex.id}
+                exercise={ex}
+                idx={idx}
+                treinoId={treino.id}
+                alunoId={alunoId}
+                onWatch={onWatch}
+                canEdit={false}
+              />
+            ))}
           </div>
-        ))}
+        )}
 
         {canEdit && <ExercicioFormDialog mode="create" treinoId={treino.id} alunoId={alunoId} />}
       </CardContent>
@@ -283,11 +390,124 @@ function TreinoCard({
   );
 }
 
+interface ExerciseRowProps {
+  exercise: Exercise;
+  idx: number;
+  treinoId: string;
+  alunoId: string;
+  onWatch: (e: Exercise) => void;
+  canEdit: boolean;
+}
+
+function SortableExerciseItem(props: ExerciseRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.exercise.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : undefined,
+      }}
+    >
+      <ExerciseRowContent
+        {...props}
+        dragHandleListeners={listeners}
+        dragHandleAttributes={attributes}
+      />
+    </div>
+  );
+}
+
+function ExerciseRowContent({
+  exercise,
+  idx,
+  treinoId,
+  alunoId,
+  onWatch,
+  canEdit,
+  dragHandleListeners,
+  dragHandleAttributes,
+}: ExerciseRowProps & {
+  dragHandleListeners?: DraggableSyntheticListeners;
+  dragHandleAttributes?: DraggableAttributes;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        {dragHandleListeners && (
+          <button
+            type="button"
+            className="flex shrink-0 cursor-grab items-center self-center p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+            aria-label="Reordenar exercício"
+            {...dragHandleAttributes}
+            {...dragHandleListeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-sm font-bold text-muted-foreground">
+          {idx + 1}
+        </div>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">{exercise.name}</span>
+            <Badge variant="outline" className="text-[10px]">
+              {exercise.muscle_group}
+            </Badge>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Dumbbell className="h-3 w-3" />
+              {exercise.sets}×{exercise.reps}
+              {exercise.load_kg ? ` · ${exercise.load_kg}kg` : ""}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {exercise.rest_seconds}s descanso
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <Button size="sm" variant="outline" onClick={() => onWatch(exercise)}>
+          <Play className="mr-1 h-4 w-4" /> Ver execução
+        </Button>
+        {canEdit && (
+          <>
+            <ExercicioFormDialog
+              mode="edit"
+              treinoId={treinoId}
+              alunoId={alunoId}
+              exercicio={exercise}
+              trigger={
+                <Button size="icon" variant="ghost" aria-label="Editar exercício">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <DeleteExercicioButton treinoId={treinoId} alunoId={alunoId} exercicio={exercise} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Dialogs (admin/personal) ---------------- */
 
 function NovoTreinoDialog({
-  alunoId, personalNome, onCreated,
-}: { alunoId: string; personalNome?: string; onCreated?: (t: Workout) => void }) {
+  alunoId,
+  personalNome,
+  onCreated,
+}: {
+  alunoId: string;
+  personalNome?: string;
+  onCreated?: (t: Workout) => void;
+}) {
   return (
     <TreinoFormDialog
       mode="create"
@@ -304,7 +524,12 @@ function NovoTreinoDialog({
 }
 
 function TreinoFormDialog({
-  mode, alunoId, personalNome, treino, trigger, onCreated,
+  mode,
+  alunoId,
+  personalNome,
+  treino,
+  trigger,
+  onCreated,
 }: {
   mode: "create" | "edit";
   alunoId: string;
@@ -323,7 +548,11 @@ function TreinoFormDialog({
   const mut = useMutation({
     mutationFn: () =>
       mode === "create"
-        ? createWorkout(alunoId, { title: form.title, focus: form.focus, trainer_name: personalNome })
+        ? createWorkout(alunoId, {
+            title: form.title,
+            focus: form.focus,
+            trainer_name: personalNome,
+          })
         : updateWorkout(alunoId, treino!.id, { title: form.title, focus: form.focus }),
     onSuccess: (novo) => {
       toast.success(mode === "create" ? `Treino ${novo.position} cadastrado` : "Treino atualizado");
@@ -334,11 +563,22 @@ function TreinoFormDialog({
         onCreated?.(novo);
       }
     },
-    onError: () => toast.error(mode === "create" ? "Não foi possível cadastrar o treino" : "Não foi possível atualizar o treino"),
+    onError: () =>
+      toast.error(
+        mode === "create"
+          ? "Não foi possível cadastrar o treino"
+          : "Não foi possível atualizar o treino",
+      ),
   });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && treino) setForm({ title: treino.title, focus: treino.focus }); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o && mode === "edit" && treino) setForm({ title: treino.title, focus: treino.focus });
+      }}
+    >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -368,12 +608,18 @@ function TreinoFormDialog({
           </Field>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
           <Button
             onClick={() => mut.mutate()}
             disabled={mut.isPending || !form.title.trim() || !form.focus.trim()}
           >
-            {mut.isPending ? "Salvando..." : mode === "create" ? "Criar treino" : "Salvar alterações"}
+            {mut.isPending
+              ? "Salvando..."
+              : mode === "create"
+                ? "Criar treino"
+                : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -382,7 +628,11 @@ function TreinoFormDialog({
 }
 
 function ExercicioFormDialog({
-  mode, treinoId, alunoId, exercicio, trigger,
+  mode,
+  treinoId,
+  alunoId,
+  exercicio,
+  trigger,
 }: {
   mode: "create" | "edit";
   treinoId: string;
@@ -394,9 +644,14 @@ function ExercicioFormDialog({
   const [open, setOpen] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const emptyForm = {
-    name: "", muscle_group: "", sets: 3, reps: "10-12",
+    name: "",
+    muscle_group: "",
+    sets: 3,
+    reps: "10-12",
     load_kg: undefined as number | undefined,
-    rest_seconds: 60, video_url: "", notes: "",
+    rest_seconds: 60,
+    video_url: "",
+    notes: "",
   };
   const formFromEx = (ex: Exercise) => ({
     name: ex.name,
@@ -413,19 +668,36 @@ function ExercicioFormDialog({
   const mut = useMutation({
     mutationFn: () =>
       mode === "create"
-        ? createExercise(alunoId, treinoId, { ...form, load_kg: form.load_kg, notes: form.notes || undefined })
-        : updateExercise(alunoId, treinoId, exercicio!.id, { ...form, load_kg: form.load_kg, notes: form.notes || undefined }),
+        ? createExercise(alunoId, treinoId, {
+            ...form,
+            load_kg: form.load_kg,
+            notes: form.notes || undefined,
+          })
+        : updateExercise(alunoId, treinoId, exercicio!.id, {
+            ...form,
+            load_kg: form.load_kg,
+            notes: form.notes || undefined,
+          }),
     onSuccess: () => {
       toast.success(mode === "create" ? "Exercício adicionado" : "Exercício atualizado");
       qc.invalidateQueries({ queryKey: ["treinos"] });
       setOpen(false);
       if (mode === "create") setForm(emptyForm);
     },
-    onError: () => toast.error(mode === "create" ? "Falha ao adicionar exercício" : "Falha ao atualizar exercício"),
+    onError: () =>
+      toast.error(
+        mode === "create" ? "Falha ao adicionar exercício" : "Falha ao atualizar exercício",
+      ),
   });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o && mode === "edit" && exercicio) setForm(formFromEx(exercicio)); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o && mode === "edit" && exercicio) setForm(formFromEx(exercicio));
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button variant="outline" size="sm" className="w-full border-dashed">
@@ -435,84 +707,115 @@ function ExercicioFormDialog({
       </DialogTrigger>
       <DialogContent className="flex flex-col max-w-lg max-h-[90dvh]">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Adicionar exercício" : "Editar exercício"}</DialogTitle>
+          <DialogTitle>
+            {mode === "create" ? "Adicionar exercício" : "Editar exercício"}
+          </DialogTitle>
           <DialogDescription>
             Cadastre o exercício com séries, repetições, carga e descanso.
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-y-auto">
           <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Nome" className="sm:col-span-2">
-            <Input
-              placeholder="Ex.: Supino reto com barra"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              maxLength={80}
-            />
-          </Field>
-          <Field label="Grupo muscular">
-            <Input
-              placeholder="Ex.: Peito"
-              value={form.muscle_group}
-              onChange={(e) => setForm({ ...form, muscle_group: e.target.value })}
-              maxLength={40}
-            />
-          </Field>
-          <Field label="Séries">
-            <Input
-              type="number" min={1} max={10}
-              value={form.sets}
-              onChange={(e) => setForm({ ...form, sets: Math.max(1, Number(e.target.value) || 1) })}
-            />
-          </Field>
-          <Field label="Repetições">
-            <Input
-              placeholder="Ex.: 10 ou 8-12 ou 45s"
-              value={form.reps}
-              onChange={(e) => setForm({ ...form, reps: e.target.value })}
-              maxLength={20}
-            />
-          </Field>
-          <Field label="Carga (kg)">
-            <Input
-              type="number" min={0} step={0.5}
-              value={form.load_kg ?? ""}
-              onChange={(e) => setForm({ ...form, load_kg: e.target.value === "" ? undefined : Number(e.target.value) })}
-            />
-          </Field>
-          <Field label="Descanso (s)">
-            <Input
-              type="number" min={0} step={5}
-              value={form.rest_seconds}
-              onChange={(e) => setForm({ ...form, rest_seconds: Math.max(0, Number(e.target.value) || 0) })}
-            />
-          </Field>
-          <Field label="Vídeo de demonstração" className="sm:col-span-2">
-            <ExercicioVideoInput
-              studentId={alunoId}
-              value={form.video_url}
-              onChange={(url) => setForm({ ...form, video_url: url })}
-              onUploadingChange={setVideoUploading}
-            />
-          </Field>
-          <Field label="Observação" className="sm:col-span-2">
-            <Textarea
-              placeholder="Dica de execução (opcional)"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              maxLength={300}
-              rows={2}
-            />
-          </Field>
+            <Field label="Nome" className="sm:col-span-2">
+              <Input
+                placeholder="Ex.: Supino reto com barra"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                maxLength={80}
+              />
+            </Field>
+            <Field label="Grupo muscular">
+              <Input
+                placeholder="Ex.: Peito"
+                value={form.muscle_group}
+                onChange={(e) => setForm({ ...form, muscle_group: e.target.value })}
+                maxLength={40}
+              />
+            </Field>
+            <Field label="Séries">
+              <Input
+                type="number"
+                min={1}
+                max={10}
+                value={form.sets}
+                onChange={(e) =>
+                  setForm({ ...form, sets: Math.max(1, Number(e.target.value) || 1) })
+                }
+              />
+            </Field>
+            <Field label="Repetições">
+              <Input
+                placeholder="Ex.: 10 ou 8-12 ou 45s"
+                value={form.reps}
+                onChange={(e) => setForm({ ...form, reps: e.target.value })}
+                maxLength={20}
+              />
+            </Field>
+            <Field label="Carga (kg)">
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                value={form.load_kg ?? ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    load_kg: e.target.value === "" ? undefined : Number(e.target.value),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Descanso (s)">
+              <Input
+                type="number"
+                min={0}
+                step={5}
+                value={form.rest_seconds}
+                onChange={(e) =>
+                  setForm({ ...form, rest_seconds: Math.max(0, Number(e.target.value) || 0) })
+                }
+              />
+            </Field>
+            <Field label="Vídeo de demonstração" className="sm:col-span-2">
+              <ExercicioVideoInput
+                studentId={alunoId}
+                value={form.video_url}
+                onChange={(url) => setForm({ ...form, video_url: url })}
+                onUploadingChange={setVideoUploading}
+              />
+            </Field>
+            <Field label="Observação" className="sm:col-span-2">
+              <Textarea
+                placeholder="Dica de execução (opcional)"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                maxLength={300}
+                rows={2}
+              />
+            </Field>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
           <Button
             onClick={() => mut.mutate()}
-            disabled={mut.isPending || videoUploading || !form.name.trim() || !form.muscle_group.trim() || !form.reps.trim()}
+            disabled={
+              mut.isPending ||
+              videoUploading ||
+              !form.name.trim() ||
+              !form.muscle_group.trim() ||
+              !form.reps.trim()
+            }
           >
-            {videoUploading ? "Aguardando vídeo..." : mut.isPending ? "Salvando..." : mode === "create" ? "Adicionar" : "Salvar alterações"}
+            {videoUploading
+              ? "Aguardando vídeo..."
+              : mut.isPending
+                ? "Salvando..."
+                : mode === "create"
+                  ? "Adicionar"
+                  : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -520,7 +823,15 @@ function ExercicioFormDialog({
   );
 }
 
-function DeleteExercicioButton({ treinoId, alunoId, exercicio }: { treinoId: string; alunoId: string; exercicio: Exercise }) {
+function DeleteExercicioButton({
+  treinoId,
+  alunoId,
+  exercicio,
+}: {
+  treinoId: string;
+  alunoId: string;
+  exercicio: Exercise;
+}) {
   const qc = useQueryClient();
   const mut = useMutation({
     mutationFn: () => deleteExercise(alunoId, treinoId, exercicio.id),
@@ -553,7 +864,15 @@ function DeleteExercicioButton({ treinoId, alunoId, exercicio }: { treinoId: str
   );
 }
 
-function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
       <Label className="text-xs text-muted-foreground">{label}</Label>

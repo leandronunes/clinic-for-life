@@ -7,6 +7,7 @@ import {
   createExercise,
   updateExercise,
   deleteExercise,
+  reorderExercises,
   type Workout,
   type Exercise,
 } from "./workouts";
@@ -24,6 +25,7 @@ const mockDel = vi.mocked(http.del);
 
 const exercise: Exercise = {
   id: "e1",
+  position: 1,
   name: "Supino reto",
   sets: 4,
   reps: "8-10",
@@ -115,19 +117,30 @@ describe("workouts API", () => {
     it("updateExercise patches the exercise", async () => {
       mockPatch.mockResolvedValue(exercise);
       await updateExercise("s1", "w1", "e1", { sets: 5 });
-      expect(mockPatch).toHaveBeenCalledWith(
-        "/api/v1/students/s1/workouts/w1/exercises/e1",
-        { sets: 5 },
-      );
+      expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/exercises/e1", {
+        sets: 5,
+      });
     });
 
     it("deleteExercise sends DELETE with allowEmpty", async () => {
       mockDel.mockResolvedValue(null);
       await deleteExercise("s1", "w1", "e1");
-      expect(mockDel).toHaveBeenCalledWith(
-        "/api/v1/students/s1/workouts/w1/exercises/e1",
-        { allowEmpty: true },
-      );
+      expect(mockDel).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/exercises/e1", {
+        allowEmpty: true,
+      });
+    });
+
+    it("reorderExercises patches the reorder endpoint with ordered IDs", async () => {
+      const reordered = [
+        { ...exercise, id: "e2", position: 1 },
+        { ...exercise, id: "e1", position: 2 },
+      ];
+      mockPatch.mockResolvedValue(reordered);
+      const result = await reorderExercises("s1", "w1", ["e2", "e1"]);
+      expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/exercises/reorder", {
+        ordered_ids: ["e2", "e1"],
+      });
+      expect(result).toEqual(reordered);
     });
   });
 });

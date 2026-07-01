@@ -4,6 +4,7 @@ export type WorkoutStatus = "active" | "archived";
 
 export interface Exercise {
   id: string;
+  position: number;
   name: string;
   sets: number;
   reps: string;
@@ -60,10 +61,7 @@ export async function fetchWorkouts(studentId: string): Promise<WorkoutList> {
   };
 }
 
-export function createWorkout(
-  studentId: string,
-  payload: CreateWorkoutPayload,
-): Promise<Workout> {
+export function createWorkout(studentId: string, payload: CreateWorkoutPayload): Promise<Workout> {
   return http.post<Workout>(`/api/v1/students/${studentId}/workouts`, payload);
 }
 
@@ -72,16 +70,11 @@ export function updateWorkout(
   workoutId: string,
   payload: UpdateWorkoutPayload,
 ): Promise<Workout> {
-  return http.patch<Workout>(
-    `/api/v1/students/${studentId}/workouts/${workoutId}`,
-    payload,
-  );
+  return http.patch<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}`, payload);
 }
 
 export function archiveWorkout(studentId: string, workoutId: string): Promise<Workout> {
-  return http.post<Workout>(
-    `/api/v1/students/${studentId}/workouts/${workoutId}/archive`,
-  );
+  return http.post<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}/archive`);
 }
 
 export function createExercise(
@@ -104,6 +97,17 @@ export function updateExercise(
   return http.patch<Exercise>(
     `/api/v1/students/${studentId}/workouts/${workoutId}/exercises/${exerciseId}`,
     payload,
+  );
+}
+
+export function reorderExercises(
+  studentId: string,
+  workoutId: string,
+  orderedIds: string[],
+): Promise<Exercise[]> {
+  return http.patch<Exercise[]>(
+    `/api/v1/students/${studentId}/workouts/${workoutId}/exercises/reorder`,
+    { ordered_ids: orderedIds },
   );
 }
 
