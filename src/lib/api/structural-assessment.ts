@@ -35,12 +35,8 @@ export const STRUCTURAL_KEY_MAP: Record<string, keyof StructuralAssessment> = {
   arco_plantar_plano: "flat_foot_arch",
 };
 
-export function fetchStructuralAssessment(
-  studentId: string,
-): Promise<StructuralAssessment> {
-  return http.get<StructuralAssessment>(
-    `/api/v1/students/${studentId}/structural_assessment`,
-  );
+export function fetchStructuralAssessment(studentId: string): Promise<StructuralAssessment> {
+  return http.get<StructuralAssessment>(`/api/v1/students/${studentId}/structural_assessment`);
 }
 
 export function updateStructuralAssessment(

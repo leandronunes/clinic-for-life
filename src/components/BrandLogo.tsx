@@ -5,7 +5,12 @@ interface BrandLogoProps {
   className?: string;
 }
 
-export function BrandLogo({ size = 40, withWordmark = false, inverted = false, className }: BrandLogoProps) {
+export function BrandLogo({
+  size = 40,
+  withWordmark = false,
+  inverted = false,
+  className,
+}: BrandLogoProps) {
   const large = size >= 48;
   return (
     <div className={`flex items-center gap-3 ${className ?? ""}`}>

@@ -30,7 +30,7 @@ function captureCallbacks() {
   let onError: GoogleErrorCallback | undefined;
 
   vi.mocked(useGoogleLogin).mockImplementation((opts: Parameters<typeof useGoogleLogin>[0]) => {
-    onSuccess = opts.onSuccess as GoogleSuccessCallback;
+    onSuccess = opts.onSuccess as unknown as GoogleSuccessCallback;
     onError = opts.onError as GoogleErrorCallback;
     return mockTriggerLogin;
   });

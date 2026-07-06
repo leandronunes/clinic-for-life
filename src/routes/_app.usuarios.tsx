@@ -41,8 +41,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchStudents, createStudent, updateStudent, deleteStudent, toBackendSex, fromBackendSex, type Student } from "@/lib/api/students";
-import { fetchTrainers, createTrainer, updateTrainer, deleteTrainer, type Trainer } from "@/lib/api/trainers";
+import {
+  fetchStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+  toBackendSex,
+  fromBackendSex,
+  type Student,
+} from "@/lib/api/students";
+import {
+  fetchTrainers,
+  createTrainer,
+  updateTrainer,
+  deleteTrainer,
+  type Trainer,
+} from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -94,7 +108,12 @@ function UsuariosPage() {
           </TabsContent>
         </Tabs>
       ) : (
-        <AlunosTab query={q} canWrite={canWrite} personalId={user?.personal_id ?? undefined} isAdmin={false} />
+        <AlunosTab
+          query={q}
+          canWrite={canWrite}
+          personalId={user?.personal_id ?? undefined}
+          isAdmin={false}
+        />
       )}
     </div>
   );
@@ -192,7 +211,9 @@ function AlunosTab({
                     <TableCell>
                       <Badge
                         variant={a.status === "active" ? "default" : "secondary"}
-                        className={a.status === "active" ? "bg-success text-success-foreground" : ""}
+                        className={
+                          a.status === "active" ? "bg-success text-success-foreground" : ""
+                        }
                       >
                         {a.status === "active" ? "Ativo" : "Inativo"}
                       </Badge>
@@ -385,9 +406,8 @@ function PersonaisTab({
               O personal <strong>{deleting?.name}</strong> será removido permanentemente.
               {deleting && deleting.students_count > 0 && (
                 <span className="mt-2 block rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
-                  Atenção: este personal possui{" "}
-                  <strong>{deleting.students_count} aluno(s)</strong> associado(s). Os alunos
-                  perderão o vínculo mas seus dados serão mantidos.
+                  Atenção: este personal possui <strong>{deleting.students_count} aluno(s)</strong>{" "}
+                  associado(s). Os alunos perderão o vínculo mas seus dados serão mantidos.
                 </span>
               )}
             </AlertDialogDescription>
@@ -427,8 +447,7 @@ function NovoAlunoDialog({
     trainer_id: lockedPersonalId ?? trainers[0]?.id ?? "",
   });
   const mut = useMutation({
-    mutationFn: () =>
-      createStudent({ ...form, trainer_id: lockedPersonalId ?? form.trainer_id }),
+    mutationFn: () => createStudent({ ...form, trainer_id: lockedPersonalId ?? form.trainer_id }),
     onSuccess: () => {
       toast.success("Aluno cadastrado");
       setOpen(false);

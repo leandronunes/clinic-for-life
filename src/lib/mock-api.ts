@@ -57,7 +57,10 @@ const MOCK_USERS: Array<AuthUser & { password: string }> = [
 function b64url(obj: unknown) {
   const json = JSON.stringify(obj);
   if (typeof window === "undefined") return Buffer.from(json).toString("base64url");
-  return btoa(unescape(encodeURIComponent(json))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return btoa(unescape(encodeURIComponent(json)))
+    .replace(/=+$/, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
 }
 
 export function signMockJwt(user: AuthUser): string {
@@ -81,9 +84,14 @@ const wait = (ms = 600) => new Promise((r) => setTimeout(r, ms));
 
 export async function apiLogin(email: string, password: string): Promise<AuthSession> {
   await wait(700);
-  const found = MOCK_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+  const found = MOCK_USERS.find(
+    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+  );
   if (!found) {
-    const err: { status: number; message: string } = { status: 401, message: "Credenciais inválidas" };
+    const err: { status: number; message: string } = {
+      status: 401,
+      message: "Credenciais inválidas",
+    };
     throw err;
   }
   const { password: _pw, ...user } = found;
@@ -110,8 +118,18 @@ export async function apiDashboardKpis(range: RangeFilter): Promise<DashboardKpi
   const multiplier = { day: 0.4, week: 0.7, month: 1, year: 3.2 }[range];
   return [
     { label: "Alunos Ativos", value: Math.round(284 * multiplier), delta: 12.4, icon: "users" },
-    { label: "Personais", value: Math.round(18 * (range === "year" ? 1.3 : 1)), delta: 4.1, icon: "trainer" },
-    { label: "Parceiros", value: Math.round(9 * (range === "year" ? 1.4 : 1)), delta: 1.2, icon: "handshake" },
+    {
+      label: "Personais",
+      value: Math.round(18 * (range === "year" ? 1.3 : 1)),
+      delta: 4.1,
+      icon: "trainer",
+    },
+    {
+      label: "Parceiros",
+      value: Math.round(9 * (range === "year" ? 1.4 : 1)),
+      delta: 1.2,
+      icon: "handshake",
+    },
     { label: "Avaliações", value: Math.round(132 * multiplier), delta: 8.6, icon: "clipboard" },
     { label: "Treinos Ativos", value: Math.round(241 * multiplier), delta: 5.3, icon: "dumbbell" },
   ];
@@ -124,7 +142,9 @@ export async function apiActivitySeries(range: RangeFilter) {
     if (range === "day") return `${i.toString().padStart(2, "0")}h`;
     if (range === "week") return ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][i];
     if (range === "year")
-      return ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][i];
+      return ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][
+        i
+      ];
     return `${i + 1}`;
   });
   return labels.map((label, i) => ({
@@ -150,7 +170,6 @@ export interface Aluno {
   contato_emergencia?: string;
 }
 
-
 export interface Personal {
   id: string;
   nome: string;
@@ -163,19 +182,127 @@ export interface Personal {
 }
 
 const PERSONAIS: Personal[] = [
-  { id: "p1", nome: "Rafael Monteiro", cpf: "123.456.789-00", cref: "012345-G/SP", email: "rafael@forlife.app", telefone: "(11) 98888-1111", status: "ativo", alunos_count: 18 },
-  { id: "p2", nome: "Beatriz Lima", cpf: "234.567.890-11", cref: "023456-G/SP", email: "bia@forlife.app", telefone: "(11) 98888-2222", status: "ativo", alunos_count: 22 },
-  { id: "p3", nome: "Carlos Eduardo", cpf: "345.678.901-22", cref: "034567-G/SP", email: "cadu@forlife.app", telefone: "(11) 98888-3333", status: "bloqueado", alunos_count: 6 },
-  { id: "p4", nome: "Marina Souza", cpf: "456.789.012-33", cref: "045678-G/SP", email: "marina@forlife.app", telefone: "(11) 98888-4444", status: "inativo", alunos_count: 0 },
+  {
+    id: "p1",
+    nome: "Rafael Monteiro",
+    cpf: "123.456.789-00",
+    cref: "012345-G/SP",
+    email: "rafael@forlife.app",
+    telefone: "(11) 98888-1111",
+    status: "ativo",
+    alunos_count: 18,
+  },
+  {
+    id: "p2",
+    nome: "Beatriz Lima",
+    cpf: "234.567.890-11",
+    cref: "023456-G/SP",
+    email: "bia@forlife.app",
+    telefone: "(11) 98888-2222",
+    status: "ativo",
+    alunos_count: 22,
+  },
+  {
+    id: "p3",
+    nome: "Carlos Eduardo",
+    cpf: "345.678.901-22",
+    cref: "034567-G/SP",
+    email: "cadu@forlife.app",
+    telefone: "(11) 98888-3333",
+    status: "bloqueado",
+    alunos_count: 6,
+  },
+  {
+    id: "p4",
+    nome: "Marina Souza",
+    cpf: "456.789.012-33",
+    cref: "045678-G/SP",
+    email: "marina@forlife.app",
+    telefone: "(11) 98888-4444",
+    status: "inativo",
+    alunos_count: 0,
+  },
 ];
 
 const ALUNOS: Aluno[] = [
-  { id: "a1", nome: "Júlia Ferreira", nascimento: "1996-05-12", sexo: "F", altura_cm: 168, email: "julia@email.com", telefone: "(11) 97777-1010", personal_id: "p1", personal_nome: "Rafael Monteiro", status: "ativo", criado_em: "2025-09-12" },
-  { id: "a2", nome: "Pedro Augusto", nascimento: "1989-11-03", sexo: "M", altura_cm: 182, email: "pedro@email.com", telefone: "(11) 97777-2020", personal_id: "p1", personal_nome: "Rafael Monteiro", status: "ativo", criado_em: "2025-08-22" },
-  { id: "a3", nome: "Ana Carolina", nascimento: "1992-02-28", sexo: "F", altura_cm: 165, email: "ana@email.com", telefone: "(11) 97777-3030", personal_id: "p2", personal_nome: "Beatriz Lima", status: "ativo", criado_em: "2025-07-15" },
-  { id: "a4", nome: "Lucas Pereira", nascimento: "2000-07-21", sexo: "M", altura_cm: 178, email: "lucas@email.com", telefone: "(11) 97777-4040", personal_id: "p2", personal_nome: "Beatriz Lima", status: "inativo", criado_em: "2025-04-01" },
-  { id: "a5", nome: "Mariana Costa", nascimento: "1985-12-09", sexo: "F", altura_cm: 170, email: "mari@email.com", telefone: "(11) 97777-5050", personal_id: "p1", personal_nome: "Rafael Monteiro", status: "ativo", criado_em: "2026-01-10" },
-  { id: "a6", nome: "Rodrigo Alves", nascimento: "1978-03-17", sexo: "M", altura_cm: 175, email: "rod@email.com", telefone: "(11) 97777-6060", personal_id: "p3", personal_nome: "Carlos Eduardo", status: "ativo", criado_em: "2026-02-04" },
+  {
+    id: "a1",
+    nome: "Júlia Ferreira",
+    nascimento: "1996-05-12",
+    sexo: "F",
+    altura_cm: 168,
+    email: "julia@email.com",
+    telefone: "(11) 97777-1010",
+    personal_id: "p1",
+    personal_nome: "Rafael Monteiro",
+    status: "ativo",
+    criado_em: "2025-09-12",
+  },
+  {
+    id: "a2",
+    nome: "Pedro Augusto",
+    nascimento: "1989-11-03",
+    sexo: "M",
+    altura_cm: 182,
+    email: "pedro@email.com",
+    telefone: "(11) 97777-2020",
+    personal_id: "p1",
+    personal_nome: "Rafael Monteiro",
+    status: "ativo",
+    criado_em: "2025-08-22",
+  },
+  {
+    id: "a3",
+    nome: "Ana Carolina",
+    nascimento: "1992-02-28",
+    sexo: "F",
+    altura_cm: 165,
+    email: "ana@email.com",
+    telefone: "(11) 97777-3030",
+    personal_id: "p2",
+    personal_nome: "Beatriz Lima",
+    status: "ativo",
+    criado_em: "2025-07-15",
+  },
+  {
+    id: "a4",
+    nome: "Lucas Pereira",
+    nascimento: "2000-07-21",
+    sexo: "M",
+    altura_cm: 178,
+    email: "lucas@email.com",
+    telefone: "(11) 97777-4040",
+    personal_id: "p2",
+    personal_nome: "Beatriz Lima",
+    status: "inativo",
+    criado_em: "2025-04-01",
+  },
+  {
+    id: "a5",
+    nome: "Mariana Costa",
+    nascimento: "1985-12-09",
+    sexo: "F",
+    altura_cm: 170,
+    email: "mari@email.com",
+    telefone: "(11) 97777-5050",
+    personal_id: "p1",
+    personal_nome: "Rafael Monteiro",
+    status: "ativo",
+    criado_em: "2026-01-10",
+  },
+  {
+    id: "a6",
+    nome: "Rodrigo Alves",
+    nascimento: "1978-03-17",
+    sexo: "M",
+    altura_cm: 175,
+    email: "rod@email.com",
+    telefone: "(11) 97777-6060",
+    personal_id: "p3",
+    personal_nome: "Carlos Eduardo",
+    status: "ativo",
+    criado_em: "2026-02-04",
+  },
 ];
 
 export async function apiListAlunos(filter?: { personalId?: string }) {
@@ -212,7 +339,9 @@ export async function apiSearchPersonais(query: string) {
   return { data };
 }
 
-export async function apiCreateAluno(payload: Omit<Aluno, "id" | "criado_em" | "personal_nome" | "status">) {
+export async function apiCreateAluno(
+  payload: Omit<Aluno, "id" | "criado_em" | "personal_nome" | "status">,
+) {
   await wait(500);
   const personal = PERSONAIS.find((p) => p.id === payload.personal_id);
   const novo: Aluno = {
@@ -253,7 +382,10 @@ export async function apiCreatePersonal(payload: Omit<Personal, "id" | "alunos_c
   return { data: novo };
 }
 
-export async function apiUpdatePersonal(id: string, patch: Partial<Omit<Personal, "id" | "alunos_count">>) {
+export async function apiUpdatePersonal(
+  id: string,
+  patch: Partial<Omit<Personal, "id" | "alunos_count">>,
+) {
   await wait(400);
   const idx = PERSONAIS.findIndex((p) => p.id === id);
   if (idx < 0) throw { status: 404, message: "Personal não encontrado" };
@@ -261,7 +393,9 @@ export async function apiUpdatePersonal(id: string, patch: Partial<Omit<Personal
   PERSONAIS[idx] = next;
   // propagar nome para alunos
   if (patch.nome) {
-    ALUNOS.forEach((a) => { if (a.personal_id === id) a.personal_nome = patch.nome!; });
+    ALUNOS.forEach((a) => {
+      if (a.personal_id === id) a.personal_nome = patch.nome!;
+    });
   }
   return { data: next };
 }
@@ -321,7 +455,13 @@ export async function apiProcessBioimpedanciaCsv(file: File): Promise<BioImportR
       return;
     }
     seen.add(dedupKey);
-    preview.push({ aluno_email: email, peso_kg: peso, massa_muscular_kg: mm, gordura_pct: g, data });
+    preview.push({
+      aluno_email: email,
+      peso_kg: peso,
+      massa_muscular_kg: mm,
+      gordura_pct: g,
+      data,
+    });
   });
 
   return {
@@ -385,11 +525,57 @@ const TREINOS_ATIVOS: Treino[] = [
     criado_em: "2026-05-01",
     personal_nome: "Rafael Monteiro",
     exercicios: [
-      { id: "e1", nome: "Supino reto com barra", series: 4, reps: "8-10", carga_kg: 40, descanso_s: 90, grupo: "Peito", video_url: YT("rT7DgCr-3pg"), observacao: "Controlar a fase excêntrica em 2s." },
-      { id: "e2", nome: "Supino inclinado halteres", series: 3, reps: "10-12", carga_kg: 14, descanso_s: 75, grupo: "Peito", video_url: YT("8iPEnn-ltC8") },
-      { id: "e3", nome: "Desenvolvimento militar", series: 4, reps: "8-10", carga_kg: 22, descanso_s: 90, grupo: "Ombro", video_url: YT("qEwKCR5JCog") },
-      { id: "e4", nome: "Elevação lateral", series: 3, reps: "12-15", carga_kg: 7, descanso_s: 60, grupo: "Ombro", video_url: YT("3VcKaXpzqRo") },
-      { id: "e5", nome: "Tríceps corda na polia", series: 4, reps: "12", carga_kg: 18, descanso_s: 60, grupo: "Tríceps", video_url: YT("vB5OHsJ3EME") },
+      {
+        id: "e1",
+        nome: "Supino reto com barra",
+        series: 4,
+        reps: "8-10",
+        carga_kg: 40,
+        descanso_s: 90,
+        grupo: "Peito",
+        video_url: YT("rT7DgCr-3pg"),
+        observacao: "Controlar a fase excêntrica em 2s.",
+      },
+      {
+        id: "e2",
+        nome: "Supino inclinado halteres",
+        series: 3,
+        reps: "10-12",
+        carga_kg: 14,
+        descanso_s: 75,
+        grupo: "Peito",
+        video_url: YT("8iPEnn-ltC8"),
+      },
+      {
+        id: "e3",
+        nome: "Desenvolvimento militar",
+        series: 4,
+        reps: "8-10",
+        carga_kg: 22,
+        descanso_s: 90,
+        grupo: "Ombro",
+        video_url: YT("qEwKCR5JCog"),
+      },
+      {
+        id: "e4",
+        nome: "Elevação lateral",
+        series: 3,
+        reps: "12-15",
+        carga_kg: 7,
+        descanso_s: 60,
+        grupo: "Ombro",
+        video_url: YT("3VcKaXpzqRo"),
+      },
+      {
+        id: "e5",
+        nome: "Tríceps corda na polia",
+        series: 4,
+        reps: "12",
+        carga_kg: 18,
+        descanso_s: 60,
+        grupo: "Tríceps",
+        video_url: YT("vB5OHsJ3EME"),
+      },
     ],
   },
   {
@@ -401,11 +587,56 @@ const TREINOS_ATIVOS: Treino[] = [
     criado_em: "2026-05-01",
     personal_nome: "Rafael Monteiro",
     exercicios: [
-      { id: "e6", nome: "Puxada frontal", series: 4, reps: "10", carga_kg: 45, descanso_s: 90, grupo: "Costas", video_url: YT("CAwf7n6Luuc") },
-      { id: "e7", nome: "Remada curvada", series: 4, reps: "8-10", carga_kg: 35, descanso_s: 90, grupo: "Costas", video_url: YT("vT2GjY_Umpw") },
-      { id: "e8", nome: "Remada unilateral halter", series: 3, reps: "10", carga_kg: 18, descanso_s: 75, grupo: "Costas", video_url: YT("pYcpY20QaE8") },
-      { id: "e9", nome: "Rosca direta barra W", series: 4, reps: "10-12", carga_kg: 18, descanso_s: 60, grupo: "Bíceps", video_url: YT("kwG2ipFRgfo") },
-      { id: "e10", nome: "Rosca alternada banco inclinado", series: 3, reps: "12", carga_kg: 10, descanso_s: 60, grupo: "Bíceps", video_url: YT("soxrZlIl35U") },
+      {
+        id: "e6",
+        nome: "Puxada frontal",
+        series: 4,
+        reps: "10",
+        carga_kg: 45,
+        descanso_s: 90,
+        grupo: "Costas",
+        video_url: YT("CAwf7n6Luuc"),
+      },
+      {
+        id: "e7",
+        nome: "Remada curvada",
+        series: 4,
+        reps: "8-10",
+        carga_kg: 35,
+        descanso_s: 90,
+        grupo: "Costas",
+        video_url: YT("vT2GjY_Umpw"),
+      },
+      {
+        id: "e8",
+        nome: "Remada unilateral halter",
+        series: 3,
+        reps: "10",
+        carga_kg: 18,
+        descanso_s: 75,
+        grupo: "Costas",
+        video_url: YT("pYcpY20QaE8"),
+      },
+      {
+        id: "e9",
+        nome: "Rosca direta barra W",
+        series: 4,
+        reps: "10-12",
+        carga_kg: 18,
+        descanso_s: 60,
+        grupo: "Bíceps",
+        video_url: YT("kwG2ipFRgfo"),
+      },
+      {
+        id: "e10",
+        nome: "Rosca alternada banco inclinado",
+        series: 3,
+        reps: "12",
+        carga_kg: 10,
+        descanso_s: 60,
+        grupo: "Bíceps",
+        video_url: YT("soxrZlIl35U"),
+      },
     ],
   },
   {
@@ -417,11 +648,56 @@ const TREINOS_ATIVOS: Treino[] = [
     criado_em: "2026-05-01",
     personal_nome: "Rafael Monteiro",
     exercicios: [
-      { id: "e11", nome: "Agachamento livre", series: 4, reps: "8-10", carga_kg: 50, descanso_s: 120, grupo: "Quadríceps", video_url: YT("ultWZbUMPL8"), observacao: "Profundidade até 90°." },
-      { id: "e12", nome: "Leg press 45°", series: 4, reps: "10-12", carga_kg: 120, descanso_s: 90, grupo: "Quadríceps", video_url: YT("IZxyjW7MPJQ") },
-      { id: "e13", nome: "Cadeira flexora", series: 3, reps: "12", carga_kg: 30, descanso_s: 60, grupo: "Posterior", video_url: YT("1Tq3QdYUuHs") },
-      { id: "e14", nome: "Stiff com halteres", series: 3, reps: "10-12", carga_kg: 18, descanso_s: 75, grupo: "Posterior", video_url: YT("CN_7cz3P-1U") },
-      { id: "e15", nome: "Prancha abdominal", series: 3, reps: "45s", descanso_s: 45, grupo: "Core", video_url: YT("ASdvN_XEl_c") },
+      {
+        id: "e11",
+        nome: "Agachamento livre",
+        series: 4,
+        reps: "8-10",
+        carga_kg: 50,
+        descanso_s: 120,
+        grupo: "Quadríceps",
+        video_url: YT("ultWZbUMPL8"),
+        observacao: "Profundidade até 90°.",
+      },
+      {
+        id: "e12",
+        nome: "Leg press 45°",
+        series: 4,
+        reps: "10-12",
+        carga_kg: 120,
+        descanso_s: 90,
+        grupo: "Quadríceps",
+        video_url: YT("IZxyjW7MPJQ"),
+      },
+      {
+        id: "e13",
+        nome: "Cadeira flexora",
+        series: 3,
+        reps: "12",
+        carga_kg: 30,
+        descanso_s: 60,
+        grupo: "Posterior",
+        video_url: YT("1Tq3QdYUuHs"),
+      },
+      {
+        id: "e14",
+        nome: "Stiff com halteres",
+        series: 3,
+        reps: "10-12",
+        carga_kg: 18,
+        descanso_s: 75,
+        grupo: "Posterior",
+        video_url: YT("CN_7cz3P-1U"),
+      },
+      {
+        id: "e15",
+        nome: "Prancha abdominal",
+        series: 3,
+        reps: "45s",
+        descanso_s: 45,
+        grupo: "Core",
+        video_url: YT("ASdvN_XEl_c"),
+      },
     ],
   },
 ];
@@ -437,8 +713,26 @@ const TREINOS_ARQUIVADOS: Treino[] = [
     arquivado_em: "2026-05-01",
     personal_nome: "Rafael Monteiro",
     exercicios: [
-      { id: "ea1", nome: "Supino reto guiado", series: 3, reps: "12", carga_kg: 25, descanso_s: 60, grupo: "Peito", video_url: YT("rT7DgCr-3pg") },
-      { id: "ea2", nome: "Puxada frontal", series: 3, reps: "12", carga_kg: 35, descanso_s: 60, grupo: "Costas", video_url: YT("CAwf7n6Luuc") },
+      {
+        id: "ea1",
+        nome: "Supino reto guiado",
+        series: 3,
+        reps: "12",
+        carga_kg: 25,
+        descanso_s: 60,
+        grupo: "Peito",
+        video_url: YT("rT7DgCr-3pg"),
+      },
+      {
+        id: "ea2",
+        nome: "Puxada frontal",
+        series: 3,
+        reps: "12",
+        carga_kg: 35,
+        descanso_s: 60,
+        grupo: "Costas",
+        video_url: YT("CAwf7n6Luuc"),
+      },
     ],
   },
   {
@@ -451,12 +745,23 @@ const TREINOS_ARQUIVADOS: Treino[] = [
     arquivado_em: "2026-03-01",
     personal_nome: "Rafael Monteiro",
     exercicios: [
-      { id: "eb1", nome: "Agachamento Smith", series: 4, reps: "10", carga_kg: 30, descanso_s: 75, grupo: "Quadríceps", video_url: YT("ultWZbUMPL8") },
+      {
+        id: "eb1",
+        nome: "Agachamento Smith",
+        series: 4,
+        reps: "10",
+        carga_kg: 30,
+        descanso_s: 75,
+        grupo: "Quadríceps",
+        video_url: YT("ultWZbUMPL8"),
+      },
     ],
   },
 ];
 
-export async function apiListTreinos(alunoId: string): Promise<{ ativos: Treino[]; arquivados: Treino[] }> {
+export async function apiListTreinos(
+  alunoId: string,
+): Promise<{ ativos: Treino[]; arquivados: Treino[] }> {
   await wait(400);
   void alunoId;
   return { ativos: TREINOS_ATIVOS, arquivados: TREINOS_ARQUIVADOS };
@@ -471,8 +776,7 @@ export interface NovoTreinoInput {
 export async function apiCreateTreino(alunoId: string, input: NovoTreinoInput): Promise<Treino> {
   await wait(450);
   void alunoId;
-  const proxPosicao =
-    TREINOS_ATIVOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
+  const proxPosicao = TREINOS_ATIVOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
   const novo: Treino = {
     id: `t_${Math.random().toString(36).slice(2, 8)}`,
     posicao: proxPosicao,
@@ -498,7 +802,10 @@ export interface NovoExercicioInput {
   observacao?: string;
 }
 
-export async function apiAddExercicio(treinoId: string, input: NovoExercicioInput): Promise<Exercicio> {
+export async function apiAddExercicio(
+  treinoId: string,
+  input: NovoExercicioInput,
+): Promise<Exercicio> {
   await wait(400);
   const treino = TREINOS_ATIVOS.find((t) => t.id === treinoId);
   if (!treino) throw new Error("Treino não encontrado");
@@ -538,7 +845,9 @@ export async function apiArchiveTreino(treinoId: string): Promise<Treino> {
   const [treino] = TREINOS_ATIVOS.splice(idx, 1);
   treino.status = "arquivado";
   treino.arquivado_em = new Date().toISOString().slice(0, 10);
-  TREINOS_ATIVOS.forEach((t, i) => { t.posicao = i + 1; });
+  TREINOS_ATIVOS.forEach((t, i) => {
+    t.posicao = i + 1;
+  });
   treino.posicao =
     TREINOS_ARQUIVADOS.reduce((max, t) => (t.posicao > max ? t.posicao : max), 0) + 1;
   TREINOS_ARQUIVADOS.unshift(treino);
@@ -566,7 +875,10 @@ export async function apiUpdateExercicio(
   return ex;
 }
 
-export async function apiDeleteExercicio(treinoId: string, exercicioId: string): Promise<{ id: string }> {
+export async function apiDeleteExercicio(
+  treinoId: string,
+  exercicioId: string,
+): Promise<{ id: string }> {
   await wait(250);
   const treino = TREINOS_ATIVOS.find((t) => t.id === treinoId);
   if (!treino) throw new Error("Treino não encontrado");
@@ -617,10 +929,38 @@ export interface FotoEvolucao {
 }
 
 const FOTOS: FotoEvolucao[] = [
-  { id: "f1", data: "2025-09-01", url: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&h=800&fit=crop", peso_kg: 72.4, gordura_pct: 31.2, massa_muscular_kg: 28.1 },
-  { id: "f2", data: "2025-12-01", url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=800&fit=crop", peso_kg: 70.2, gordura_pct: 28.4, massa_muscular_kg: 29.4 },
-  { id: "f3", data: "2026-03-01", url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=800&fit=crop", peso_kg: 68.2, gordura_pct: 25.7, massa_muscular_kg: 30.8 },
-  { id: "f4", data: "2026-06-01", url: "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&h=800&fit=crop", peso_kg: 66.4, gordura_pct: 23.1, massa_muscular_kg: 32.0 },
+  {
+    id: "f1",
+    data: "2025-09-01",
+    url: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&h=800&fit=crop",
+    peso_kg: 72.4,
+    gordura_pct: 31.2,
+    massa_muscular_kg: 28.1,
+  },
+  {
+    id: "f2",
+    data: "2025-12-01",
+    url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=800&fit=crop",
+    peso_kg: 70.2,
+    gordura_pct: 28.4,
+    massa_muscular_kg: 29.4,
+  },
+  {
+    id: "f3",
+    data: "2026-03-01",
+    url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=800&fit=crop",
+    peso_kg: 68.2,
+    gordura_pct: 25.7,
+    massa_muscular_kg: 30.8,
+  },
+  {
+    id: "f4",
+    data: "2026-06-01",
+    url: "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&h=800&fit=crop",
+    peso_kg: 66.4,
+    gordura_pct: 23.1,
+    massa_muscular_kg: 32.0,
+  },
 ];
 
 /* -------- Parceiros (vitrine pública) -------- */
@@ -733,7 +1073,6 @@ export async function apiListFotos(alunoId: string): Promise<FotoEvolucao[]> {
   return FOTOS;
 }
 
-
 /* -------- Avaliação Biomecânica -------- */
 
 export type BiomecanicaSlot =
@@ -780,12 +1119,13 @@ export async function apiListBiomecanicaHistorico(
   const list = BIOMECANICA_HIST[alunoId] ?? [];
   if (list.length <= 1) return [];
   // Histórico = todas as avaliações exceto a atual (última), ordem decrescente
-  return list.slice(0, -1).map((a) => ({ ...a, imagens: { ...a.imagens } })).reverse();
+  return list
+    .slice(0, -1)
+    .map((a) => ({ ...a, imagens: { ...a.imagens } }))
+    .reverse();
 }
 
-export async function apiNovaAvaliacaoBiomecanica(
-  alunoId: string,
-): Promise<BiomecanicaAvaliacao> {
+export async function apiNovaAvaliacaoBiomecanica(alunoId: string): Promise<BiomecanicaAvaliacao> {
   await wait(300);
   const list = BIOMECANICA_HIST[alunoId] ?? (BIOMECANICA_HIST[alunoId] = []);
   const atual = list[list.length - 1];
@@ -864,7 +1204,6 @@ export const ESTRUTURAL_ITENS: { key: EstruturalItem; label: string }[] = [
   { key: "arco_plantar_plano", label: "Arco Plantar Plano" },
 ];
 
-
 export type AvaliacaoEstrutural = Partial<Record<EstruturalItem, boolean>>;
 
 const ESTRUTURAL: Record<string, AvaliacaoEstrutural> = {};
@@ -914,9 +1253,7 @@ export const ANAMNESE_SECOES: {
 }[] = [
   {
     titulo: "OBJETIVOS",
-    itens: [
-      { key: "objetivos", label: "Objetivo a ser atingido" },
-    ],
+    itens: [{ key: "objetivos", label: "Objetivo a ser atingido" }],
   },
   {
     titulo: "Quadro Clínico",
@@ -951,7 +1288,6 @@ export const ANAMNESE_SECOES: {
     ],
   },
 ];
-
 
 const ANAMNESE: Record<string, AnamneseDinamica> = {};
 
@@ -1016,10 +1352,7 @@ export async function apiUploadExame(
   return exame;
 }
 
-export async function apiDeleteExame(
-  alunoId: string,
-  exameId: string,
-): Promise<{ id: string }> {
+export async function apiDeleteExame(alunoId: string, exameId: string): Promise<{ id: string }> {
   await wait(200);
   EXAMES[alunoId] = (EXAMES[alunoId] ?? []).filter((e) => e.id !== exameId);
   return { id: exameId };

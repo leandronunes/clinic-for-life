@@ -54,20 +54,11 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
           phase >= 2 ? "opacity-100 scale-100" : "opacity-0 scale-90",
         )}
       >
-        <img
-          src="/icons/icon.svg"
-          alt="Núcleo For Life"
-          className="h-20 w-20 object-contain"
-        />
+        <img src="/icons/icon.svg" alt="Núcleo For Life" className="h-20 w-20 object-contain" />
       </div>
 
       {/* Brand name */}
-      <div
-        className={cn(
-          "mt-5 text-center transition-all duration-700",
-          show(2),
-        )}
-      >
+      <div className={cn("mt-5 text-center transition-all duration-700", show(2))}>
         <p className="font-display text-5xl font-bold leading-none tracking-tight text-white">
           For Life
         </p>
@@ -85,36 +76,20 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
       />
 
       {/* Taglines */}
-      <div
-        className={cn(
-          "mt-5 text-center transition-all duration-700",
-          show(4),
-        )}
-      >
-        <p className="font-sans text-[17px] font-medium text-white">
-          Saúde, movimento e vida.
-        </p>
-        <p className="mt-1 font-sans text-sm text-white/50">
-          Uma marca para acompanhar você.
-        </p>
+      <div className={cn("mt-5 text-center transition-all duration-700", show(4))}>
+        <p className="font-sans text-[17px] font-medium text-white">Saúde, movimento e vida.</p>
+        <p className="mt-1 font-sans text-sm text-white/50">Uma marca para acompanhar você.</p>
       </div>
 
       {/* Specialties */}
-      <div
-        className={cn(
-          "mt-8 text-center transition-all duration-700",
-          show(5),
-        )}
-      >
+      <div className={cn("mt-8 text-center transition-all duration-700", show(5))}>
         <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
           Núcleo For Life
         </p>
         <p className="mt-2 font-sans text-xs text-[#16B8A6]/60">
           Avaliação física · Quadro clínico
         </p>
-        <p className="font-sans text-xs text-[#16B8A6]/60">
-          Reabilitação · Performance
-        </p>
+        <p className="font-sans text-xs text-[#16B8A6]/60">Reabilitação · Performance</p>
       </div>
     </div>
   );

@@ -1,7 +1,16 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, ExternalLink, Loader2, ShieldAlert, ImagePlus, X } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Loader2,
+  ShieldAlert,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +50,6 @@ export const Route = createFileRoute("/_app/parceiros")({
   component: ParceirosPage,
 });
 
-
 function ParceirosPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -53,8 +61,6 @@ function ParceirosPage() {
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<Partner | null>(null);
 
-  if (user?.role !== "admin") return <Navigate to="/dashboard" />;
-
   const removeMut = useMutation({
     mutationFn: (id: string) => deletePartner(id),
     onSuccess: () => {
@@ -62,6 +68,8 @@ function ParceirosPage() {
       qc.invalidateQueries({ queryKey: ["parceiros"] });
     },
   });
+
+  if (user?.role !== "admin") return <Navigate to="/dashboard" />;
 
   return (
     <div className="space-y-6">
@@ -107,7 +115,13 @@ function ParceirosPage() {
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start gap-3">
                   <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background">
-                    {p.logo_url && <img src={p.logo_url} alt={`Logo ${p.name}`} className="h-full w-full object-cover" />}
+                    {p.logo_url && (
+                      <img
+                        src={p.logo_url}
+                        alt={`Logo ${p.name}`}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{p.name}</div>
@@ -336,9 +350,7 @@ function ParceiroFormDialog({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [logoUrl, setLogoUrl] = useState(initial?.logo_url ?? "");
-  const [category, setCategory] = useState<PartnerCategory>(
-    initial?.category ?? "Nutrition",
-  );
+  const [category, setCategory] = useState<PartnerCategory>(initial?.category ?? "Nutrition");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
   const [coupon, setCoupon] = useState(initial?.coupon ?? "");

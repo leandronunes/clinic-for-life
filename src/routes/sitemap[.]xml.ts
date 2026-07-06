@@ -7,4 +7,3 @@ export const Route = createFileRoute("/sitemap.xml")({
     throw redirect({ to: "/" });
   },
 });
-

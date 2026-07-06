@@ -54,7 +54,9 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
                   )}
                 </div>
                 <span className="line-clamp-1 text-xs font-medium text-foreground">{p.name}</span>
-                <span className="line-clamp-1 text-[10px] text-muted-foreground">{CATEGORY_FROM_BACKEND[p.category]}</span>
+                <span className="line-clamp-1 text-[10px] text-muted-foreground">
+                  {CATEGORY_FROM_BACKEND[p.category]}
+                </span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-primary opacity-0 transition-opacity group-hover:opacity-100">
                   Acessar <ExternalLink className="h-3 w-3" />
                 </span>

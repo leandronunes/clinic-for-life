@@ -165,7 +165,7 @@ describe("UsuariosPage — AlunosTab", () => {
       canWrite: true,
       hasRole: (r: string) => r === "admin",
       impersonateAluno: vi.fn(),
-    } as ReturnType<typeof useAuth>);
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   it("opens the confirmation dialog when trash is clicked", async () => {
@@ -222,7 +222,7 @@ describe("UsuariosPage — AlunosTab", () => {
       canWrite: true,
       hasRole: (r: string) => r === "personal",
       impersonateAluno: vi.fn(),
-    } as ReturnType<typeof useAuth>);
+    } as unknown as ReturnType<typeof useAuth>);
 
     await renderPage();
     await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
@@ -246,7 +246,7 @@ describe("UsuariosPage — PersonaisTab", () => {
       canWrite: true,
       hasRole: (r: string) => r === "admin",
       impersonateAluno: vi.fn(),
-    } as ReturnType<typeof useAuth>);
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   it("calls deleteTrainer and shows toast on confirmation", async () => {

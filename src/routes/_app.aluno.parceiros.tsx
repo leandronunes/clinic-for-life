@@ -10,7 +10,6 @@ export const Route = createFileRoute("/_app/aluno/parceiros")({
   component: AlunoParceirosPage,
 });
 
-
 function buildMemberId(seed: string) {
   // Deterministic numeric ID derived from the user's id/email
   let h = 0;
@@ -53,9 +52,7 @@ function AlunoParceirosPage() {
                 <BrandLogo size={36} />
               </div>
               <div>
-                <div className="text-xs uppercase tracking-widest opacity-80">
-                  Núcleo For Life
-                </div>
+                <div className="text-xs uppercase tracking-widest opacity-80">Núcleo For Life</div>
                 <div className="text-sm font-medium opacity-90">Cartão do Aluno</div>
               </div>
             </div>
@@ -70,9 +67,7 @@ function AlunoParceirosPage() {
               <div className="text-lg font-semibold sm:text-xl">{nome}</div>
             </div>
             <div className="sm:text-right">
-              <div className="text-[11px] uppercase tracking-widest opacity-70">
-                Identificador
-              </div>
+              <div className="text-[11px] uppercase tracking-widest opacity-70">Identificador</div>
               <div className="font-mono text-lg font-semibold tracking-wider sm:text-xl">
                 {memberId}
               </div>
@@ -80,9 +75,7 @@ function AlunoParceirosPage() {
           </div>
 
           <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 text-[11px] opacity-80">
-            <span>
-              Apresente este cartão ao parceiro para garantir seu desconto.
-            </span>
+            <span>Apresente este cartão ao parceiro para garantir seu desconto.</span>
             <span className="capitalize">{role}</span>
           </div>
         </div>
@@ -128,9 +121,7 @@ function AlunoParceirosPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="line-clamp-3 text-sm text-muted-foreground">
-                    {p.description}
-                  </p>
+                  <p className="line-clamp-3 text-sm text-muted-foreground">{p.description}</p>
                   {p.link && (
                     <a
                       href={p.link}

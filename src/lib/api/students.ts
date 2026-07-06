@@ -27,9 +27,7 @@ export interface CreateStudentPayload {
   trainer_id?: string;
 }
 
-export type UpdateStudentPayload = Partial<
-  Omit<Student, "id" | "created_at" | "trainer_name">
->;
+export type UpdateStudentPayload = Partial<Omit<Student, "id" | "created_at" | "trainer_name">>;
 
 /** Maps frontend display sex values (F/M/Outro) to backend enum. */
 export function toBackendSex(sex: "F" | "M" | "Outro"): StudentSex {
@@ -67,10 +65,7 @@ export function createStudent(payload: CreateStudentPayload): Promise<Student> {
   return http.post<Student>("/api/v1/students", payload);
 }
 
-export function updateStudent(
-  id: string,
-  payload: UpdateStudentPayload,
-): Promise<Student> {
+export function updateStudent(id: string, payload: UpdateStudentPayload): Promise<Student> {
   return http.patch<Student>(`/api/v1/students/${id}`, payload);
 }
 

@@ -45,9 +45,7 @@ describe("biomechanics API", () => {
     it("calls GET .../current", async () => {
       mockGet.mockResolvedValue(assessment);
       await fetchCurrentBiomechanicsAssessment("s1");
-      expect(mockGet).toHaveBeenCalledWith(
-        "/api/v1/students/s1/biomechanical_assessments/current",
-      );
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/students/s1/biomechanical_assessments/current");
     });
   });
 
@@ -55,10 +53,10 @@ describe("biomechanics API", () => {
     it("sends EN slot directly via PUT", async () => {
       mockPut.mockResolvedValue(assessment);
       await uploadBiomechanicsSlot("s1", "trunk_flexion", "data:image/png;base64,xyz");
-      expect(mockPut).toHaveBeenCalledWith(
-        "/api/v1/students/s1/biomechanical_assessments/upload",
-        { slot: "trunk_flexion", image_url: "data:image/png;base64,xyz" },
-      );
+      expect(mockPut).toHaveBeenCalledWith("/api/v1/students/s1/biomechanical_assessments/upload", {
+        slot: "trunk_flexion",
+        image_url: "data:image/png;base64,xyz",
+      });
     });
   });
 

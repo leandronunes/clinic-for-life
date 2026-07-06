@@ -13,7 +13,9 @@ function detectStandalone() {
 }
 
 function detectIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as { MSStream?: unknown }).MSStream;
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as { MSStream?: unknown }).MSStream
+  );
 }
 
 export function usePwaInstall() {

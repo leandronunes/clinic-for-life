@@ -7,27 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
 import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
-
 export const Route = createFileRoute("/_app/perfil")({
   component: PerfilPage,
 });
 
-
 function PerfilPage() {
   const { user, hasRole } = useAuth();
   const qc = useQueryClient();
-
-  if (!hasRole("aluno") || !user?.aluno_id) return <Navigate to="/dashboard" />;
+  const alunoId = user?.aluno_id;
+  const canAccess = hasRole("aluno") && !!alunoId;
 
   const { data: student, isLoading } = useQuery({
-    queryKey: ["aluno", user.aluno_id],
-    queryFn: () => fetchStudent(user.aluno_id!),
+    queryKey: ["aluno", alunoId],
+    queryFn: () => fetchStudent(alunoId!),
+    enabled: canAccess,
   });
 
   const [form, setForm] = useState<Student | null>(null);
@@ -35,7 +40,7 @@ function PerfilPage() {
 
   const saveMut = useMutation({
     mutationFn: () =>
-      updateStudent(user.aluno_id!, {
+      updateStudent(alunoId!, {
         name: current!.name,
         email: current!.email,
         phone: current!.phone,
@@ -46,18 +51,20 @@ function PerfilPage() {
       }),
     onSuccess: () => {
       toast.success("Perfil atualizado");
-      qc.invalidateQueries({ queryKey: ["aluno", user.aluno_id] });
+      qc.invalidateQueries({ queryKey: ["aluno", alunoId] });
     },
   });
 
   const changePersonalMut = useMutation({
-    mutationFn: (trainerId: string) => updateStudent(user.aluno_id!, { trainer_id: trainerId }),
+    mutationFn: (trainerId: string) => updateStudent(alunoId!, { trainer_id: trainerId }),
     onSuccess: (res) => {
       toast.success(`Personal alterado para ${res.trainer_name}`);
-      qc.invalidateQueries({ queryKey: ["aluno", user.aluno_id] });
+      qc.invalidateQueries({ queryKey: ["aluno", alunoId] });
       setForm(null);
     },
   });
+
+  if (!canAccess) return <Navigate to="/dashboard" />;
 
   if (isLoading || !current) {
     return <div className="text-sm text-muted-foreground">Carregando...</div>;
@@ -67,7 +74,9 @@ function PerfilPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Perfil</h1>
-        <p className="text-sm text-muted-foreground">Atualize seus dados e escolha seu personal trainer.</p>
+        <p className="text-sm text-muted-foreground">
+          Atualize seus dados e escolha seu personal trainer.
+        </p>
       </div>
 
       <Card className="shadow-soft">
@@ -79,23 +88,39 @@ function PerfilPage() {
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nome completo" className="sm:col-span-2">
-              <Input value={current.name} onChange={(e) => setForm({ ...current, name: e.target.value })} />
+              <Input
+                value={current.name}
+                onChange={(e) => setForm({ ...current, name: e.target.value })}
+              />
             </Field>
             <Field label="E-mail">
-              <Input type="email" value={current.email} onChange={(e) => setForm({ ...current, email: e.target.value })} />
+              <Input
+                type="email"
+                value={current.email}
+                onChange={(e) => setForm({ ...current, email: e.target.value })}
+              />
             </Field>
             <Field label="Telefone">
-              <Input value={current.phone} onChange={(e) => setForm({ ...current, phone: e.target.value })} />
+              <Input
+                value={current.phone}
+                onChange={(e) => setForm({ ...current, phone: e.target.value })}
+              />
             </Field>
             <Field label="Nascimento">
-              <Input type="date" value={current.birth_date} onChange={(e) => setForm({ ...current, birth_date: e.target.value })} />
+              <Input
+                type="date"
+                value={current.birth_date}
+                onChange={(e) => setForm({ ...current, birth_date: e.target.value })}
+              />
             </Field>
             <Field label="Gênero">
               <Select
                 value={current.sex}
                 onValueChange={(v) => setForm({ ...current, sex: v as Student["sex"] })}
               >
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="female">Feminino</SelectItem>
                   <SelectItem value="male">Masculino</SelectItem>
@@ -120,7 +145,13 @@ function PerfilPage() {
           </div>
 
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setForm(null)} disabled={!form || saveMut.isPending}>Descartar</Button>
+            <Button
+              variant="ghost"
+              onClick={() => setForm(null)}
+              disabled={!form || saveMut.isPending}
+            >
+              Descartar
+            </Button>
             <Button onClick={() => saveMut.mutate()} disabled={!form || saveMut.isPending}>
               {saveMut.isPending ? "Salvando..." : "Salvar alterações"}
             </Button>
@@ -139,7 +170,10 @@ function PerfilPage() {
 }
 
 function PersonalSelector({
-  currentTrainerId, currentTrainerName, onSelect, pending,
+  currentTrainerId,
+  currentTrainerName,
+  onSelect,
+  pending,
 }: {
   currentTrainerId: string;
   currentTrainerName: string;
@@ -172,7 +206,9 @@ function PersonalSelector({
         </div>
         <ul className="divide-y divide-border rounded-lg border border-border">
           {results.length === 0 && (
-            <li className="p-4 text-center text-sm text-muted-foreground">Nenhum personal encontrado.</li>
+            <li className="p-4 text-center text-sm text-muted-foreground">
+              Nenhum personal encontrado.
+            </li>
           )}
           {results.map((p) => {
             const ativo = p.id === currentTrainerId;
@@ -204,7 +240,15 @@ function PersonalSelector({
   );
 }
 
-function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <Label className="text-xs">{label}</Label>

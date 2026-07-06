@@ -18,10 +18,7 @@ export default defineConfig({
       writeBundle() {
         const dist = path.resolve(__dirname, "dist");
         if (fs.existsSync(path.join(dist, "index.html"))) {
-          fs.copyFileSync(
-            path.join(dist, "index.html"),
-            path.join(dist, "404.html")
-          );
+          fs.copyFileSync(path.join(dist, "index.html"), path.join(dist, "404.html"));
         }
       },
     },

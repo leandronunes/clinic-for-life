@@ -58,9 +58,7 @@ export function fetchCurrentBiomechanicsAssessment(
   );
 }
 
-export function newBiomechanicsAssessment(
-  studentId: string,
-): Promise<BiomechanicalAssessment> {
+export function newBiomechanicsAssessment(studentId: string): Promise<BiomechanicalAssessment> {
   return http.post<BiomechanicalAssessment>(
     `/api/v1/students/${studentId}/biomechanical_assessments/new_assessment`,
   );

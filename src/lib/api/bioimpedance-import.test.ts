@@ -19,10 +19,7 @@ describe("bioimpedance-import API", () => {
     const file = new File(["csv content"], "export.csv", { type: "text/csv" });
     const res = await importBioimpedanceCsv("s1", file);
 
-    expect(mockPost).toHaveBeenCalledWith(
-      "/api/v1/bioimpedance/import",
-      expect.any(FormData),
-    );
+    expect(mockPost).toHaveBeenCalledWith("/api/v1/bioimpedance/import", expect.any(FormData));
     const fd = mockPost.mock.calls[0][1] as FormData;
     expect(fd.get("file")).toBe(file);
     expect(fd.get("student_id")).toBe("s1");

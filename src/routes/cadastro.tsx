@@ -85,8 +85,8 @@ function CadastroPage() {
               Crie sua conta e comece a sua <span className="text-accent">jornada</span>.
             </h1>
             <p className="mt-4 text-primary-foreground/80">
-              Junte-se à Clínica For Life e acompanhe sua avaliação física, treinos e
-              evolução em um único lugar.
+              Junte-se à Clínica For Life e acompanhe sua avaliação física, treinos e evolução em um
+              único lugar.
             </p>
           </div>
           <div className="text-xs text-primary-foreground/60">v4.0 · Núcleo For Life · MVP</div>

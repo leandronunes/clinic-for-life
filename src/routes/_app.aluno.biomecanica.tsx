@@ -48,7 +48,6 @@ export const Route = createFileRoute("/_app/aluno/biomecanica")({
   component: BiomecanicaPage,
 });
 
-
 const PLANO_CORONAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
   { slot: "frontal", label: "Visão Frontal" },
   { slot: "posterior", label: "Posterior" },
@@ -235,14 +234,20 @@ function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
                           </Badge>
                         )}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {total}/6 imagens
-                      </span>
+                      <span className="text-xs text-muted-foreground">{total}/6 imagens</span>
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4">
-                    <HistoricoPlanoGrid titulo="Plano Coronal" slots={PLANO_CORONAL} imagens={av.images} />
-                    <HistoricoPlanoGrid titulo="Plano Sagital" slots={PLANO_SAGITAL} imagens={av.images} />
+                    <HistoricoPlanoGrid
+                      titulo="Plano Coronal"
+                      slots={PLANO_CORONAL}
+                      imagens={av.images}
+                    />
+                    <HistoricoPlanoGrid
+                      titulo="Plano Sagital"
+                      slots={PLANO_SAGITAL}
+                      imagens={av.images}
+                    />
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -291,13 +296,7 @@ function HistoricoPlanoGrid({
   );
 }
 
-function AvaliacaoEstruturalSection({
-  alunoId,
-  canWrite,
-}: {
-  alunoId: string;
-  canWrite: boolean;
-}) {
+function AvaliacaoEstruturalSection({ alunoId, canWrite }: { alunoId: string; canWrite: boolean }) {
   const qc = useQueryClient();
   const { data: structural, isLoading } = useQuery({
     queryKey: ["estrutural", alunoId],

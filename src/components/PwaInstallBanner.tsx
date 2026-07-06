@@ -48,15 +48,13 @@ export function PwaInstallBanner() {
       >
         {/* Cabeçalho */}
         <div className="flex items-start gap-3">
-          <img
-            src="/icons/icon.svg"
-            alt="For Life"
-            className="h-11 w-11 shrink-0 rounded-xl"
-          />
+          <img src="/icons/icon.svg" alt="For Life" className="h-11 w-11 shrink-0 rounded-xl" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">Instale o For Life</p>
             <p className="mt-0.5 text-xs text-white/55">
-              {isIOS ? "Acesse pelo ícone, sem abrir o Safari." : "Acesso rápido, sem abrir o browser."}
+              {isIOS
+                ? "Acesse pelo ícone, sem abrir o Safari."
+                : "Acesso rápido, sem abrir o browser."}
             </p>
           </div>
           <button

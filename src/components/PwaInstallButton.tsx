@@ -42,8 +42,7 @@ export function PwaInstallButton() {
             <p className="font-semibold">Instalar no iPhone / iPad</p>
             <ol className="list-decimal pl-4 space-y-1 text-muted-foreground">
               <li>
-                Toque em{" "}
-                <Share className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />
+                Toque em <Share className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />
                 <strong> Compartilhar</strong> no Safari
               </li>
               <li>
@@ -59,14 +58,12 @@ export function PwaInstallButton() {
             <p className="font-semibold">Instalar no dispositivo</p>
             <p className="text-muted-foreground">
               Procure o ícone{" "}
-              <MonitorSmartphone className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />{" "}
-              na barra de endereços do browser e toque em{" "}
-              <strong>"Instalar"</strong>.
+              <MonitorSmartphone className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" /> na barra
+              de endereços do browser e toque em <strong>"Instalar"</strong>.
             </p>
             <p className="text-xs text-muted-foreground">
               Se não aparecer, abra o menu do browser (⋮) e procure{" "}
-              <strong>"Instalar aplicativo"</strong> ou{" "}
-              <strong>"Adicionar à tela inicial"</strong>.
+              <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.
             </p>
           </div>
         )}

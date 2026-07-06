@@ -39,7 +39,11 @@ export function AppShell() {
                 <div className="text-muted-foreground capitalize">{user.role}</div>
               </div>
               <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                {user.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join("")}
               </div>
             </div>
           </header>

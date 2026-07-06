@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import {
-  FileText,
-  Upload,
-  Loader2,
-  Trash2,
-  Download,
-  Calendar,
-} from "lucide-react";
+import { FileText, Upload, Loader2, Trash2, Download, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,7 +108,8 @@ function ExamesPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Exames</h1>
         <p className="text-sm text-muted-foreground">
-          Envie os seus exames (PDF, imagens etc.) para que o seu personal possa acompanhar a sua evolução clínica.
+          Envie os seus exames (PDF, imagens etc.) para que o seu personal possa acompanhar a sua
+          evolução clínica.
         </p>
       </div>
 
@@ -228,8 +222,7 @@ function ExameCard({
         </CardTitle>
         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <Calendar className="h-3 w-3" />
-          {new Date(exame.uploaded_at).toLocaleDateString("pt-BR")} ·{" "}
-          {formatBytes(exame.size)}
+          {new Date(exame.uploaded_at).toLocaleDateString("pt-BR")} · {formatBytes(exame.size)}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -246,9 +239,7 @@ function ExameCard({
           </div>
         )}
         {exame.description && (
-          <p className="line-clamp-3 text-xs text-muted-foreground">
-            {exame.description}
-          </p>
+          <p className="line-clamp-3 text-xs text-muted-foreground">{exame.description}</p>
         )}
         <div className="flex items-center gap-2">
           <Button asChild size="sm" variant="secondary" className="flex-1">
@@ -282,9 +273,7 @@ function ExameCard({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={onDelete}>
-                    Remover
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={onDelete}>Remover</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

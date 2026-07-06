@@ -7,10 +7,7 @@ export interface BioImportResult {
   preview: BioimpedanceMeasurement[];
 }
 
-export function importBioimpedanceCsv(
-  studentId: string,
-  file: File,
-): Promise<BioImportResult> {
+export function importBioimpedanceCsv(studentId: string, file: File): Promise<BioImportResult> {
   const form = new FormData();
   form.append("file", file);
   form.append("student_id", studentId);

@@ -57,23 +57,27 @@ export function CameraCapture({ open, onClose, onCapture }: Props) {
   }
 
   function capturePhoto() {
-    const video  = videoRef.current;
+    const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    canvas.width  = video.videoWidth  || 1280;
+    canvas.width = video.videoWidth || 1280;
     canvas.height = video.videoHeight || 960;
     canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-      const url  = URL.createObjectURL(blob);
-      setCapturedFile(file);
-      setPreviewUrl(url);
-      setPhase("preview");
-      stopStream();
-    }, "image/jpeg", 0.92);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
+        const url = URL.createObjectURL(blob);
+        setCapturedFile(file);
+        setPreviewUrl(url);
+        setPhase("preview");
+        stopStream();
+      },
+      "image/jpeg",
+      0.92,
+    );
   }
 
   function retake() {
@@ -115,11 +119,7 @@ export function CameraCapture({ open, onClose, onCapture }: Props) {
 
           {/* Captured preview */}
           {phase === "preview" && previewUrl && (
-            <img
-              src={previewUrl}
-              alt="Foto capturada"
-              className="h-full w-full object-contain"
-            />
+            <img src={previewUrl} alt="Foto capturada" className="h-full w-full object-contain" />
           )}
         </div>
 
