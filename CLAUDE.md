@@ -74,6 +74,11 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 - Configure via `VITE_API_BASE_URL` (default `http://127.0.0.1:3002`).
 - Mantenha os tipos do frontend alinhados aos serializers do backend Rails.
 
+## Controle de versão
+
+- **Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.** Sempre deixe as alterações no working tree para revisão antes de perguntar se deve commitar.
+- Mesmo que o usuário tenha autorizado commit/push antes, isso não vale para novas alterações — peça confirmação novamente a cada vez.
+
 ## Comandos úteis
 
 ```bash
