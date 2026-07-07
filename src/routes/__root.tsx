@@ -96,16 +96,18 @@ function RootComponent() {
   const [showSplash, setShowSplash] = useState(() => shouldShowSplash());
   const handleSplashDone = useCallback(() => setShowSplash(false), []);
 
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          {showSplash && <SplashScreen onDone={handleSplashDone} />}
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <Toaster richColors position="top-right" />
-        </AuthProvider>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+  const content = (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        {showSplash && <SplashScreen onDone={handleSplashDone} />}
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
+    </QueryClientProvider>
   );
+
+  if (!googleClientId) return content;
+
+  return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
 }
