@@ -271,9 +271,7 @@ function MeuTreinoPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{videoEx?.name}</DialogTitle>
-            <DialogDescription>
-              {videoEx ? describeExercise(videoEx) : ""}
-            </DialogDescription>
+            <DialogDescription>{videoEx ? describeExercise(videoEx) : ""}</DialogDescription>
           </DialogHeader>
           {videoEx && (
             <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
@@ -542,9 +540,24 @@ export function TreinoCard({
 
         {canEdit && (
           <div className="grid gap-2 sm:grid-cols-3">
-            <ExercicioFormDialog mode="create" kind="strength" treinoId={treino.id} alunoId={alunoId} />
-            <ExercicioFormDialog mode="create" kind="cardio" treinoId={treino.id} alunoId={alunoId} />
-            <ExercicioFormDialog mode="create" kind="mobility" treinoId={treino.id} alunoId={alunoId} />
+            <ExercicioFormDialog
+              mode="create"
+              kind="strength"
+              treinoId={treino.id}
+              alunoId={alunoId}
+            />
+            <ExercicioFormDialog
+              mode="create"
+              kind="cardio"
+              treinoId={treino.id}
+              alunoId={alunoId}
+            />
+            <ExercicioFormDialog
+              mode="create"
+              kind="mobility"
+              treinoId={treino.id}
+              alunoId={alunoId}
+            />
           </div>
         )}
       </CardContent>
@@ -1037,7 +1050,11 @@ function ExercicioFormDialog({
     >
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button variant="outline" size="sm" className={cn("w-full border-dashed", meta.buttonClass)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("w-full border-dashed", meta.buttonClass)}
+          >
             <Plus className="mr-1 h-4 w-4" /> {meta.addLabel}
           </Button>
         )}
@@ -1045,7 +1062,9 @@ function ExercicioFormDialog({
       <DialogContent className="flex flex-col max-w-lg max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? `Adicionar ${meta.label.toLowerCase()}` : `Editar ${meta.label.toLowerCase()}`}
+            {mode === "create"
+              ? `Adicionar ${meta.label.toLowerCase()}`
+              : `Editar ${meta.label.toLowerCase()}`}
           </DialogTitle>
           <DialogDescription>{meta.formHint}</DialogDescription>
         </DialogHeader>
@@ -1186,9 +1205,7 @@ function ExercicioFormDialog({
                 <Field label="Zona / Intensidade" className="sm:col-span-2">
                   <Select
                     value={form.hr_zone ? String(form.hr_zone) : ""}
-                    onValueChange={(v) =>
-                      setForm({ ...form, hr_zone: Number(v) as HrZone })
-                    }
+                    onValueChange={(v) => setForm({ ...form, hr_zone: Number(v) as HrZone })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a zona" />
@@ -1212,8 +1229,7 @@ function ExercicioFormDialog({
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        heart_rate_bpm:
-                          e.target.value === "" ? undefined : Number(e.target.value),
+                        heart_rate_bpm: e.target.value === "" ? undefined : Number(e.target.value),
                       })
                     }
                   />
@@ -1302,8 +1318,7 @@ const KIND_META: Record<ExerciseKind, KindMeta> = {
       "border-rose-500/30 bg-rose-500/5 hover:border-rose-500/60 dark:border-rose-400/30 dark:bg-rose-400/10",
     badgeClass: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
     chipClass: "border-rose-500/40 text-rose-600 dark:text-rose-300",
-    buttonClass:
-      "border-rose-400/50 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300",
+    buttonClass: "border-rose-400/50 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300",
   },
   mobility: {
     label: "Mobilidade",
