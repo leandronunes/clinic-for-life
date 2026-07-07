@@ -13,6 +13,12 @@ interface GoogleLoginButtonProps {
 }
 
 export function GoogleLoginButton({ onSuccess, className }: GoogleLoginButtonProps) {
+  const clientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ?? "";
+  if (!clientId) return null;
+  return <GoogleLoginButtonInner onSuccess={onSuccess} className={className} />;
+}
+
+function GoogleLoginButtonInner({ onSuccess, className }: GoogleLoginButtonProps) {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
