@@ -6,9 +6,9 @@ describe("isOfflineMode()", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns false when VITE_OFFLINE is unset", () => {
+  it("defaults to true when VITE_OFFLINE is unset (empty)", () => {
     vi.stubEnv("VITE_OFFLINE", "");
-    expect(isOfflineMode()).toBe(false);
+    expect(isOfflineMode()).toBe(true);
   });
 
   it("returns false when VITE_OFFLINE is 'false'", () => {
@@ -21,8 +21,13 @@ describe("isOfflineMode()", () => {
     expect(isOfflineMode()).toBe(true);
   });
 
-  it("is case-insensitive and trims whitespace", () => {
-    vi.stubEnv("VITE_OFFLINE", " TRUE ");
+  it("is case-insensitive and trims whitespace for 'false'", () => {
+    vi.stubEnv("VITE_OFFLINE", " FALSE ");
+    expect(isOfflineMode()).toBe(false);
+  });
+
+  it("treats any value other than 'false' as offline", () => {
+    vi.stubEnv("VITE_OFFLINE", "nope");
     expect(isOfflineMode()).toBe(true);
   });
 });
