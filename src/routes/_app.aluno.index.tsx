@@ -580,8 +580,16 @@ function ExerciseRowContent({
   dragHandleListeners?: DraggableSyntheticListeners;
   dragHandleAttributes?: DraggableAttributes;
 }) {
+  const kind = getKind(exercise);
+  const meta = KIND_META[kind];
+  const KindIcon = meta.icon;
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-lg border p-4 transition-colors sm:flex-row sm:items-center sm:justify-between",
+        meta.rowClass,
+      )}
+    >
       <div className="flex items-start gap-3">
         {dragHandleListeners && (
           <button
@@ -594,37 +602,90 @@ function ExerciseRowContent({
             <GripVertical className="h-4 w-4" />
           </button>
         )}
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-sm font-bold text-muted-foreground">
-          {idx + 1}
+        <div
+          className={cn(
+            "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold",
+            meta.badgeClass,
+          )}
+          aria-label={meta.label}
+        >
+          <KindIcon className="h-4 w-4" />
         </div>
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{exercise.name}</span>
-            <Badge variant="outline" className="text-[10px]">
-              {exercise.muscle_group}
+            <Badge variant="outline" className={cn("text-[10px]", meta.chipClass)}>
+              {meta.label}
             </Badge>
+            {kind === "strength" && exercise.muscle_group && (
+              <Badge variant="outline" className="text-[10px]">
+                {exercise.muscle_group}
+              </Badge>
+            )}
+            <span className="text-[10px] text-muted-foreground">#{idx + 1}</span>
           </div>
           <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Dumbbell className="h-3 w-3" />
-              {exercise.sets}×{exercise.reps}
-              {exercise.load_kg ? ` · ${exercise.load_kg}kg` : ""}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {exercise.rest_seconds}s descanso
-            </span>
+            {kind === "strength" && (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <Dumbbell className="h-3 w-3" />
+                  {exercise.sets ?? 0}×{exercise.reps ?? "-"}
+                  {exercise.load_kg ? ` · ${exercise.load_kg}kg` : ""}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {exercise.rest_seconds ?? 0}s descanso
+                </span>
+              </>
+            )}
+            {kind === "mobility" && (
+              <span className="inline-flex items-center gap-1">
+                <Waves className="h-3 w-3" />
+                {exercise.sets ?? 0}×{exercise.reps ?? "-"}
+              </span>
+            )}
+            {kind === "cardio" && (
+              <>
+                {exercise.duration_seconds ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Timer className="h-3 w-3" />
+                    {formatDuration(exercise.duration_seconds)}
+                  </span>
+                ) : null}
+                {exercise.distance_value ? (
+                  <span className="inline-flex items-center gap-1">
+                    <RouteIcon className="h-3 w-3" />
+                    {exercise.distance_value} {exercise.distance_unit ?? "m"}
+                  </span>
+                ) : null}
+                {exercise.hr_zone ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Activity className="h-3 w-3" />
+                    Zona {exercise.hr_zone} ({HR_ZONE_RANGE[exercise.hr_zone]})
+                  </span>
+                ) : null}
+                {exercise.heart_rate_bpm ? (
+                  <span className="inline-flex items-center gap-1">
+                    <HeartPulse className="h-3 w-3" />
+                    {exercise.heart_rate_bpm} bpm
+                  </span>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-        <Button size="sm" variant="outline" onClick={() => onWatch(exercise)}>
-          <Play className="mr-1 h-4 w-4" /> Ver execução
-        </Button>
+        {exercise.video_url && (
+          <Button size="sm" variant="outline" onClick={() => onWatch(exercise)}>
+            <Play className="mr-1 h-4 w-4" /> Ver execução
+          </Button>
+        )}
         {canEdit && (
           <>
             <ExercicioFormDialog
               mode="edit"
+              kind={kind}
               treinoId={treinoId}
               alunoId={alunoId}
               exercicio={exercise}
