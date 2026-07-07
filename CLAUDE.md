@@ -74,6 +74,12 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 - Configure via `VITE_API_BASE_URL` (default `http://127.0.0.1:3002`).
 - Mantenha os tipos do frontend alinhados aos serializers do backend Rails.
 
+## Contract testing (Pact)
+
+- Este frontend é **consumer**. Ver `docs/pact.md` para arquitetura, como rodar, como adicionar um novo contrato e como depurar falhas.
+- **Ao adicionar/alterar chamada em `src/lib/api/*.ts`, adicione/atualize o `*.pact.test.ts` correspondente** no mesmo PR, e registre o provider state equivalente no backend.
+- `npm run test:pact` — nunca roda dentro de `npm run test` (suítes separadas, ver `vitest.pact.config.ts`).
+
 ## Controle de versão
 
 - **Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.** Sempre deixe as alterações no working tree para revisão antes de perguntar se deve commitar.
@@ -87,4 +93,5 @@ npm run lint         # ESLint + Prettier
 npm run test         # Vitest (CI)
 npm run test:watch   # Vitest interativo
 npm run test:coverage
+npm run test:pact    # contratos Pact — ver docs/pact.md
 ```

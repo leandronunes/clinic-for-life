@@ -34,6 +34,8 @@ export default defineConfig({
     // Vitest's defaults don't skip .claude/ — without this, stray git
     // worktrees created under .claude/worktrees/ get scanned too, duplicating
     // every test that exists in both the main tree and the worktree copy.
-    exclude: [...configDefaults.exclude, ".claude/**"],
+    // *.pact.test.ts run separately under vitest.pact.config.ts (node env,
+    // real Pact mock server) — see npm run test:pact.
+    exclude: [...configDefaults.exclude, ".claude/**", "**/*.pact.test.ts"],
   },
 });
