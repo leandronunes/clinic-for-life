@@ -43,7 +43,7 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 - Erros de validação próximos ao campo; mensagens em **pt-br**.
 
 ### Autenticação
-- Estado de sessão via `useAuth` de `@/contexts/auth-context` — **nunca** acesse `localStorage` diretamente em componentes.
+- Estado de sessão via `useAuth` de `@/contexts/use-auth` — **nunca** acesse `localStorage` diretamente em componentes.
 - Respeite `hasRole`, `canWrite` e a lógica de impersonação de aluno.
 
 ### Roteamento (TanStack Router — file-based)
@@ -80,6 +80,13 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 - **Ao adicionar/alterar chamada em `src/lib/api/*.ts`, adicione/atualize o `*.pact.test.ts` correspondente** no mesmo PR, e registre o provider state equivalente no backend.
 - `npm run test:pact` — nunca roda dentro de `npm run test` (suítes separadas, ver `vitest.pact.config.ts`).
 
+## Testes E2E (Playwright)
+
+- Ver `docs/e2e.md` para arquitetura, contas de demonstração e como adicionar um novo teste.
+- Roda contra o modo offline (`VITE_OFFLINE=true`, mock em `@/lib/api/mock`) — não depende do backend Rails nem de rede.
+- `npm run test:e2e` — nunca roda dentro de `npm run test` (Playwright, não Vitest; ver `test.exclude` em `vite.config.ts`).
+- `getByText`/`getByLabel` do Playwright fazem substring match case-insensitive por padrão — use `{ exact: true }` ou escopo (`page.getByRole("main")`) para textos curtos que colidem com nav/outros elementos.
+
 ## Controle de versão
 
 - **Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.** Sempre deixe as alterações no working tree para revisão antes de perguntar se deve commitar.
@@ -94,4 +101,6 @@ npm run test         # Vitest (CI)
 npm run test:watch   # Vitest interativo
 npm run test:coverage
 npm run test:pact    # contratos Pact — ver docs/pact.md
+npm run test:e2e      # Playwright — ver docs/e2e.md
+npm run test:e2e:ui   # Playwright em modo UI interativo
 ```

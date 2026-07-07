@@ -35,7 +35,9 @@ export default defineConfig({
     // worktrees created under .claude/worktrees/ get scanned too, duplicating
     // every test that exists in both the main tree and the worktree copy.
     // *.pact.test.ts run separately under vitest.pact.config.ts (node env,
-    // real Pact mock server) — see npm run test:pact.
-    exclude: [...configDefaults.exclude, ".claude/**", "**/*.pact.test.ts"],
+    // real Pact mock server) — see npm run test:pact. e2e/**/*.spec.ts run
+    // under Playwright (npm run test:e2e), a real browser, not jsdom/vitest —
+    // matches Vitest's default *.spec.ts include glob, so must be excluded.
+    exclude: [...configDefaults.exclude, ".claude/**", "**/*.pact.test.ts", "e2e/**"],
   },
 });
