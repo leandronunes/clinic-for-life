@@ -1,5 +1,5 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
@@ -31,5 +31,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // Vitest's defaults don't skip .claude/ — without this, stray git
+    // worktrees created under .claude/worktrees/ get scanned too, duplicating
+    // every test that exists in both the main tree and the worktree copy.
+    exclude: [...configDefaults.exclude, ".claude/**"],
   },
 });
