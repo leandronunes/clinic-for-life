@@ -529,7 +529,13 @@ export function TreinoCard({
           </div>
         )}
 
-        {canEdit && <ExercicioFormDialog mode="create" treinoId={treino.id} alunoId={alunoId} />}
+        {canEdit && (
+          <div className="grid gap-2 sm:grid-cols-3">
+            <ExercicioFormDialog mode="create" kind="strength" treinoId={treino.id} alunoId={alunoId} />
+            <ExercicioFormDialog mode="create" kind="cardio" treinoId={treino.id} alunoId={alunoId} />
+            <ExercicioFormDialog mode="create" kind="mobility" treinoId={treino.id} alunoId={alunoId} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
