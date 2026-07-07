@@ -3,10 +3,12 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 4321;
 
 /**
- * E2E suite runs against the Vite dev server with the offline mock backend
- * (see @/lib/api/mock) — no Rails API required. VITE_OFFLINE is passed
- * explicitly rather than relying on the default so this doesn't silently
- * depend on a local .env file.
+ * E2E suite runs against a production build (build + preview) with the
+ * offline mock backend (see @/lib/api/mock) — no Rails API required.
+ * VITE_OFFLINE is passed explicitly rather than relying on the default so
+ * this doesn't silently depend on a local .env file. Preview (not `vite
+ * dev`) on purpose: dev's cold-start dependency pre-bundling was timing out
+ * config.webServer on CI runners; a pre-built static server starts in ~1s.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -27,10 +29,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
     env: {
       VITE_OFFLINE: "true",
     },
