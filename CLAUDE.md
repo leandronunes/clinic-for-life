@@ -91,6 +91,7 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 
 - **Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.** Sempre deixe as alterações no working tree para revisão antes de perguntar se deve commitar.
 - Mesmo que o usuário tenha autorizado commit/push antes, isso não vale para novas alterações — peça confirmação novamente a cada vez.
+- **Commit e push só via pull request — nunca direto na `main`.** Crie uma branch, commite nela, `git push` a branch e abra um PR (`gh pr create`); nunca `git push origin main`.
 
 ## Comandos úteis
 
