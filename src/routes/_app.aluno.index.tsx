@@ -261,7 +261,7 @@ function MeuTreinoPage() {
           <DialogHeader>
             <DialogTitle>{videoEx?.name}</DialogTitle>
             <DialogDescription>
-              {videoEx?.sets} séries × {videoEx?.reps} reps · Descanso {videoEx?.rest_seconds}s
+              {videoEx ? describeExercise(videoEx) : ""}
             </DialogDescription>
           </DialogHeader>
           {videoEx && (
