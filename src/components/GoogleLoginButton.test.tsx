@@ -1,6 +1,6 @@
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GoogleLoginButton } from "./GoogleLoginButton";
 import type { AuthUser } from "@/lib/api/auth";
 
@@ -47,6 +47,16 @@ describe("GoogleLoginButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useGoogleLogin).mockReturnValue(mockTriggerLogin);
+    // The button only renders when a Google OAuth client id is configured.
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "test-client-id");
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("não renderiza nada quando VITE_GOOGLE_CLIENT_ID não está configurado", () => {
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
+    const { container } = render(<GoogleLoginButton onSuccess={onSuccess} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renderiza o botão do Google", () => {
