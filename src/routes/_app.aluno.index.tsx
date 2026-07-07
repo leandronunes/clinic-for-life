@@ -87,6 +87,10 @@ import {
   reorderWorkouts,
   type Exercise,
   type Workout,
+  type ExerciseKind,
+  type DistanceUnit,
+  type HrZone,
+  type CreateExercisePayload,
 } from "@/lib/api/workouts";
 import { ExercicioVideoInput } from "@/components/ExercicioVideoInput";
 import { isUploadedVideo } from "@/lib/video-url";
