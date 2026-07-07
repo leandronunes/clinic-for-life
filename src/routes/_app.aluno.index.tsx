@@ -13,6 +13,11 @@ import {
   Pencil,
   Trash2,
   GripVertical,
+  HeartPulse,
+  Waves,
+  Timer,
+  Route as RouteIcon,
+  Activity,
 } from "lucide-react";
 import {
   DndContext,
