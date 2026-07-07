@@ -99,15 +99,13 @@ describe("TreinoCard", () => {
     expect(screen.queryAllByLabelText("Reordenar exercício")).toHaveLength(0);
   });
 
-  it("displays sequential numbering (1, 2, …) based on position order", () => {
+  it("displays sequential numbering (#1, #2, …) based on position order", () => {
     render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
       wrapper,
     });
 
-    // The position badges are divs with bg-muted class showing idx+1
-    const badges = document.querySelectorAll(".bg-muted.font-bold");
-    const numbers = Array.from(badges).map((el) => el.textContent);
-    expect(numbers).toEqual(["1", "2"]);
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.getByText("#2")).toBeInTheDocument();
   });
 
   it("shows unarchive button when canUnarchive is true", () => {
