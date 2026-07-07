@@ -33,6 +33,12 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Playwright swallows the command's output by default ("ignore"), which
+    // hid the actual reason for a webServer timeout on CI — pipe it so a
+    // future failure shows the real build/preview log instead of just
+    // "Timed out waiting Nms".
+    stdout: "pipe",
+    stderr: "pipe",
     env: {
       VITE_OFFLINE: "true",
     },
