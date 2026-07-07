@@ -11,7 +11,7 @@ vi.mock("@react-oauth/google", () => ({
 }));
 
 const mockSignInWithGoogle = vi.fn();
-vi.mock("@/contexts/auth-context", () => ({
+vi.mock("@/contexts/use-auth", () => ({
   useAuth: () => ({ signInWithGoogle: mockSignInWithGoogle }),
 }));
 

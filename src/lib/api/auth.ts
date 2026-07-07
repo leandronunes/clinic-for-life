@@ -80,3 +80,16 @@ export function register(params: RegisterParams): Promise<LoginResponse> {
 export function fetchCurrentUser(): Promise<BackendUser> {
   return http.get<BackendUser>("/api/v1/auth/me");
 }
+
+/** Maps backend English fields to the shape the app currently consumes. */
+export function mapBackendUser(u: BackendUser): AuthUser {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role === "student" ? "aluno" : (u.role as UserRole),
+    avatar_url: u.avatar_url ?? undefined,
+    personal_id: u.trainer_id ?? undefined,
+    aluno_id: u.student_id ?? undefined,
+  };
+}

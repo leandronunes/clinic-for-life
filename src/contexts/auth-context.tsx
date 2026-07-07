@@ -1,58 +1,17 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import type { AuthSession, AuthUser, RegisterParams, UserRole } from "@/lib/api/auth";
-import { login, register, googleLogin, fetchCurrentUser, type BackendUser } from "@/lib/api/auth";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { AuthSession, RegisterParams, UserRole } from "@/lib/api/auth";
+import { login, register, googleLogin, fetchCurrentUser, mapBackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
+import { AuthContext, type AuthContextValue } from "./use-auth";
 
-interface AuthContextValue {
-  user: AuthUser | null;
-  token: string | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<AuthUser>;
-  signUp: (params: RegisterParams) => Promise<AuthUser>;
-  signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
-  signOut: () => void;
-  hasRole: (...roles: UserRole[]) => boolean;
-  canWrite: boolean;
-  /** Id do aluno que admin/personal está visualizando, se houver. */
-  impersonatedAlunoId: string | null;
-  /** Quando impersonando, é o id do aluno; caso contrário, o aluno_id do usuário (se for aluno). */
-  effectiveAlunoId: string | null;
-  /** Papel "efetivo": "aluno" quando admin/personal está impersonando. */
-  effectiveRole: UserRole | null;
-  isImpersonating: boolean;
-  impersonateAluno: (alunoId: string) => void;
-  stopImpersonating: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "forlife.session";
 const IMPERSONATE_KEY = "forlife.impersonate";
 
-/** Maps backend English fields to the shape the app currently consumes. */
-export function mapBackendUser(u: BackendUser): AuthUser {
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role === "student" ? "aluno" : (u.role as UserRole),
-    avatar_url: u.avatar_url ?? undefined,
-    personal_id: u.trainer_id ?? undefined,
-    aluno_id: u.student_id ?? undefined,
-  };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize session synchronously from storage to avoid auth race on reload.
-  const initialSession: AuthSession | null = (() => {
+  // A useState lazy initializer runs once (on mount) and stays referentially
+  // stable, so the boot effect below can safely depend on it.
+  const [initialSession] = useState<AuthSession | null>(() => {
     if (typeof window === "undefined") return null;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -60,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       return null;
     }
-  })();
+  });
   const initialImpersonation: string | null = (() => {
     if (typeof window === "undefined") return null;
     try {
@@ -115,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialSession]);
 
   const signIn = async (email: string, password: string) => {
     const res = await login({ email, password });
@@ -205,10 +164,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, loading, impersonatedAlunoId, impersonateAluno, stopImpersonating]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth deve ser usado dentro de <AuthProvider>");
-  return ctx;
 }

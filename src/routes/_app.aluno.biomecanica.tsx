@@ -41,7 +41,7 @@ import {
 } from "@/lib/api/structural-assessment";
 import { fetchStudent } from "@/lib/api/students";
 import { uploadBiomechanicalImageToS3 } from "@/lib/api/uploads";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/biomecanica")({

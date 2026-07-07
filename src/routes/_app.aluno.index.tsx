@@ -61,7 +61,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import {
   fetchWorkouts,
   createWorkout,
@@ -76,7 +76,8 @@ import {
   type Exercise,
   type Workout,
 } from "@/lib/api/workouts";
-import { ExercicioVideoInput, isUploadedVideo } from "@/components/ExercicioVideoInput";
+import { ExercicioVideoInput } from "@/components/ExercicioVideoInput";
+import { isUploadedVideo } from "@/lib/video-url";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/")({

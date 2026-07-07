@@ -27,7 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { BrandLogo } from "./BrandLogo";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { Button } from "./ui/button";
 import type { UserRole } from "@/lib/api/auth";
 

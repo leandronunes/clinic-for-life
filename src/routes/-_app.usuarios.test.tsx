@@ -91,7 +91,7 @@ vi.mock("@/lib/api/trainers", () => ({
   deleteTrainer: vi.fn(),
 }));
 
-vi.mock("@/contexts/auth-context", () => ({
+vi.mock("@/contexts/use-auth", () => ({
   useAuth: vi.fn(),
 }));
 
@@ -100,7 +100,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { Route } from "./_app.usuarios";
 import { fetchStudents, deleteStudent } from "@/lib/api/students";
 import { fetchTrainers, deleteTrainer } from "@/lib/api/trainers";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 const mockFetchStudents = vi.mocked(fetchStudents);

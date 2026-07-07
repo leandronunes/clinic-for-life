@@ -30,8 +30,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   };
 });
 
-vi.mock("@/contexts/auth-context", () => ({ useAuth: vi.fn() }));
-import { useAuth } from "@/contexts/auth-context";
+vi.mock("@/contexts/use-auth", () => ({ useAuth: vi.fn() }));
+import { useAuth } from "@/contexts/use-auth";
 const mockUseAuth = vi.mocked(useAuth);
 
 vi.mock("@/hooks/use-pwa-install", () => ({ usePwaInstall: vi.fn() }));

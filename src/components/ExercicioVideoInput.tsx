@@ -6,15 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { uploadVideoToS3 } from "@/lib/api/uploads";
-
-const YOUTUBE_RE = /youtube\.com|youtu\.be/i;
-
-export function isUploadedVideo(url?: string) {
-  if (!url) return false;
-  if (url.startsWith("blob:") || url.startsWith("data:video")) return true;
-  // S3 or other direct video host (not YouTube)
-  return url.startsWith("https://") && !YOUTUBE_RE.test(url);
-}
+import { isUploadedVideo } from "@/lib/video-url";
 
 type Props = {
   studentId: string;
@@ -40,12 +32,19 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
   const liveStreamRef = useRef<MediaStream | null>(null);
   const livePreviewRef = useRef<HTMLVideoElement>(null);
 
+  // Stop any active camera stream on unmount.
   useEffect(() => {
     return () => {
       liveStreamRef.current?.getTracks().forEach((t) => t.stop());
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, []);
+
+  // Revoke the current preview blob whenever it's replaced or the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   // After the live preview <video> element is mounted (recording=true),
   // attach the stream that was captured before the element existed in the DOM.

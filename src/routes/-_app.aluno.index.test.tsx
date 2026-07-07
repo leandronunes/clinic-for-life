@@ -15,12 +15,14 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
     createExercise: vi.fn(),
     updateExercise: vi.fn(),
     deleteExercise: vi.fn(),
-    isUploadedVideo: vi.fn().mockReturnValue(false),
   };
 });
 
 vi.mock("@/components/ExercicioVideoInput", () => ({
   ExercicioVideoInput: () => null,
+}));
+
+vi.mock("@/lib/video-url", () => ({
   isUploadedVideo: vi.fn().mockReturnValue(false),
 }));
 

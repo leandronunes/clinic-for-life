@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ParceirosVitrine } from "@/components/ParceirosVitrine";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";

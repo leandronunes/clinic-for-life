@@ -57,7 +57,7 @@ import {
   deleteTrainer,
   type Trainer,
 } from "@/lib/api/trainers";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/usuarios")({

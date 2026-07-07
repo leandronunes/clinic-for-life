@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { fetchAnamnesis, updateAnamnesis, type Anamnesis } from "@/lib/api/anamnesis";
 import { fetchStudent } from "@/lib/api/students";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
 import { ANAMNESE_SECOES } from "@/lib/anamnese-secoes";
 import { toast } from "sonner";

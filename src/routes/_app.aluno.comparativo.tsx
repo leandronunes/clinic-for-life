@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
 
 export const Route = createFileRoute("/_app/aluno/comparativo")({

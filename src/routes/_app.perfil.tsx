@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
 import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/perfil")({

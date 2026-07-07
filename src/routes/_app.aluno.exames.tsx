@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { fetchExams, createExam, deleteExam, type Exam } from "@/lib/api/exams";
 import { uploadExamToS3 } from "@/lib/api/uploads";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 

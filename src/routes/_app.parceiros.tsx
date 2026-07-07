@@ -43,7 +43,7 @@ import {
   type PartnerCategory,
 } from "@/lib/api/partners";
 import { uploadPartnerLogoToS3 } from "@/lib/api/uploads";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/parceiros")({

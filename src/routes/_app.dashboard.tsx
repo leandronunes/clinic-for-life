@@ -22,7 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchKpis, fetchActivity, type RangeFilter } from "@/lib/api/dashboard";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
 });

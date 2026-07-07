@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, RefreshCw, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,19 +21,7 @@ export function CameraCapture({ open, onClose, onCapture }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
 
-  // Start camera when dialog opens, stop when it closes.
-  useEffect(() => {
-    if (!open) {
-      stopStream();
-      setPhase("live");
-      setPreviewUrl(null);
-      setCapturedFile(null);
-      return;
-    }
-    startStream();
-  }, [open]);
-
-  async function startStream() {
+  const startStream = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 960 } },
@@ -48,13 +36,25 @@ export function CameraCapture({ open, onClose, onCapture }: Props) {
       toast.error("Não foi possível acessar a câmera");
       onClose();
     }
-  }
+  }, [onClose]);
 
-  function stopStream() {
+  const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-  }
+  }, []);
+
+  // Start camera when dialog opens, stop when it closes.
+  useEffect(() => {
+    if (!open) {
+      stopStream();
+      setPhase("live");
+      setPreviewUrl(null);
+      setCapturedFile(null);
+      return;
+    }
+    startStream();
+  }, [open, startStream, stopStream]);
 
   function capturePhoto() {
     const video = videoRef.current;

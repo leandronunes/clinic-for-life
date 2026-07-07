@@ -4,7 +4,7 @@ import { ExternalLink, Handshake, Loader2, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchPartners, CATEGORY_FROM_BACKEND } from "@/lib/api/partners";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { BrandLogo } from "@/components/BrandLogo";
 export const Route = createFileRoute("/_app/aluno/parceiros")({
   component: AlunoParceirosPage,

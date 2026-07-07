@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 
 export const Route = createFileRoute("/_app/alunos/$id")({
   component: AlunoImpersonateRedirect,

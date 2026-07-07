@@ -16,7 +16,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { UserRole } from "@/lib/api/auth";
 import {

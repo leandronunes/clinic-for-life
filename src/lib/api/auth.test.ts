@@ -4,6 +4,7 @@ import {
   register,
   googleLogin,
   fetchCurrentUser,
+  mapBackendUser,
   type BackendUser,
   type LoginResponse,
 } from "./auth";
@@ -75,6 +76,44 @@ describe("auth API", () => {
     it("propagates 401 when the token is invalid", async () => {
       mockGet.mockRejectedValue({ status: 401, message: "Token inválido" });
       await expect(fetchCurrentUser()).rejects.toMatchObject({ status: 401 });
+    });
+  });
+
+  describe("mapBackendUser()", () => {
+    it("keeps non-student roles as-is", () => {
+      expect(mapBackendUser(backendUser)).toEqual({
+        id: "u1",
+        name: "Dra. Camila Andrade",
+        email: "admin@forlife.app",
+        role: "admin",
+        avatar_url: undefined,
+        personal_id: undefined,
+        aluno_id: undefined,
+      });
+    });
+
+    it("maps the 'student' role to 'aluno' and student_id to aluno_id", () => {
+      const student: BackendUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "aluno@forlife.app",
+        role: "student",
+        avatar_url: null,
+        trainer_id: null,
+        student_id: "s1",
+      };
+      expect(mapBackendUser(student)).toMatchObject({ role: "aluno", aluno_id: "s1" });
+    });
+
+    it("maps trainer_id to personal_id for the 'personal' role", () => {
+      const trainer: BackendUser = {
+        id: "u3",
+        name: "Rafael Monteiro",
+        email: "personal@forlife.app",
+        role: "personal",
+        trainer_id: "t1",
+      };
+      expect(mapBackendUser(trainer)).toMatchObject({ role: "personal", personal_id: "t1" });
     });
   });
 });

@@ -4,7 +4,7 @@ import type { TokenResponse } from "@react-oauth/google";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/use-auth";
 import type { AuthUser } from "@/lib/api/auth";
 
 interface GoogleLoginButtonProps {
