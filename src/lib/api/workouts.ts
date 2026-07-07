@@ -2,15 +2,29 @@ import { http } from "./http";
 
 export type WorkoutStatus = "active" | "archived";
 
+export type ExerciseKind = "strength" | "cardio" | "mobility";
+export type DistanceUnit = "m" | "km";
+export type HrZone = 1 | 2 | 3 | 4 | 5;
+
 export interface Exercise {
   id: string;
   position: number;
+  /** Tipo do item. Omisso = "strength" para compat com dados legados. */
+  kind?: ExerciseKind;
   name: string;
-  sets: number;
-  reps: string;
+  // Força / Mobilidade
+  sets?: number | null;
+  reps?: string | null;
   load_kg?: number | null;
-  rest_seconds: number;
-  muscle_group: string;
+  rest_seconds?: number | null;
+  muscle_group?: string | null;
+  // Cardio
+  duration_seconds?: number | null;
+  distance_value?: number | null;
+  distance_unit?: DistanceUnit | null;
+  hr_zone?: HrZone | null;
+  heart_rate_bpm?: number | null;
+  // Compartilhado
   video_url: string;
   notes?: string | null;
 }
@@ -41,12 +55,18 @@ export interface CreateWorkoutPayload {
 export type UpdateWorkoutPayload = Partial<Pick<Workout, "title" | "focus">>;
 
 export interface CreateExercisePayload {
+  kind?: ExerciseKind;
   name: string;
-  sets: number;
-  reps: string;
+  sets?: number;
+  reps?: string;
   load_kg?: number;
-  rest_seconds: number;
-  muscle_group: string;
+  rest_seconds?: number;
+  muscle_group?: string;
+  duration_seconds?: number;
+  distance_value?: number;
+  distance_unit?: DistanceUnit;
+  hr_zone?: HrZone;
+  heart_rate_bpm?: number;
   video_url?: string;
   notes?: string;
 }
