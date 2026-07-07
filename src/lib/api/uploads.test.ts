@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { uploadPartnerLogoToS3 } from "./uploads";
 
 vi.mock("./http", () => ({
@@ -115,5 +115,20 @@ describe("uploadPartnerLogoToS3()", () => {
     });
 
     await expect(uploadPartnerLogoToS3(makeFile())).rejects.toThrow("Upload falhou: 403");
+  });
+
+  describe("offline mode", () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("returns a local object URL without requesting a presigned URL", async () => {
+      vi.stubEnv("VITE_OFFLINE", "true");
+      const createObjectURL = vi.fn(() => "blob:mock-logo");
+      vi.stubGlobal("URL", { ...URL, createObjectURL });
+
+      const result = await uploadPartnerLogoToS3(makeFile());
+
+      expect(mockPost).not.toHaveBeenCalled();
+      expect(result).toBe("blob:mock-logo");
+    });
   });
 });

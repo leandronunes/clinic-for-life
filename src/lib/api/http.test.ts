@@ -122,4 +122,29 @@ describe("http client", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(http.get("/api/v1/students")).rejects.toMatchObject({ status: 0 });
   });
+
+  describe("offline mode", () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("serves requests from the mock dataset instead of calling fetch", async () => {
+      const fetchMock = mockFetch({ body: { data: [] } });
+      vi.stubEnv("VITE_OFFLINE", "true");
+
+      const partners = await http.get<Array<{ name: string }>>("/api/v1/partners");
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(partners.length).toBeGreaterThan(0);
+    });
+
+    it("rejects with the same ApiError shape as the real client", async () => {
+      mockFetch({ body: { data: [] } });
+      vi.stubEnv("VITE_OFFLINE", "true");
+
+      await expect(
+        http.post("/api/v1/auth/login", { email: "x", password: "wrong" }),
+      ).rejects.toMatchObject({
+        status: 401,
+      } satisfies Partial<ApiError>);
+    });
+  });
 });

@@ -6,7 +6,11 @@
  * - Attach the `Authorization: Bearer <token>` header when a token is available.
  * - Unwrap the standard `{ data, meta }` response envelope.
  * - Normalize errors into `{ status, message }` (same shape the UI already handles).
+ * - When `VITE_OFFLINE=true`, bypass the network entirely and serve requests
+ *   from the in-memory mock dataset in `@/lib/api/mock` (see `isOfflineMode`).
  */
+
+import { isOfflineMode } from "./offline-mode";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:3002";
 
@@ -81,9 +85,14 @@ async function request<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
-
   const token = tokenGetter();
+
+  if (isOfflineMode()) {
+    const { resolveMockRequest } = await import("./mock/router");
+    return resolveMockRequest<T>({ method, path, body, params: options.params, token });
+  }
+
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let payload: BodyInit | undefined;

@@ -1,4 +1,5 @@
 import { http } from "./http";
+import { isOfflineMode } from "./offline-mode";
 
 interface PresignResponse {
   upload_url: string;
@@ -38,85 +39,75 @@ function uploadToS3(
   });
 }
 
-export async function uploadVideoToS3(
+/**
+ * Resolves a public URL for `file`, either through the real S3 presign+PUT
+ * round-trip or, in offline mode, a local `blob:` URL created client-side —
+ * valid only for the current tab session, but enough to preview the upload.
+ */
+async function uploadFile(
+  file: File | Blob,
+  filename: string,
+  contentType: string,
+  context: string,
+  studentId: string | undefined,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  if (isOfflineMode()) {
+    onProgress?.(100);
+    return URL.createObjectURL(file);
+  }
+  const mimeType = contentType.split(";")[0].trim();
+  const { upload_url, public_url } = await requestPresignedUrl({
+    filename,
+    content_type: contentType,
+    context,
+    student_id: studentId,
+  });
+  await uploadToS3(upload_url, file, mimeType, onProgress);
+  return public_url;
+}
+
+export function uploadVideoToS3(
   studentId: string,
   file: File | Blob,
   filename: string,
   contentType: string,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  // Strip codec params (e.g. "video/webm;codecs=vp9,opus" → "video/webm") so the
-  // Content-Type header sent in the PUT exactly matches what the backend signed.
-  const mimeType = contentType.split(";")[0].trim();
-
-  const { upload_url, public_url } = await requestPresignedUrl({
-    filename,
-    content_type: contentType,
-    context: "exercise_video",
-    student_id: studentId,
-  });
-  await uploadToS3(upload_url, file, mimeType, onProgress);
-  return public_url;
+  return uploadFile(file, filename, contentType, "exercise_video", studentId, onProgress);
 }
 
-export async function uploadPhotoToS3(
+export function uploadPhotoToS3(
   studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
   const mimeType = file.type || "image/jpeg";
-  const { upload_url, public_url } = await requestPresignedUrl({
-    filename: file.name,
-    content_type: mimeType,
-    context: "evolution_photo",
-    student_id: studentId,
-  });
-  await uploadToS3(upload_url, file, mimeType, onProgress);
-  return public_url;
+  return uploadFile(file, file.name, mimeType, "evolution_photo", studentId, onProgress);
 }
 
-export async function uploadBiomechanicalImageToS3(
+export function uploadBiomechanicalImageToS3(
   studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
   const mimeType = file.type || "image/jpeg";
-  const { upload_url, public_url } = await requestPresignedUrl({
-    filename: file.name,
-    content_type: mimeType,
-    context: "biomechanical_image",
-    student_id: studentId,
-  });
-  await uploadToS3(upload_url, file, mimeType, onProgress);
-  return public_url;
+  return uploadFile(file, file.name, mimeType, "biomechanical_image", studentId, onProgress);
 }
 
-export async function uploadPartnerLogoToS3(
+export function uploadPartnerLogoToS3(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
   const mimeType = file.type || "image/jpeg";
-  const { upload_url, public_url } = await requestPresignedUrl({
-    filename: file.name,
-    content_type: mimeType,
-    context: "partner_logo",
-  });
-  await uploadToS3(upload_url, file, mimeType, onProgress);
-  return public_url;
+  return uploadFile(file, file.name, mimeType, "partner_logo", undefined, onProgress);
 }
 
-export async function uploadExamToS3(
+export function uploadExamToS3(
   studentId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
   const mimeType = file.type || "application/pdf";
-  const { upload_url, public_url } = await requestPresignedUrl({
-    filename: file.name,
-    content_type: mimeType,
-    context: "exam",
-    student_id: studentId,
-  });
-  await uploadToS3(upload_url, file, mimeType, onProgress);
-  return public_url;
+  return uploadFile(file, file.name, mimeType, "exam", studentId, onProgress);
 }
