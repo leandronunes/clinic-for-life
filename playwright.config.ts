@@ -29,7 +29,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
+    // --host 127.0.0.1 pins the bind address explicitly: without it, vite
+    // preview logged "Local: http://localhost:4321/" and *looked* up on CI,
+    // but Playwright's own request to 127.0.0.1 hung forever — the runner
+    // resolved "localhost" to ::1 (IPv6) while the server bound the other
+    // family, so the IPv4 loopback had nothing listening on it.
+    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
