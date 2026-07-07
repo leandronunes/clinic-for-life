@@ -4,10 +4,16 @@ Suíte end-to-end que valida os principais fluxos de negócio da aplicação
 navegando de verdade num browser (Chromium), sem mocks de componente — ao
 contrário da suíte principal (`npm run test`, jsdom + `vi.mock`).
 
-Roda contra o **dev server com o backend mock offline** (`VITE_OFFLINE=true`,
-ver `@/lib/api/mock`), então não depende do Rails (`clinic-for-life-backend`)
-nem de rede — os dados são os seeds de `src/lib/api/mock/fixtures.ts`
-(alunos, personais, parceiros, treinos, contas de demonstração).
+Roda contra um **build de produção (`npm run build` + `npm run preview`)** com
+o backend mock offline (`VITE_OFFLINE=true`, ver `@/lib/api/mock`), então não
+depende do Rails (`clinic-for-life-backend`) nem de rede — os dados são os
+seeds de `src/lib/api/mock/fixtures.ts` (alunos, personais, parceiros,
+treinos, contas de demonstração).
+
+Build + preview em vez de `vite dev` de propósito: o cold-start do dev server
+(pre-bundling de dependências) estava estourando o timeout do
+`config.webServer` nos runners do CI; um preview de build já pronto sobe em
+~1s.
 
 ## Como rodar localmente
 
@@ -17,6 +23,12 @@ npm run test:e2e                  # roda a suíte headless
 npm run test:e2e:ui               # modo UI interativo (recomendado p/ debugar)
 npm run test:e2e:report           # abre o último relatório HTML
 ```
+
+`npm run test:e2e` já builda e sobe o preview sozinho (`playwright.config.ts`,
+`webServer`). **Atenção**: se já houver um preview rodando na porta 4321
+(`reuseExistingServer` fora do CI), ele é reaproveitado sem rebuildar — se
+você alterou código da aplicação (não só os testes), mate o processo antigo
+antes de rodar de novo, ou o teste vai bater contra um build desatualizado.
 
 `npm run test:e2e` já sobe o dev server sozinho (`playwright.config.ts`,
 `webServer`) — não precisa rodar `npm run dev` à parte. Em desenvolvimento
