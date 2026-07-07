@@ -63,7 +63,12 @@ describe("uploadPartnerLogoToS3()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    // isOfflineMode() defaults to true when VITE_OFFLINE is unset (e.g. in CI,
+    // which has no .env file) — pin it explicitly so these tests hit S3.
+    vi.stubEnv("VITE_OFFLINE", "false");
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it("requests presigned URL with partner_logo context and no student_id", async () => {
     stubXHR();
@@ -118,8 +123,6 @@ describe("uploadPartnerLogoToS3()", () => {
   });
 
   describe("offline mode", () => {
-    afterEach(() => vi.unstubAllEnvs());
-
     it("returns a local object URL without requesting a presigned URL", async () => {
       vi.stubEnv("VITE_OFFLINE", "true");
       const createObjectURL = vi.fn(() => "blob:mock-logo");

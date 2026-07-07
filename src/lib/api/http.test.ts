@@ -26,10 +26,14 @@ function mockFetch(response: {
 describe("http client", () => {
   beforeEach(() => {
     setAuthTokenGetter(() => null);
+    // isOfflineMode() defaults to true when VITE_OFFLINE is unset (e.g. in CI,
+    // which has no .env file) — pin it explicitly so these tests exercise fetch.
+    vi.stubEnv("VITE_OFFLINE", "false");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("unwraps the { data } envelope on GET", async () => {
@@ -124,8 +128,6 @@ describe("http client", () => {
   });
 
   describe("offline mode", () => {
-    afterEach(() => vi.unstubAllEnvs());
-
     it("serves requests from the mock dataset instead of calling fetch", async () => {
       const fetchMock = mockFetch({ body: { data: [] } });
       vi.stubEnv("VITE_OFFLINE", "true");
