@@ -148,6 +148,17 @@ describe("ExercicioVideoInput", () => {
     });
 
     describe("file upload", () => {
+      it("does not force the camera to open — lets the user pick an existing file", async () => {
+        // A `capture` attribute here would make mobile browsers jump straight
+        // to the camera/recorder instead of showing the file picker, even
+        // though "Gravar agora" already covers recording via getUserMedia.
+        renderInput();
+        await openUploadTab();
+
+        const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+        expect(input).not.toHaveAttribute("capture");
+      });
+
       it("shows error toast for non-video files", async () => {
         renderInput();
         await openUploadTab();
