@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Play,
   Clock,
@@ -1029,6 +1029,10 @@ function ExercicioFormDialog({
   const [form, setForm] = useState<ExercicioFormState>(
     exercicio ? formFromExercise(exercicio, kind) : EMPTY_FORM_BY_KIND[kind],
   );
+  // Guards against a double-submit firing two mutations before `mut.isPending`
+  // (a React state value) re-renders the disabled button — a plain ref check
+  // is synchronous and immune to that race.
+  const submittingRef = useRef(false);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -1288,7 +1292,15 @@ function ExercicioFormDialog({
             Cancelar
           </Button>
           <Button
-            onClick={() => mut.mutate()}
+            onClick={() => {
+              if (submittingRef.current) return;
+              submittingRef.current = true;
+              mut.mutate(undefined, {
+                onSettled: () => {
+                  submittingRef.current = false;
+                },
+              });
+            }}
             disabled={mut.isPending || videoUploading || !canSubmit}
           >
             {videoUploading
