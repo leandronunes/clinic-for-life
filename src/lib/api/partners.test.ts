@@ -63,6 +63,19 @@ describe("partners API", () => {
         expect.objectContaining({ name: "NutriVita", category: "Nutrition" }),
       );
     });
+
+    it("includes discount_details in the payload", async () => {
+      mockPost.mockResolvedValue(partner);
+      await createPartner({
+        name: "NutriVita",
+        category: "Nutrition",
+        discount_details: "10% off",
+      });
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v1/partners",
+        expect.objectContaining({ discount_details: "10% off" }),
+      );
+    });
   });
 
   describe("updatePartner()", () => {
@@ -70,6 +83,14 @@ describe("partners API", () => {
       mockPatch.mockResolvedValue(partner);
       await updatePartner("p1", { coupon: "NOVO20" });
       expect(mockPatch).toHaveBeenCalledWith("/api/v1/partners/p1", { coupon: "NOVO20" });
+    });
+
+    it("patches discount_details", async () => {
+      mockPatch.mockResolvedValue(partner);
+      await updatePartner("p1", { discount_details: "20% off" });
+      expect(mockPatch).toHaveBeenCalledWith("/api/v1/partners/p1", {
+        discount_details: "20% off",
+      });
     });
   });
 

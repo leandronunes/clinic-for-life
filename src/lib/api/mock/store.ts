@@ -188,6 +188,7 @@ export function createPartner(payload: CreatePartnerPayload): Partner {
     logo_url: payload.logo_url ?? null,
     category: payload.category,
     description: payload.description ?? null,
+    discount_details: payload.discount_details ?? null,
     coupon: payload.coupon ?? null,
     link: payload.link ?? null,
     created_at: new Date().toISOString(),

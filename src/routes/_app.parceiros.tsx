@@ -44,6 +44,7 @@ import {
 } from "@/lib/api/partners";
 import { uploadPartnerLogoToS3 } from "@/lib/api/uploads";
 import { useAuth } from "@/contexts/use-auth";
+import { PartnerDetailsDialog } from "@/components/PartnerDetailsDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/parceiros")({
@@ -60,6 +61,7 @@ function ParceirosPage() {
 
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<Partner | null>(null);
+  const [viewing, setViewing] = useState<Partner | null>(null);
 
   const removeMut = useMutation({
     mutationFn: (id: string) => deletePartner(id),
@@ -131,16 +133,13 @@ function ParceirosPage() {
                   </div>
                 </div>
                 <p className="line-clamp-3 text-sm text-muted-foreground">{p.description}</p>
-                {p.link && (
-                  <a
-                    href={p.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    {p.link} <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setViewing(p)}
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  Ver detalhes <ExternalLink className="h-3 w-3" />
+                </button>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                     <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
@@ -175,6 +174,12 @@ function ParceirosPage() {
           />
         )}
       </Dialog>
+
+      <PartnerDetailsDialog
+        partner={viewing}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+      />
     </div>
   );
 }
@@ -352,6 +357,7 @@ function ParceiroFormDialog({
   const [logoUrl, setLogoUrl] = useState(initial?.logo_url ?? "");
   const [category, setCategory] = useState<PartnerCategory>(initial?.category ?? "Nutrition");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [discountDetails, setDiscountDetails] = useState(initial?.discount_details ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
   const [coupon, setCoupon] = useState(initial?.coupon ?? "");
 
@@ -362,6 +368,7 @@ function ParceiroFormDialog({
         logo_url: logoUrl.trim() || undefined,
         category,
         description: description.trim() || undefined,
+        discount_details: discountDetails.trim() || undefined,
         link: link.trim() || undefined,
         coupon: coupon.trim() || undefined,
       };
@@ -378,7 +385,7 @@ function ParceiroFormDialog({
   const valid = name.trim();
 
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="flex max-h-[90dvh] max-w-lg flex-col">
       <DialogHeader>
         <DialogTitle>{mode === "edit" ? "Editar parceiro" : "Novo parceiro"}</DialogTitle>
         <DialogDescription>
@@ -386,63 +393,75 @@ function ParceiroFormDialog({
         </DialogDescription>
       </DialogHeader>
       <form
-        className="space-y-3"
+        className="flex flex-1 flex-col overflow-hidden"
         onSubmit={(e) => {
           e.preventDefault();
           if (valid) mut.mutate();
         }}
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="p-nome">Nome</Label>
-          <Input id="p-nome" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
+        <div className="space-y-3 overflow-y-auto p-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="p-nome">Nome</Label>
+            <Input id="p-nome" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
 
-        <LogoField value={logoUrl} onChange={setLogoUrl} disabled={mut.isPending} />
+          <LogoField value={logoUrl} onChange={setLogoUrl} disabled={mut.isPending} />
 
-        <div className="space-y-1.5">
-          <Label>Categoria</Label>
-          <Select value={category} onValueChange={(v) => setCategory(v as PartnerCategory)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PT_CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as PartnerCategory)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PT_CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-desc">Descrição</Label>
+            <Textarea
+              id="p-desc"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-descontos">Descontos</Label>
+            <Textarea
+              id="p-descontos"
+              rows={3}
+              placeholder="Ex.: 15% de desconto na primeira consulta para alunos do Núcleo For Life."
+              value={discountDetails}
+              onChange={(e) => setDiscountDetails(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-link">Link</Label>
+            <Input
+              id="p-link"
+              type="url"
+              placeholder="https://parceiro.com"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-coupon">Cupom (opcional)</Label>
+            <Input
+              id="p-coupon"
+              placeholder="Ex.: FORLIFE10"
+              value={coupon}
+              onChange={(e) => setCoupon(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="p-desc">Descrição</Label>
-          <Textarea
-            id="p-desc"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="p-link">Link</Label>
-          <Input
-            id="p-link"
-            type="url"
-            placeholder="https://parceiro.com"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="p-coupon">Cupom (opcional)</Label>
-          <Input
-            id="p-coupon"
-            placeholder="Ex.: FORLIFE10"
-            value={coupon}
-            onChange={(e) => setCoupon(e.target.value)}
-          />
-        </div>
-        <DialogFooter>
+        <DialogFooter className="pt-3">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>

@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Handshake, Loader2, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { fetchPartners, CATEGORY_FROM_BACKEND } from "@/lib/api/partners";
+import { fetchPartners, CATEGORY_FROM_BACKEND, type Partner } from "@/lib/api/partners";
 import { useAuth } from "@/contexts/use-auth";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PartnerDetailsDialog } from "@/components/PartnerDetailsDialog";
 export const Route = createFileRoute("/_app/aluno/parceiros")({
   component: AlunoParceirosPage,
 });
@@ -26,6 +28,7 @@ function AlunoParceirosPage() {
     queryKey: ["parceiros"],
     queryFn: () => fetchPartners(),
   });
+  const [viewing, setViewing] = useState<Partner | null>(null);
 
   const seed = user?.aluno_id ?? user?.id ?? user?.email ?? "anon";
   const memberId = buildMemberId(seed);
@@ -122,22 +125,25 @@ function AlunoParceirosPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="line-clamp-3 text-sm text-muted-foreground">{p.description}</p>
-                  {p.link && (
-                    <a
-                      href={p.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                    >
-                      Acessar parceiro <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewing(p)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Ver detalhes <ExternalLink className="h-3 w-3" />
+                  </button>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </section>
+
+      <PartnerDetailsDialog
+        partner={viewing}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+      />
     </div>
   );
 }

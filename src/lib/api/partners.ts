@@ -14,6 +14,7 @@ export interface Partner {
   logo_url?: string | null;
   category: PartnerCategory;
   description?: string | null;
+  discount_details?: string | null;
   coupon?: string | null;
   link?: string | null;
   created_at: string;
@@ -24,6 +25,7 @@ export interface CreatePartnerPayload {
   category: PartnerCategory;
   logo_url?: string;
   description?: string;
+  discount_details?: string;
   coupon?: string;
   link?: string;
 }
