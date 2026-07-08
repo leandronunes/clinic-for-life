@@ -93,6 +93,12 @@ export function updateWorkout(
   return http.patch<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}`, payload);
 }
 
+export function deleteWorkout(studentId: string, workoutId: string): Promise<null> {
+  return http.del<null>(`/api/v1/students/${studentId}/workouts/${workoutId}`, {
+    allowEmpty: true,
+  });
+}
+
 export function archiveWorkout(studentId: string, workoutId: string): Promise<Workout> {
   return http.post<Workout>(`/api/v1/students/${studentId}/workouts/${workoutId}/archive`);
 }
@@ -106,7 +112,6 @@ export function createExercise(
   workoutId: string,
   payload: CreateExercisePayload,
 ): Promise<Exercise> {
-  console.log("DEBUG createExercise call", Date.now(), payload.name, new Error().stack);
   return http.post<Exercise>(
     `/api/v1/students/${studentId}/workouts/${workoutId}/exercises`,
     payload,

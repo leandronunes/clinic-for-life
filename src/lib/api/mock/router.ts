@@ -194,8 +194,14 @@ export async function resolveMockRequest<T>({
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/unarchive$/.exec(path);
   if (match && m === "POST") return store.unarchiveWorkout(match[1], match[2]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)$/.exec(path);
-  if (match && m === "PATCH") {
-    return store.updateWorkout(match[1], match[2], b as unknown as UpdateWorkoutPayload) as T;
+  if (match) {
+    if (m === "PATCH") {
+      return store.updateWorkout(match[1], match[2], b as unknown as UpdateWorkoutPayload) as T;
+    }
+    if (m === "DELETE") {
+      store.deleteWorkout(match[1], match[2]);
+      return null as T;
+    }
   }
   match = /^\/api\/v1\/students\/([^/]+)\/workouts$/.exec(path);
   if (match) {

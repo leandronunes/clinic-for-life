@@ -60,7 +60,6 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
   });
 
   test("admin adiciona um exercício de mobilidade ao treino do aluno", async ({ page }) => {
-    page.on("console", (msg) => console.log("BROWSER_CONSOLE:", msg.text()));
     await loginAs(page, "admin");
     await page.goto("/usuarios");
     await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
@@ -75,5 +74,25 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await expect(
       page.getByRole("main").getByText("Mobilidade", { exact: true }).first(),
     ).toBeVisible();
+  });
+
+  test("admin remove um treino do aluno", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+    await expect(page.getByText("Treino A")).toBeVisible();
+
+    await page.getByRole("button", { name: "Remover treino" }).click();
+    await page.getByRole("button", { name: "Remover", exact: true }).click();
+
+    await expect(page.getByText("Treino removido")).toBeVisible();
+    // Só restava o Treino B ativo: um único seletor "Treino N" e o card exibido
+    // é o dele — prova indireta de que o Treino A não existe mais. (Não
+    // verificamos a ausência de "Treino A" diretamente: esse texto colide via
+    // substring case-insensitive com "Novo treino" + "Ativos", ver docs/e2e.md.)
+    await expect(page.getByRole("button", { name: /^Treino \d+$/ })).toHaveCount(1);
+    await expect(page.getByText("Treino B")).toBeVisible();
+    await expect(page.getByText("Agachamento livre")).toBeVisible();
   });
 });

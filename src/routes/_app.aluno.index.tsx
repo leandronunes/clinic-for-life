@@ -78,6 +78,7 @@ import {
   fetchWorkouts,
   createWorkout,
   updateWorkout,
+  deleteWorkout,
   archiveWorkout,
   unarchiveWorkout,
   createExercise,
@@ -261,6 +262,7 @@ function MeuTreinoPage() {
                   onWatch={setVideoEx}
                   canEdit={canWrite && treinoAtual.status === "active"}
                   canUnarchive={canWrite && treinoAtual.status === "archived"}
+                  canDelete={canWrite}
                 />
               )}
             </>
@@ -341,12 +343,14 @@ export function TreinoCard({
   onWatch,
   canEdit,
   canUnarchive = false,
+  canDelete = false,
 }: {
   treino: Workout;
   alunoId: string;
   onWatch: (e: Exercise) => void;
   canEdit: boolean;
   canUnarchive?: boolean;
+  canDelete?: boolean;
 }) {
   const qc = useQueryClient();
 
@@ -380,6 +384,26 @@ export function TreinoCard({
       qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
     },
     onError: () => toast.error("Não foi possível reativar o treino"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => deleteWorkout(alunoId, treino.id),
+    onSuccess: () => {
+      toast.success("Treino removido");
+      // invalidateQueries alone schedules a refetch whose result doesn't
+      // reliably trigger a re-render here (same issue worked around for
+      // exercises via patchWorkoutExercises) — remove it from the cache
+      // directly so the list updates immediately.
+      qc.setQueryData<WorkoutList>(["treinos", alunoId], (old) => {
+        if (!old) return old;
+        return {
+          active: old.active.filter((w) => w.id !== treino.id),
+          archived: old.archived.filter((w) => w.id !== treino.id),
+        };
+      });
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível remover o treino"),
   });
 
   const reorderMut = useMutation({
@@ -484,6 +508,33 @@ export function TreinoCard({
                     disabled={unarchiveMut.isPending}
                   >
                     {unarchiveMut.isPending ? "Reativando..." : "Reativar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" aria-label="Remover treino">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remover este treino?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. O treino e todos os seus{" "}
+                    {treino.exercises.length} exercícios serão removidos permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMut.mutate()}
+                    disabled={deleteMut.isPending}
+                  >
+                    {deleteMut.isPending ? "Removendo..." : "Remover"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

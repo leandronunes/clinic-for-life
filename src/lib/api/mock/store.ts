@@ -255,6 +255,13 @@ export function updateWorkout(
   return list[idx];
 }
 
+export function deleteWorkout(studentId: string, workoutId: string): void {
+  const list = workoutsFor(studentId);
+  const idx = list.findIndex((w) => w.id === workoutId);
+  if (idx === -1) notFound("Treino não encontrado");
+  list.splice(idx, 1);
+}
+
 export function archiveWorkout(studentId: string, workoutId: string): Workout {
   const workout = getWorkout(studentId, workoutId);
   workout.status = "archived";
