@@ -1,4 +1,5 @@
-import { defineConfig, configDefaults, type PluginOption } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
+import type { PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
