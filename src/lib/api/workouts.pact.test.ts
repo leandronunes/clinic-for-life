@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
 import {
+  decimal,
   enumString,
   errorStringBody,
   idString,
@@ -13,6 +14,7 @@ import {
   nullValue,
 } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
+import type { CreateExercisePayload } from "./workouts";
 import {
   archiveWorkout,
   createExercise,
@@ -27,16 +29,24 @@ import {
 import { http } from "./http";
 
 const WORKOUT_STATUSES = ["active", "archived"];
+const EXERCISE_KINDS = ["strength", "cardio", "mobility"];
+const DISTANCE_UNITS = ["m", "km"];
 
 const exerciseTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("901"),
   position: integer(1),
+  kind: enumString(EXERCISE_KINDS, "strength"),
   name: like("Supino reto"),
   sets: integer(3),
   reps: like("10-12"),
   load_kg: like(20),
   rest_seconds: integer(60),
   muscle_group: like("Peito"),
+  duration_seconds: nullValue(),
+  distance_value: nullValue(),
+  distance_unit: nullValue(),
+  hr_zone: nullValue(),
+  heart_rate_bpm: nullValue(),
   video_url: like("https://www.youtube.com/embed/abc"),
   notes: nullValue(),
   ...overrides,
@@ -278,6 +288,96 @@ describe("workouts API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const exercise = await createExercise("701", "801", payload);
         expect(exercise.id).toEqual(expect.any(String));
+      });
+    });
+  });
+
+  it("creates a cardio exercise", async () => {
+    const pact = createPact();
+    const payload: CreateExercisePayload = {
+      kind: "cardio",
+      name: "Corrida na esteira",
+      duration_seconds: 1200,
+      distance_value: 5,
+      distance_unit: "km",
+      hr_zone: 2,
+    };
+    pact
+      .given("workout 801 exists for student 701 to add exercises to")
+      .uponReceiving("a request to create a cardio exercise")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/701/workouts/801/exercises",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: payload,
+      })
+      .willRespondWith({
+        status: 201,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: exerciseTemplate({
+            kind: enumString(EXERCISE_KINDS, "cardio"),
+            name: like("Corrida na esteira"),
+            sets: integer(1),
+            reps: nullValue(),
+            load_kg: nullValue(),
+            muscle_group: nullValue(),
+            duration_seconds: integer(1200),
+            distance_value: decimal(5),
+            distance_unit: enumString(DISTANCE_UNITS, "km"),
+            hr_zone: integer(2),
+            heart_rate_bpm: nullValue(),
+            video_url: nullValue(),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const exercise = await createExercise("701", "801", payload);
+        expect(exercise.kind).toBe("cardio");
+        expect(exercise.duration_seconds).toEqual(expect.any(Number));
+      });
+    });
+  });
+
+  it("creates a mobility exercise", async () => {
+    const pact = createPact();
+    const payload: CreateExercisePayload = {
+      kind: "mobility",
+      name: "Alongamento de quadril",
+      sets: 2,
+      reps: "10",
+    };
+    pact
+      .given("workout 801 exists for student 701 to add exercises to")
+      .uponReceiving("a request to create a mobility exercise")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/701/workouts/801/exercises",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: payload,
+      })
+      .willRespondWith({
+        status: 201,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: exerciseTemplate({
+            kind: enumString(EXERCISE_KINDS, "mobility"),
+            name: like("Alongamento de quadril"),
+            sets: integer(2),
+            reps: like("10"),
+            load_kg: nullValue(),
+            muscle_group: nullValue(),
+            video_url: nullValue(),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const exercise = await createExercise("701", "801", payload);
+        expect(exercise.kind).toBe("mobility");
       });
     });
   });

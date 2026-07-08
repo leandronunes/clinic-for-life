@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
   Play,
@@ -87,6 +87,7 @@ import {
   reorderWorkouts,
   type Exercise,
   type Workout,
+  type WorkoutList,
   type ExerciseKind,
   type DistanceUnit,
   type HrZone,
@@ -985,6 +986,27 @@ function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExerc
   };
 }
 
+/**
+ * Patches an exercise change directly into the ["treinos", alunoId] cache
+ * entry so the list reflects it immediately. `invalidateQueries` alone also
+ * schedules a refetch, but its background result doesn't reliably trigger a
+ * re-render on this page — writing the known result straight into the cache
+ * sidesteps that.
+ */
+function patchWorkoutExercises(
+  qc: QueryClient,
+  alunoId: string,
+  treinoId: string,
+  updater: (exercises: Exercise[]) => Exercise[],
+) {
+  qc.setQueryData<WorkoutList>(["treinos", alunoId], (old) => {
+    if (!old) return old;
+    const patch = (list: Workout[]) =>
+      list.map((w) => (w.id === treinoId ? { ...w, exercises: updater(w.exercises) } : w));
+    return { active: patch(old.active), archived: patch(old.archived) };
+  });
+}
+
 function ExercicioFormDialog({
   mode,
   kind,
@@ -1015,11 +1037,16 @@ function ExercicioFormDialog({
         ? createExercise(alunoId, treinoId, payload)
         : updateExercise(alunoId, treinoId, exercicio!.id, payload);
     },
-    onSuccess: () => {
+    onSuccess: (savedExercise) => {
       toast.success(
         mode === "create" ? `${meta.label} adicionado(a)` : `${meta.label} atualizado(a)`,
       );
-      qc.invalidateQueries({ queryKey: ["treinos"] });
+      patchWorkoutExercises(qc, alunoId, treinoId, (exercises) =>
+        mode === "create"
+          ? [...exercises, savedExercise]
+          : exercises.map((e) => (e.id === savedExercise.id ? savedExercise : e)),
+      );
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
       setOpen(false);
       if (mode === "create") setForm(EMPTY_FORM_BY_KIND[kind]);
     },
@@ -1393,7 +1420,10 @@ function DeleteExercicioButton({
     mutationFn: () => deleteExercise(alunoId, treinoId, exercicio.id),
     onSuccess: () => {
       toast.success("Exercício removido");
-      qc.invalidateQueries({ queryKey: ["treinos"] });
+      patchWorkoutExercises(qc, alunoId, treinoId, (exercises) =>
+        exercises.filter((e) => e.id !== exercicio.id),
+      );
+      qc.invalidateQueries({ queryKey: ["treinos", alunoId] });
     },
     onError: () => toast.error("Falha ao remover exercício"),
   });
