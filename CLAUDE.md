@@ -94,6 +94,7 @@ Quando estiver executando em um ambiente com Git local e GitHub CLI:
 - Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.
 - Commit e push devem ocorrer por Pull Request.
 - Nunca faça push direto para `main`.
+- **Toda mensagem de commit deve ser escrita em inglês**, independentemente do idioma usado na conversa.
 
 Quando estiver executando no Lovable:
 
