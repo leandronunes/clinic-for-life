@@ -55,14 +55,26 @@ export interface MockRequestInput {
  * Routes are checked from most to least specific so literal segments (e.g.
  * `/reorder`) are never swallowed by a generic `:id` pattern.
  */
-export async function resolveMockRequest<T>({
+export async function resolveMockRequest<T>(input: MockRequestInput): Promise<T> {
+  await wait();
+  const result = await routeMockRequest<T>(input);
+  // A real HTTP response is always a fresh value deserialized from JSON,
+  // never aliased to server-side state. store.ts mutates its records in
+  // place (e.g. createExercise reassigns workout.exercises), so without this
+  // clone, a snapshot already handed out (and possibly sitting in the React
+  // Query cache) would silently change when the store mutates later —
+  // producing duplicate/torn reads when a query's cached data and a
+  // mutation's optimistic update race (see aluno-treino.spec.ts flakiness).
+  return structuredClone(result);
+}
+
+async function routeMockRequest<T>({
   method,
   path,
   body,
   params,
   token,
 }: MockRequestInput): Promise<T> {
-  await wait();
   const m = method.toUpperCase();
   const b = asRecord(body);
 
