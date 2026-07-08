@@ -22,7 +22,7 @@ export default defineConfig({
         }
       },
     },
-  ],
+  ] as PluginOption[],
   build: {
     outDir: "dist",
   },
