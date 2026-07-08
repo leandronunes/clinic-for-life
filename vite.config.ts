@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { configDefaults, type UserConfig as VitestUserConfig } from "vitest/config";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
@@ -7,7 +7,7 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import fs from "fs";
 import path from "path";
 
-export default defineConfig({
+const config = {
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
     react(),
@@ -22,7 +22,7 @@ export default defineConfig({
         }
       },
     },
-  ] as PluginOption[],
+  ],
   build: {
     outDir: "dist",
   },
@@ -40,4 +40,6 @@ export default defineConfig({
     // matches Vitest's default *.spec.ts include glob, so must be excluded.
     exclude: [...configDefaults.exclude, ".claude/**", "**/*.pact.test.ts", "e2e/**"],
   },
-});
+};
+
+export default defineConfig(config as Parameters<typeof defineConfig>[0]);
