@@ -60,6 +60,7 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
   });
 
   test("admin adiciona um exercício de mobilidade ao treino do aluno", async ({ page }) => {
+    page.on("console", (msg) => console.log("BROWSER_CONSOLE:", msg.text()));
     await loginAs(page, "admin");
     await page.goto("/usuarios");
     await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
