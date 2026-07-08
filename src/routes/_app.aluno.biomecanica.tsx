@@ -62,6 +62,8 @@ const PLANO_SAGITAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
 
 const STRUCTURAL_ITEMS: { key: keyof StructuralAssessment; label: string }[] = [
   { key: "scoliosis", label: "Escoliose" },
+  { key: "hyperkyphosis", label: "Hipercifose" },
+  { key: "hyperlordosis", label: "Hiperlordose" },
   { key: "spine_rotation", label: "Rotação de coluna" },
   { key: "hip_rotation", label: "Rotação de quadril" },
   { key: "scapular_girdle_imbalance", label: "Desequilíbrio da cintura escapular" },
@@ -296,7 +298,13 @@ function HistoricoPlanoGrid({
   );
 }
 
-function AvaliacaoEstruturalSection({ alunoId, canWrite }: { alunoId: string; canWrite: boolean }) {
+export function AvaliacaoEstruturalSection({
+  alunoId,
+  canWrite,
+}: {
+  alunoId: string;
+  canWrite: boolean;
+}) {
   const qc = useQueryClient();
   const { data: structural, isLoading } = useQuery({
     queryKey: ["estrutural", alunoId],

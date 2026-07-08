@@ -541,6 +541,8 @@ const structuralByStudent: Record<string, StructuralAssessment> = clone(STRUCTUR
 
 const EMPTY_STRUCTURAL: StructuralAssessment = {
   scoliosis: false,
+  hyperkyphosis: false,
+  hyperlordosis: false,
   spine_rotation: false,
   hip_rotation: false,
   scapular_girdle_imbalance: false,

@@ -311,6 +311,8 @@ export const BIOMECHANICS_BY_STUDENT: Record<string, BiomechanicalAssessment[]> 
 export const STRUCTURAL_BY_STUDENT: Record<string, StructuralAssessment> = {
   "student-1": {
     scoliosis: false,
+    hyperkyphosis: false,
+    hyperlordosis: false,
     spine_rotation: false,
     hip_rotation: false,
     scapular_girdle_imbalance: false,
