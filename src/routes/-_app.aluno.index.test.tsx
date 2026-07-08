@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TreinoCard } from "./_app.aluno.index";
 import type { Exercise, Workout } from "@/lib/api/workouts";
-import { createExercise, deleteWorkout } from "@/lib/api/workouts";
+import { createExercise, deleteWorkout, updateExercise } from "@/lib/api/workouts";
 
 vi.mock("@/lib/api/workouts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/workouts")>();
@@ -23,6 +23,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
 
 const mockCreateExercise = vi.mocked(createExercise);
 const mockDeleteWorkout = vi.mocked(deleteWorkout);
+const mockUpdateExercise = vi.mocked(updateExercise);
 
 vi.mock("@/components/ExercicioVideoInput", () => ({
   ExercicioVideoInput: () => null,
@@ -79,6 +80,7 @@ describe("TreinoCard", () => {
     vi.clearAllMocks();
     mockCreateExercise.mockResolvedValue({ ...mockWorkout.exercises[0], id: "new" });
     mockDeleteWorkout.mockResolvedValue(null);
+    mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
@@ -303,6 +305,67 @@ describe("TreinoCard", () => {
 
       expect(within(dialog).getByRole("button", { name: "Adicionar" })).toBeDisabled();
       expect(mockCreateExercise).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("editing a strength exercise's numeric fields", () => {
+    // Field/Label aren't linked via htmlFor, so number inputs can't be found
+    // by label text directly — scope to the Field's wrapper div instead.
+    function numberFieldFor(container: HTMLElement, label: string): HTMLInputElement {
+      const labelEl = within(container).getByText(label);
+      return within(labelEl.parentElement!).getByRole("spinbutton") as HTMLInputElement;
+    }
+
+    async function openEditDialogForSupinoReto(user: ReturnType<typeof userEvent.setup>) {
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+      // Sorted by position — Supino reto (position 1) renders before Crucifixo (position 2).
+      await user.click(screen.getAllByLabelText("Editar exercício")[0]);
+      return screen.findByRole("dialog");
+    }
+
+    it("clears to empty instead of a stuck '0' when Descanso is cleared", async () => {
+      const user = userEvent.setup();
+      const dialog = await openEditDialogForSupinoReto(user);
+
+      const descanso = numberFieldFor(dialog, "Descanso (s)");
+      expect(descanso.value).toBe("90");
+
+      await user.clear(descanso);
+      expect(descanso.value).toBe("");
+
+      await user.type(descanso, "33");
+      expect(descanso.value).toBe("33");
+    });
+
+    it("clears to empty instead of a stuck '1' when Séries is cleared", async () => {
+      const user = userEvent.setup();
+      const dialog = await openEditDialogForSupinoReto(user);
+
+      const series = numberFieldFor(dialog, "Séries");
+      expect(series.value).toBe("4");
+
+      await user.clear(series);
+      expect(series.value).toBe("");
+
+      await user.type(series, "5");
+      expect(series.value).toBe("5");
+    });
+
+    it("saves an empty Descanso as omitted (not 0) so the backend keeps its own default", async () => {
+      const user = userEvent.setup();
+      const dialog = await openEditDialogForSupinoReto(user);
+
+      await user.clear(numberFieldFor(dialog, "Descanso (s)"));
+      await user.click(within(dialog).getByRole("button", { name: "Salvar alterações" }));
+
+      expect(mockUpdateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        "e1",
+        expect.objectContaining({ rest_seconds: undefined }),
+      );
     });
   });
 });
