@@ -1,16 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  ExternalLink,
-  Loader2,
-  ShieldAlert,
-  ImagePlus,
-  X,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldAlert, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,20 +18,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   fetchPartners,
   createPartner,
   updatePartner,
   deletePartner,
-  CATEGORY_FROM_BACKEND,
   type Partner,
-  type PartnerCategory,
 } from "@/lib/api/partners";
 import { uploadPartnerLogoToS3 } from "@/lib/api/uploads";
 import { useAuth } from "@/contexts/use-auth";
@@ -113,7 +95,20 @@ function ParceirosPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((p) => (
-            <Card key={p.id} className="overflow-hidden">
+            <Card
+              key={p.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Ver detalhes de ${p.name}`}
+              onClick={() => setViewing(p)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setViewing(p);
+                }
+              }}
+              className="cursor-pointer overflow-hidden transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start gap-3">
                   <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background">
@@ -128,27 +123,28 @@ function ParceirosPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{p.name}</div>
                     <Badge variant="secondary" className="mt-1">
-                      {CATEGORY_FROM_BACKEND[p.category]}
+                      {p.category}
                     </Badge>
                   </div>
                 </div>
                 <p className="line-clamp-3 text-sm text-muted-foreground">{p.description}</p>
-                <button
-                  type="button"
-                  onClick={() => setViewing(p)}
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  Ver detalhes <ExternalLink className="h-3 w-3" />
-                </button>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditing(p);
+                    }}
+                  >
                     <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     className="text-destructive hover:text-destructive"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (confirm(`Remover "${p.name}"?`)) removeMut.mutate(p.id);
                     }}
                   >
@@ -183,15 +179,6 @@ function ParceirosPage() {
     </div>
   );
 }
-
-const PT_CATEGORIES: { value: PartnerCategory; label: string }[] = [
-  { value: "Nutrition", label: "Nutrição" },
-  { value: "Physiotherapy", label: "Fisioterapia" },
-  { value: "Sports Medicine", label: "Medicina Esportiva" },
-  { value: "Supplementation", label: "Suplementação" },
-  { value: "Aesthetics", label: "Estética" },
-  { value: "Laboratories", label: "Laboratórios" },
-];
 
 function LogoField({
   value,
@@ -355,7 +342,7 @@ function ParceiroFormDialog({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [logoUrl, setLogoUrl] = useState(initial?.logo_url ?? "");
-  const [category, setCategory] = useState<PartnerCategory>(initial?.category ?? "Nutrition");
+  const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [discountDetails, setDiscountDetails] = useState(initial?.discount_details ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
@@ -366,7 +353,7 @@ function ParceiroFormDialog({
       const payload = {
         name: name.trim(),
         logo_url: logoUrl.trim() || undefined,
-        category,
+        category: category.trim(),
         description: description.trim() || undefined,
         discount_details: discountDetails.trim() || undefined,
         link: link.trim() || undefined,
@@ -382,7 +369,7 @@ function ParceiroFormDialog({
     onError: () => toast.error("Falha ao salvar parceiro"),
   });
 
-  const valid = name.trim();
+  const valid = name.trim() && category.trim();
 
   return (
     <DialogContent className="flex max-h-[90dvh] max-w-lg flex-col">
@@ -408,19 +395,14 @@ function ParceiroFormDialog({
           <LogoField value={logoUrl} onChange={setLogoUrl} disabled={mut.isPending} />
 
           <div className="space-y-1.5">
-            <Label>Categoria</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as PartnerCategory)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PT_CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="p-categoria">Categoria</Label>
+            <Input
+              id="p-categoria"
+              placeholder="Ex.: Nutrição"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-desc">Descrição</Label>

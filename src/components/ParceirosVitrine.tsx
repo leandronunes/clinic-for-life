@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchPartners, CATEGORY_FROM_BACKEND, type Partner } from "@/lib/api/partners";
+import { fetchPartners, type Partner } from "@/lib/api/partners";
 import { ExternalLink } from "lucide-react";
 import { PartnerDetailsDialog } from "@/components/PartnerDetailsDialog";
 
@@ -41,7 +41,7 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
               <button
                 type="button"
                 onClick={() => setViewing(p)}
-                title={`${p.name} — ${CATEGORY_FROM_BACKEND[p.category]}`}
+                title={`${p.name} — ${p.category}`}
                 className="group flex h-full w-full flex-col items-center gap-2 rounded-lg border border-border bg-card p-3 text-center transition-shadow hover:shadow-md"
               >
                 <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-border bg-background">
@@ -55,9 +55,7 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
                   )}
                 </div>
                 <span className="line-clamp-1 text-xs font-medium text-foreground">{p.name}</span>
-                <span className="line-clamp-1 text-[10px] text-muted-foreground">
-                  {CATEGORY_FROM_BACKEND[p.category]}
-                </span>
+                <span className="line-clamp-1 text-[10px] text-muted-foreground">{p.category}</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-primary opacity-0 transition-opacity group-hover:opacity-100">
                   Ver detalhes <ExternalLink className="h-3 w-3" />
                 </span>

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_FROM_BACKEND, type Partner } from "@/lib/api/partners";
+import type { Partner } from "@/lib/api/partners";
 
 export function PartnerDetailsDialog({
   partner,
@@ -38,7 +38,7 @@ export function PartnerDetailsDialog({
                 <div className="min-w-0">
                   <DialogTitle className="truncate">{partner.name}</DialogTitle>
                   <Badge variant="secondary" className="mt-1">
-                    {CATEGORY_FROM_BACKEND[partner.category]}
+                    {partner.category}
                   </Badge>
                 </div>
               </div>

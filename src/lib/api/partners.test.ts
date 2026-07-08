@@ -4,8 +4,6 @@ import {
   createPartner,
   updatePartner,
   deletePartner,
-  CATEGORY_TO_BACKEND,
-  CATEGORY_FROM_BACKEND,
   type Partner,
 } from "./partners";
 
@@ -23,7 +21,7 @@ const mockDel = vi.mocked(http.del);
 const partner: Partner = {
   id: "p1",
   name: "NutriVita",
-  category: "Nutrition",
+  category: "Nutrição",
   description: "Consultoria nutricional",
   coupon: "VIDA10",
   link: "https://nutrivita.com",
@@ -32,18 +30,6 @@ const partner: Partner = {
 
 describe("partners API", () => {
   beforeEach(() => vi.clearAllMocks());
-
-  describe("category mapping helpers", () => {
-    it("maps PT labels to EN backend values", () => {
-      expect(CATEGORY_TO_BACKEND["Nutrição"]).toBe("Nutrition");
-      expect(CATEGORY_TO_BACKEND["Medicina Esportiva"]).toBe("Sports Medicine");
-    });
-
-    it("maps EN backend values to PT labels", () => {
-      expect(CATEGORY_FROM_BACKEND.Nutrition).toBe("Nutrição");
-      expect(CATEGORY_FROM_BACKEND["Sports Medicine"]).toBe("Medicina Esportiva");
-    });
-  });
 
   describe("fetchPartners()", () => {
     it("calls GET /api/v1/partners", async () => {
