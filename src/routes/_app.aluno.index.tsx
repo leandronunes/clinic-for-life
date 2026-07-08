@@ -1186,12 +1186,11 @@ function ExercicioFormDialog({
                     }
                   />
                 </Field>
-                <Field label="Repetições">
+                <Field label="Repetições" className="sm:col-span-2">
                   <Input
                     placeholder="Ex.: 10 ou 8-12 ou 45s"
                     value={form.reps}
                     onChange={(e) => setForm({ ...form, reps: e.target.value })}
-                    maxLength={20}
                   />
                 </Field>
                 <Field label="Carga (kg)">
@@ -1243,12 +1242,11 @@ function ExercicioFormDialog({
                     }
                   />
                 </Field>
-                <Field label="Repetições">
+                <Field label="Repetições" className="sm:col-span-2">
                   <Input
                     placeholder="Ex.: 10 ou 30s"
                     value={form.reps}
                     onChange={(e) => setForm({ ...form, reps: e.target.value })}
-                    maxLength={20}
                   />
                 </Field>
               </>
