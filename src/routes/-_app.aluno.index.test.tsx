@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TreinoCard } from "./_app.aluno.index";
 import type { Exercise, Workout } from "@/lib/api/workouts";
-import { createExercise } from "@/lib/api/workouts";
+import { createExercise, deleteWorkout } from "@/lib/api/workouts";
 
 vi.mock("@/lib/api/workouts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/workouts")>();
@@ -12,6 +12,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
     ...actual,
     archiveWorkout: vi.fn(),
     unarchiveWorkout: vi.fn(),
+    deleteWorkout: vi.fn(),
     reorderExercises: vi.fn().mockResolvedValue([]),
     reorderWorkouts: vi.fn().mockResolvedValue([]),
     createExercise: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
 });
 
 const mockCreateExercise = vi.mocked(createExercise);
+const mockDeleteWorkout = vi.mocked(deleteWorkout);
 
 vi.mock("@/components/ExercicioVideoInput", () => ({
   ExercicioVideoInput: () => null,
@@ -76,6 +78,7 @@ describe("TreinoCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateExercise.mockResolvedValue({ ...mockWorkout.exercises[0], id: "new" });
+    mockDeleteWorkout.mockResolvedValue(null);
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
@@ -137,6 +140,36 @@ describe("TreinoCard", () => {
     });
 
     expect(screen.queryByLabelText("Reativar treino")).not.toBeInTheDocument();
+  });
+
+  it("shows delete button when canDelete is true", () => {
+    render(
+      <TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} canDelete />,
+      { wrapper },
+    );
+
+    expect(screen.getByLabelText("Remover treino")).toBeInTheDocument();
+  });
+
+  it("hides delete button when canDelete is false", () => {
+    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
+      wrapper,
+    });
+
+    expect(screen.queryByLabelText("Remover treino")).not.toBeInTheDocument();
+  });
+
+  it("deletes the workout after confirming the removal dialog", async () => {
+    const user = userEvent.setup();
+    render(
+      <TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} canDelete />,
+      { wrapper },
+    );
+
+    await user.click(screen.getByLabelText("Remover treino"));
+    await user.click(await screen.findByRole("button", { name: "Remover" }));
+
+    expect(mockDeleteWorkout).toHaveBeenCalledWith("s1", "w1");
   });
 
   it("shows empty state when workout has no exercises", () => {

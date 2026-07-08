@@ -20,6 +20,7 @@ import {
   createExercise,
   createWorkout,
   deleteExercise,
+  deleteWorkout,
   reorderExercises,
   reorderWorkouts,
   unarchiveWorkout,
@@ -196,6 +197,25 @@ describe("workouts API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const workout = await archiveWorkout("701", "801");
         expect(workout.status).toEqual("archived");
+      });
+    });
+  });
+
+  it("deletes a workout", async () => {
+    const pact = createPact();
+    pact
+      .given("an active workout 801 exists for student 701")
+      .uponReceiving("a request to delete a workout")
+      .withRequest({
+        method: "DELETE",
+        path: "/api/v1/students/701/workouts/801",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({ status: 204 });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        await expect(deleteWorkout("701", "801")).resolves.toBeNull();
       });
     });
   });
