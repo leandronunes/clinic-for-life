@@ -1,3 +1,4 @@
+<!-- Teste GitHub Sync -->
 # 🏥 Clinic for Life - Frontend
 
 Bem-vindo ao repositório frontend do **Clinic for Life**, um sistema completo para gestão de alunos, acompanhamento de evolução física e ferramentas para personal trainers e clínicas de saúde/esporte.
