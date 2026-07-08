@@ -2,6 +2,8 @@ import { http } from "./http";
 
 export interface StructuralAssessment {
   scoliosis: boolean;
+  hyperkyphosis: boolean;
+  hyperlordosis: boolean;
   spine_rotation: boolean;
   hip_rotation: boolean;
   scapular_girdle_imbalance: boolean;
@@ -21,6 +23,8 @@ export type UpdateStructuralPayload = Partial<StructuralAssessment>;
 /** Maps PT frontend keys to EN backend field names. */
 export const STRUCTURAL_KEY_MAP: Record<string, keyof StructuralAssessment> = {
   escoliose: "scoliosis",
+  hipercifose: "hyperkyphosis",
+  hiperlordose: "hyperlordosis",
   rotacao_coluna: "spine_rotation",
   rotacao_quadril: "hip_rotation",
   desequilibrio_cintura_escapular: "scapular_girdle_imbalance",

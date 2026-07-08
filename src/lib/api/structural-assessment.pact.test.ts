@@ -1,5 +1,5 @@
 /**
- * Lean coverage (see docs/pact.md): happy path for both endpoints. All 13
+ * Lean coverage (see docs/pact.md): happy path for both endpoints. All 15
  * fields are plain booleans with a DB default, so there is no 422 scenario.
  */
 import { describe, expect, it } from "vitest";
@@ -10,6 +10,8 @@ import { fetchStructuralAssessment, updateStructuralAssessment } from "./structu
 
 const assessmentTemplate = (overrides: Record<string, unknown> = {}) => ({
   scoliosis: boolean(false),
+  hyperkyphosis: boolean(false),
+  hyperlordosis: boolean(false),
   spine_rotation: boolean(false),
   hip_rotation: boolean(false),
   scapular_girdle_imbalance: boolean(false),

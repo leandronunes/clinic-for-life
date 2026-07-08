@@ -106,6 +106,7 @@ export function createExercise(
   workoutId: string,
   payload: CreateExercisePayload,
 ): Promise<Exercise> {
+  console.log("DEBUG createExercise call", Date.now(), payload.name, new Error().stack);
   return http.post<Exercise>(
     `/api/v1/students/${studentId}/workouts/${workoutId}/exercises`,
     payload,
