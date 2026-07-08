@@ -7,7 +7,7 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import fs from "fs";
 import path from "path";
 
-export default defineConfig({
+const config = {
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
     react(),
@@ -40,4 +40,6 @@ export default defineConfig({
     // matches Vitest's default *.spec.ts include glob, so must be excluded.
     exclude: [...configDefaults.exclude, ".claude/**", "**/*.pact.test.ts", "e2e/**"],
   },
-});
+};
+
+export default defineConfig(config as Parameters<typeof defineConfig>[0]);
