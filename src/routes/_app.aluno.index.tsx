@@ -1452,11 +1452,14 @@ function secondsToMMSS(total: number): string {
 }
 
 function mmssToSeconds(value: string): number {
-  const trimmed = value.trim();
-  if (!trimmed) return 0;
-  const parts = trimmed.split(":").map((p) => Number(p) || 0);
-  if (parts.length === 1) return Math.max(0, parts[0]);
-  const [m, s] = parts;
+  // O campo reformata para "mm:ss" a cada tecla digitada, então o valor bruto
+  // do input mistura os dígitos já formatados com o novo dígito digitado.
+  // Extraímos apenas os dígitos e os alinhamos à direita (ss=últimos 2, mm=o resto),
+  // em vez de reinterpretar o "mm:ss" já exibido, para não acumular dígitos.
+  const digits = value.replace(/\D/g, "").slice(-4);
+  if (!digits) return 0;
+  const s = Number(digits.slice(-2));
+  const m = Number(digits.slice(0, -2) || "0");
   return Math.max(0, m * 60 + s);
 }
 

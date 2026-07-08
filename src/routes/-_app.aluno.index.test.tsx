@@ -306,6 +306,37 @@ describe("TreinoCard", () => {
       expect(within(dialog).getByRole("button", { name: "Adicionar" })).toBeDisabled();
       expect(mockCreateExercise).not.toHaveBeenCalled();
     });
+
+    it("formats the cardio duration field correctly while digits are typed", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      const tempoInput = within(dialog).getByPlaceholderText("Ex.: 20:00");
+
+      await user.clear(tempoInput);
+      await user.type(tempoInput, "1000");
+
+      expect(tempoInput).toHaveValue("10:00");
+    });
+
+    it("clears the cardio duration field when the value is selected and deleted", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      const tempoInput = within(dialog).getByPlaceholderText("Ex.: 20:00");
+
+      await user.clear(tempoInput);
+
+      expect(tempoInput).toHaveValue("");
+    });
   });
 
   describe("editing a strength exercise's numeric fields", () => {
