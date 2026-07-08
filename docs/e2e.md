@@ -55,10 +55,12 @@ Ver `e2e/fixtures.ts` — mesmas contas do modo offline (`docs`/`.env.example`):
 - `e2e/aluno-treino.spec.ts` — visualização de treinos (ativos/arquivados),
   troca de treino, admin "entrando como aluno" (impersonation).
 - `e2e/parceiros.spec.ts` — vitrine pública de parceiros + CRUD (admin).
+- `e2e/evolucao.spec.ts` — cartões de métricas e gráfico de evolução;
+  regressão de layout mobile (sem scroll horizontal) na visão com upload
+  cards (admin/personal via impersonation).
 
 Não cobre ainda (extensão natural, se o fluxo virar prioridade): anamnese
-dinâmica, avaliação biomecânica, biompedância/evolução, exames, upload de
-vídeo de exercício.
+dinâmica, avaliação biomecânica, exames, upload de vídeo de exercício.
 
 ## Como adicionar um novo teste
 
