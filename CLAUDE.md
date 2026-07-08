@@ -89,9 +89,17 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 
 ## Controle de versão
 
-- **Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.** Sempre deixe as alterações no working tree para revisão antes de perguntar se deve commitar.
-- Mesmo que o usuário tenha autorizado commit/push antes, isso não vale para novas alterações — peça confirmação novamente a cada vez.
-- **Commit e push só via pull request — nunca direto na `main`.** Crie uma branch, commite nela, `git push` a branch e abra um PR (`gh pr create`); nunca `git push origin main`.
+Quando estiver executando em um ambiente com Git local e GitHub CLI:
+
+- Nunca faça `git commit` ou `git push` sem autorização expressa do usuário.
+- Commit e push devem ocorrer por Pull Request.
+- Nunca faça push direto para `main`.
+
+Quando estiver executando no Lovable:
+
+- Utilize o mecanismo nativo de sincronização do Lovable com o GitHub.
+- Não bloqueie a sincronização automática do projeto.
+- As regras de branch e Pull Request serão aplicadas posteriormente pelo fluxo de CI/CD.
 
 ## Comandos úteis
 
