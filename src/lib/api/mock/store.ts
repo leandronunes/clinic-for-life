@@ -260,7 +260,17 @@ export function deleteWorkout(studentId: string, workoutId: string): void {
   const list = workoutsFor(studentId);
   const idx = list.findIndex((w) => w.id === workoutId);
   if (idx === -1) notFound("Treino não encontrado");
+  const { status } = list[idx];
   list.splice(idx, 1);
+
+  // Close the gap the removed workout left behind so the remaining ones (in
+  // the same status group) stay a dense, 0-based sequence.
+  list
+    .filter((w) => w.status === status)
+    .sort((a, b) => a.position - b.position)
+    .forEach((w, position) => {
+      w.position = position;
+    });
 }
 
 export function archiveWorkout(studentId: string, workoutId: string): Workout {

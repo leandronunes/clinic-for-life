@@ -126,6 +126,37 @@ describe("resolveMockRequest()", () => {
     expect(archived.status).toBe("archived");
   });
 
+  it("closes the position gap left behind when a workout is deleted", async () => {
+    const create = (title: string) =>
+      resolveMockRequest<Workout>({
+        method: "POST",
+        path: "/api/v1/students/student-1/workouts",
+        body: { title, focus: "Push" },
+        token: null,
+      });
+
+    const w1 = await create("Gap Test A");
+    const w2 = await create("Gap Test B");
+    const w3 = await create("Gap Test C");
+
+    await resolveMockRequest({
+      method: "DELETE",
+      path: `/api/v1/students/student-1/workouts/${w2.id}`,
+      token: null,
+    });
+
+    const all = await resolveMockRequest<Workout[]>({
+      method: "GET",
+      path: "/api/v1/students/student-1/workouts",
+      token: null,
+    });
+    const [first, second] = [w1, w3]
+      .map((created) => all.find((w) => w.id === created.id)!)
+      .sort((a, b) => a.position - b.position);
+
+    expect(second.position - first.position).toBe(1);
+  });
+
   it("returns a 404 ApiError for a route with no matching handler", async () => {
     await expect(
       resolveMockRequest({ method: "GET", path: "/api/v1/does/not/exist", token: null }),
