@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
 import {
   eachLike,
-  enumString,
   errorStringBody,
   idString,
   iso8601Date,
@@ -15,22 +14,7 @@ import {
   nullValue,
 } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
-import {
-  createPartner,
-  deletePartner,
-  fetchPartners,
-  updatePartner,
-  type PartnerCategory,
-} from "./partners";
-
-const PARTNER_CATEGORIES: PartnerCategory[] = [
-  "Nutrition",
-  "Physiotherapy",
-  "Sports Medicine",
-  "Supplementation",
-  "Aesthetics",
-  "Laboratories",
-];
+import { createPartner, deletePartner, fetchPartners, updatePartner } from "./partners";
 
 describe("partners API contract", () => {
   it("returns the list of partners", async () => {
@@ -40,8 +24,9 @@ describe("partners API contract", () => {
       id: idString("1"),
       name: like("Clínica Exemplo"),
       logo_url: like("https://example.com/logo.png"),
-      category: enumString(PARTNER_CATEGORIES, "Nutrition"),
+      category: like("Nutrition"),
       description: like("Uma parceria com desconto exclusivo."),
+      discount_details: like("10% off on the first visit."),
       coupon: like("FORLIFE10"),
       link: like("https://example.com"),
       created_at: iso8601Date(),
@@ -115,8 +100,9 @@ describe("partners API contract", () => {
             id: idString("2101"),
             name: like("Novo Parceiro"),
             logo_url: nullValue(),
-            category: enumString(PARTNER_CATEGORIES, "Nutrition"),
+            category: like("Nutrition"),
             description: nullValue(),
+            discount_details: nullValue(),
             coupon: nullValue(),
             link: nullValue(),
             created_at: iso8601Date(),
@@ -176,8 +162,9 @@ describe("partners API contract", () => {
             id: idString("2102"),
             name: like("Parceiro Exemplo"),
             logo_url: like("https://example.com/logo.png"),
-            category: enumString(PARTNER_CATEGORIES, "Nutrition"),
+            category: like("Nutrition"),
             description: like("Uma parceria."),
+            discount_details: like("10% off on the first visit."),
             coupon: like("NOVO20"),
             link: like("https://example.com"),
             created_at: iso8601Date(),

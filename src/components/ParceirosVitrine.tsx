@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { fetchPartners, CATEGORY_FROM_BACKEND, type Partner } from "@/lib/api/partners";
+import { fetchPartners, type Partner } from "@/lib/api/partners";
 import { ExternalLink } from "lucide-react";
+import { PartnerDetailsDialog } from "@/components/PartnerDetailsDialog";
 
 export function ParceirosVitrine({ className = "" }: { className?: string }) {
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [viewing, setViewing] = useState<Partner | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -36,12 +38,11 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {partners.map((p) => (
             <li key={p.id}>
-              <a
-                href={p.link ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={`${p.name} — ${CATEGORY_FROM_BACKEND[p.category]}`}
-                className="group flex h-full flex-col items-center gap-2 rounded-lg border border-border bg-card p-3 text-center transition-shadow hover:shadow-md"
+              <button
+                type="button"
+                onClick={() => setViewing(p)}
+                title={`${p.name} — ${p.category}`}
+                className="group flex h-full w-full flex-col items-center gap-2 rounded-lg border border-border bg-card p-3 text-center transition-shadow hover:shadow-md"
               >
                 <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-border bg-background">
                   {p.logo_url && (
@@ -54,17 +55,21 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
                   )}
                 </div>
                 <span className="line-clamp-1 text-xs font-medium text-foreground">{p.name}</span>
-                <span className="line-clamp-1 text-[10px] text-muted-foreground">
-                  {CATEGORY_FROM_BACKEND[p.category]}
-                </span>
+                <span className="line-clamp-1 text-[10px] text-muted-foreground">{p.category}</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                  Acessar <ExternalLink className="h-3 w-3" />
+                  Ver detalhes <ExternalLink className="h-3 w-3" />
                 </span>
-              </a>
+              </button>
             </li>
           ))}
         </ul>
       </div>
+
+      <PartnerDetailsDialog
+        partner={viewing}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+      />
     </section>
   );
 }
