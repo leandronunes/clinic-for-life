@@ -1,4 +1,6 @@
-import { defineConfig, configDefaults } from "vitest/config";
+/// <reference types="vitest" />
+import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
