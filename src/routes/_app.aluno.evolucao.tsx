@@ -473,7 +473,8 @@ function BioUploadCard({
             {loading ? "Processando..." : "Arraste o CSV ou clique para enviar"}
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Colunas: <code>email,peso_kg,massa_muscular_kg,gordura_pct,data</code>
+            Colunas:{" "}
+            <code className="break-all">email,peso_kg,massa_muscular_kg,gordura_pct,data</code>
           </p>
           {file && !loading && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">

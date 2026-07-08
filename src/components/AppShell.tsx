@@ -26,7 +26,7 @@ export function AppShell() {
           <AppSidebar />
         </div>
 
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur md:px-6">
             <SidebarTrigger className="hidden md:inline-flex" />
             <div className="md:hidden">
