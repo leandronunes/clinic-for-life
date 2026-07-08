@@ -918,10 +918,10 @@ function TreinoFormDialog({
 interface ExercicioFormState {
   name: string;
   muscle_group: string;
-  sets: number;
+  sets: number | undefined;
   reps: string;
   load_kg: number | undefined;
-  rest_seconds: number;
+  rest_seconds: number | undefined;
   duration_seconds: number;
   distance_value: number | undefined;
   distance_unit: DistanceUnit;
@@ -1116,7 +1116,7 @@ function ExercicioFormDialog({
   const canSubmit = (() => {
     if (!form.name.trim()) return false;
     if (kind === "strength") return !!form.muscle_group.trim() && !!form.reps.trim();
-    if (kind === "mobility") return !!form.reps.trim() && form.sets > 0;
+    if (kind === "mobility") return !!form.reps.trim() && (form.sets ?? 0) > 0;
     // cardio — precisa ao menos tempo OU distância
     return form.duration_seconds > 0 || (form.distance_value ?? 0) > 0;
   })();
@@ -1176,9 +1176,13 @@ function ExercicioFormDialog({
                     type="number"
                     min={1}
                     max={10}
-                    value={form.sets}
+                    value={form.sets ?? ""}
                     onChange={(e) =>
-                      setForm({ ...form, sets: Math.max(1, Number(e.target.value) || 1) })
+                      setForm({
+                        ...form,
+                        sets:
+                          e.target.value === "" ? undefined : Math.max(1, Number(e.target.value)),
+                      })
                     }
                   />
                 </Field>
@@ -1209,9 +1213,13 @@ function ExercicioFormDialog({
                     type="number"
                     min={0}
                     step={5}
-                    value={form.rest_seconds}
+                    value={form.rest_seconds ?? ""}
                     onChange={(e) =>
-                      setForm({ ...form, rest_seconds: Math.max(0, Number(e.target.value) || 0) })
+                      setForm({
+                        ...form,
+                        rest_seconds:
+                          e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)),
+                      })
                     }
                   />
                 </Field>
@@ -1225,9 +1233,13 @@ function ExercicioFormDialog({
                     type="number"
                     min={1}
                     max={10}
-                    value={form.sets}
+                    value={form.sets ?? ""}
                     onChange={(e) =>
-                      setForm({ ...form, sets: Math.max(1, Number(e.target.value) || 1) })
+                      setForm({
+                        ...form,
+                        sets:
+                          e.target.value === "" ? undefined : Math.max(1, Number(e.target.value)),
+                      })
                     }
                   />
                 </Field>
