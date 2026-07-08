@@ -43,4 +43,36 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await page.getByRole("button", { name: "Voltar ao meu perfil" }).click();
     await expect(page).toHaveURL("/usuarios");
   });
+
+  test("admin adiciona um exercício de cardio ao treino do aluno", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("button", { name: "Adicionar cardio" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByPlaceholder("Ex.: Corrida na esteira").fill("Corrida no parque");
+    await dialog.getByRole("button", { name: "Adicionar" }).click();
+
+    await expect(page.getByText("Corrida no parque")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Cardio", { exact: true }).first()).toBeVisible();
+  });
+
+  test("admin adiciona um exercício de mobilidade ao treino do aluno", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("button", { name: "Adicionar mobilidade" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByPlaceholder("Ex.: Alongamento de quadril").fill("Alongamento de ombro");
+    await dialog.getByRole("button", { name: "Adicionar" }).click();
+
+    await expect(page.getByText("Alongamento de ombro")).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("Mobilidade", { exact: true }).first(),
+    ).toBeVisible();
+  });
 });

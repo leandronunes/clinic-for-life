@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TreinoCard } from "./_app.aluno.index";
-import type { Workout } from "@/lib/api/workouts";
+import type { Exercise, Workout } from "@/lib/api/workouts";
+import { createExercise } from "@/lib/api/workouts";
 
 vi.mock("@/lib/api/workouts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/workouts")>();
@@ -17,6 +19,8 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
     deleteExercise: vi.fn(),
   };
 });
+
+const mockCreateExercise = vi.mocked(createExercise);
 
 vi.mock("@/components/ExercicioVideoInput", () => ({
   ExercicioVideoInput: () => null,
@@ -69,7 +73,10 @@ const mockWorkout: Workout = {
 };
 
 describe("TreinoCard", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateExercise.mockResolvedValue({ ...mockWorkout.exercises[0], id: "new" });
+  });
 
   it("renders exercises sorted by position regardless of array order", () => {
     render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
@@ -139,5 +146,130 @@ describe("TreinoCard", () => {
     });
 
     expect(screen.getByText("Nenhum exercício neste treino ainda.")).toBeInTheDocument();
+  });
+
+  describe("cardio and mobility exercises", () => {
+    const cardioExercise: Exercise = {
+      id: "e3",
+      position: 1,
+      kind: "cardio",
+      name: "Corrida na esteira",
+      duration_seconds: 1200,
+      distance_value: 5,
+      distance_unit: "km",
+      hr_zone: 2,
+      video_url: "",
+    };
+    const mobilityExercise: Exercise = {
+      id: "e4",
+      position: 2,
+      kind: "mobility",
+      name: "Alongamento de quadril",
+      sets: 2,
+      reps: "10",
+      video_url: "",
+    };
+    const cardioMobilityWorkout: Workout = {
+      ...mockWorkout,
+      exercises: [cardioExercise, mobilityExercise],
+    };
+
+    it("renders a cardio exercise with its badge, duration and distance", () => {
+      render(
+        <TreinoCard
+          treino={cardioMobilityWorkout}
+          alunoId="s1"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.getByText("Cardio")).toBeInTheDocument();
+      expect(screen.getByText("20:00")).toBeInTheDocument();
+      expect(screen.getByText("5 km")).toBeInTheDocument();
+    });
+
+    it("renders a mobility exercise with its badge and sets × reps", () => {
+      render(
+        <TreinoCard
+          treino={cardioMobilityWorkout}
+          alunoId="s1"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.getByText("Mobilidade")).toBeInTheDocument();
+      expect(screen.getByText("2×10")).toBeInTheDocument();
+    });
+
+    it("creates a cardio exercise via the 'Adicionar cardio' dialog", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.type(
+        within(dialog).getByPlaceholderText("Ex.: Corrida na esteira"),
+        "Corrida da manhã",
+      );
+      await user.click(within(dialog).getByRole("button", { name: "Adicionar" }));
+
+      expect(mockCreateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        expect.objectContaining({
+          kind: "cardio",
+          name: "Corrida da manhã",
+          duration_seconds: 600,
+          hr_zone: 2,
+        }),
+      );
+    });
+
+    it("creates a mobility exercise via the 'Adicionar mobilidade' dialog", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar mobilidade" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.type(
+        within(dialog).getByPlaceholderText("Ex.: Alongamento de quadril"),
+        "Alongamento de ombro",
+      );
+      await user.click(within(dialog).getByRole("button", { name: "Adicionar" }));
+
+      expect(mockCreateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        expect.objectContaining({
+          kind: "mobility",
+          name: "Alongamento de ombro",
+          sets: 2,
+          reps: "10",
+        }),
+      );
+    });
+
+    it("disables submit for cardio without duration or distance", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.type(within(dialog).getByPlaceholderText("Ex.: Corrida na esteira"), "Corrida");
+      await user.clear(within(dialog).getByPlaceholderText("Ex.: 20:00"));
+
+      expect(within(dialog).getByRole("button", { name: "Adicionar" })).toBeDisabled();
+      expect(mockCreateExercise).not.toHaveBeenCalled();
+    });
   });
 });
