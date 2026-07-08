@@ -8,23 +8,24 @@ test.describe("Meu Treino (aluno)", () => {
 
   test("mostra o primeiro treino ativo (posição 0) com seus exercícios", async ({ page }) => {
     // Apenas o treino selecionado é exibido por completo; os demais aparecem
-    // como botões "Treino {posição}" (não pelo título) — ver SortableWorkoutButton.
-    await expect(page.getByText("Treino A")).toBeVisible();
+    // como botões com o título cadastrado do treino — ver SortableWorkoutButton.
+    // O título também aparece no cabeçalho do card do treino selecionado, então
+    // usamos o role "button" pra mirar só o seletor, evitando ambiguidade.
+    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
     await expect(page.getByText("Supino reto")).toBeVisible();
   });
 
-  test("troca para o segundo treino ativo pelo seletor 'Treino 1'", async ({ page }) => {
-    await page.getByRole("button", { name: "Treino 1" }).click();
-    await expect(page.getByText("Treino B")).toBeVisible();
+  test("troca para o segundo treino ativo pelo seletor 'Treino B'", async ({ page }) => {
+    await page.getByRole("button", { name: "Treino B" }).click();
     await expect(page.getByText("Agachamento livre")).toBeVisible();
+    await expect(page.getByText("Cadeira extensora")).toBeVisible();
   });
 
   test("aba Arquivados mostra o treino arquivado, não os ativos", async ({ page }) => {
     await page.getByRole("tab", { name: "Arquivados" }).click();
-    await expect(page.getByText("Treino C")).toBeVisible();
     await expect(page.getByText("Arquivado", { exact: true })).toBeVisible();
-    // Só existe 1 treino arquivado no fixture — só deve haver 1 seletor "Treino {posição}".
-    await expect(page.getByRole("button", { name: /^Treino \d+$/ })).toHaveCount(1);
+    // Só existe 1 treino arquivado no fixture — só deve haver 1 seletor.
+    await expect(page.getByRole("button", { name: "Treino C" })).toHaveCount(1);
   });
 });
 
@@ -38,7 +39,7 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
 
     await expect(page).toHaveURL("/aluno");
     await expect(page.getByText("Visualizando como aluno")).toBeVisible();
-    await expect(page.getByText("Treino A")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
 
     await page.getByRole("button", { name: "Voltar ao meu perfil" }).click();
     await expect(page).toHaveURL("/usuarios");
@@ -81,18 +82,17 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await page.goto("/usuarios");
     await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
     await expect(page).toHaveURL("/aluno");
-    await expect(page.getByText("Treino A")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
 
     await page.getByRole("button", { name: "Remover treino" }).click();
     await page.getByRole("button", { name: "Remover", exact: true }).click();
 
     await expect(page.getByText("Treino removido")).toBeVisible();
-    // Só restava o Treino B ativo: um único seletor "Treino N" e o card exibido
-    // é o dele — prova indireta de que o Treino A não existe mais. (Não
+    // Só restava o Treino B ativo: um único seletor com esse título e o card
+    // exibido é o dele — prova indireta de que o Treino A não existe mais. (Não
     // verificamos a ausência de "Treino A" diretamente: esse texto colide via
     // substring case-insensitive com "Novo treino" + "Ativos", ver docs/e2e.md.)
-    await expect(page.getByRole("button", { name: /^Treino \d+$/ })).toHaveCount(1);
-    await expect(page.getByText("Treino B")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Treino B" })).toHaveCount(1);
     await expect(page.getByText("Agachamento livre")).toBeVisible();
   });
 });

@@ -248,7 +248,7 @@ function MeuTreinoPage() {
                         onClick={() => setSelectedId(t.id)}
                         className={isActive ? "brand-gradient text-primary-foreground" : ""}
                       >
-                        Treino {t.position}
+                        {t.title}
                       </Button>
                     );
                   })}
@@ -331,7 +331,7 @@ function SortableWorkoutButton({
         {...attributes}
         {...listeners}
       >
-        Treino {treino.position}
+        {treino.title}
       </Button>
     </div>
   );
