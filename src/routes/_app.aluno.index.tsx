@@ -926,7 +926,7 @@ interface ExercicioFormState {
   distance_value: number | undefined;
   distance_unit: DistanceUnit;
   hr_zone: HrZone | undefined;
-  heart_rate_bpm: number | undefined;
+  heart_rate_bpm: string;
   video_url: string;
   notes: string;
 }
@@ -943,7 +943,7 @@ const EMPTY_FORM_BY_KIND: Record<ExerciseKind, ExercicioFormState> = {
     distance_value: undefined,
     distance_unit: "m",
     hr_zone: undefined,
-    heart_rate_bpm: undefined,
+    heart_rate_bpm: "",
     video_url: "",
     notes: "",
   },
@@ -958,7 +958,7 @@ const EMPTY_FORM_BY_KIND: Record<ExerciseKind, ExercicioFormState> = {
     distance_value: undefined,
     distance_unit: "km",
     hr_zone: 2,
-    heart_rate_bpm: undefined,
+    heart_rate_bpm: "",
     video_url: "",
     notes: "",
   },
@@ -973,7 +973,7 @@ const EMPTY_FORM_BY_KIND: Record<ExerciseKind, ExercicioFormState> = {
     distance_value: undefined,
     distance_unit: "m",
     hr_zone: undefined,
-    heart_rate_bpm: undefined,
+    heart_rate_bpm: "",
     video_url: "",
     notes: "",
   },
@@ -992,7 +992,7 @@ function formFromExercise(ex: Exercise, kind: ExerciseKind): ExercicioFormState 
     distance_value: ex.distance_value ?? undefined,
     distance_unit: ex.distance_unit ?? base.distance_unit,
     hr_zone: ex.hr_zone ?? base.hr_zone,
-    heart_rate_bpm: ex.heart_rate_bpm ?? undefined,
+    heart_rate_bpm: ex.heart_rate_bpm ?? "",
     video_url: ex.video_url,
     notes: ex.notes ?? "",
   };
@@ -1031,7 +1031,7 @@ function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExerc
     distance_value: form.distance_value,
     distance_unit: form.distance_value ? form.distance_unit : undefined,
     hr_zone: form.hr_zone,
-    heart_rate_bpm: form.heart_rate_bpm,
+    heart_rate_bpm: form.heart_rate_bpm.trim() || undefined,
     video_url,
     notes,
   };
@@ -1313,17 +1313,10 @@ function ExercicioFormDialog({
                 </Field>
                 <Field label="Frequência cardíaca (bpm)" className="sm:col-span-2">
                   <Input
-                    type="number"
-                    min={0}
-                    max={230}
-                    placeholder="Ex.: 145"
-                    value={form.heart_rate_bpm ?? ""}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        heart_rate_bpm: e.target.value === "" ? undefined : Number(e.target.value),
-                      })
-                    }
+                    placeholder="Ex.: 145 ou 133 - 150"
+                    value={form.heart_rate_bpm}
+                    onChange={(e) => setForm({ ...form, heart_rate_bpm: e.target.value })}
+                    maxLength={20}
                   />
                 </Field>
               </>
