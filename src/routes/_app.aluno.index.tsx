@@ -743,7 +743,7 @@ function ExerciseRowContent({
                 {exercise.hr_zone ? (
                   <span className="inline-flex items-center gap-1">
                     <Activity className="h-3 w-3" />
-                    Zona {exercise.hr_zone} ({HR_ZONE_RANGE[exercise.hr_zone]})
+                    Zona {exercise.hr_zone}
                   </span>
                 ) : null}
                 {exercise.heart_rate_bpm ? (
@@ -1425,14 +1425,6 @@ const KIND_META: Record<ExerciseKind, KindMeta> = {
     chipClass: "border-sky-500/40 text-sky-600 dark:text-sky-300",
     buttonClass: "border-sky-400/50 text-sky-600 hover:bg-sky-500/10 dark:text-sky-300",
   },
-};
-
-const HR_ZONE_RANGE: Record<HrZone, string> = {
-  1: "< 133 bpm",
-  2: "134–146 bpm",
-  3: "147–159 bpm",
-  4: "160–172 bpm",
-  5: "173+ bpm",
 };
 
 function secondsToMMSS(total: number): string {
