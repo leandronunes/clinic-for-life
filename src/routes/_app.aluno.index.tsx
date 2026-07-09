@@ -114,6 +114,12 @@ function MeuTreinoPage() {
   const [videoEx, setVideoEx] = useState<Exercise | null>(null);
   const qc = useQueryClient();
 
+  // Deep link from a "novo treino criado" push notification (?workout=<id>).
+  useEffect(() => {
+    const workoutId = new URLSearchParams(window.location.search).get("workout");
+    if (workoutId) setSelectedId(workoutId);
+  }, []);
+
   const serverLista = useMemo(
     () =>
       [...(view === "ativos" ? (data?.active ?? []) : (data?.archived ?? []))].sort(

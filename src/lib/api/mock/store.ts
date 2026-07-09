@@ -208,6 +208,46 @@ export function deletePartner(id: string): void {
   partners = partners.filter((p) => p.id !== id);
 }
 
+/* -------------------- Push subscriptions -------------------- */
+
+interface MockPushSubscription {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  createdAt: string;
+}
+
+let pushSubscriptions: MockPushSubscription[] = [];
+
+export function subscribePush(
+  token: string | null,
+  payload: { endpoint: string; keys: { p256dh: string; auth: string } },
+): { id: string; endpoint: string; created_at: string } {
+  const user = currentUser(token);
+  const existing = pushSubscriptions.find((s) => s.endpoint === payload.endpoint);
+  if (existing) {
+    existing.p256dh = payload.keys.p256dh;
+    existing.auth = payload.keys.auth;
+    return { id: existing.id, endpoint: existing.endpoint, created_at: existing.createdAt };
+  }
+  const record: MockPushSubscription = {
+    id: nextId("push"),
+    userId: user.id,
+    endpoint: payload.endpoint,
+    p256dh: payload.keys.p256dh,
+    auth: payload.keys.auth,
+    createdAt: new Date().toISOString(),
+  };
+  pushSubscriptions = [...pushSubscriptions, record];
+  return { id: record.id, endpoint: record.endpoint, created_at: record.createdAt };
+}
+
+export function unsubscribePush(endpoint: string): void {
+  pushSubscriptions = pushSubscriptions.filter((s) => s.endpoint !== endpoint);
+}
+
 /* -------------------- Workouts & Exercises -------------------- */
 
 const workoutsByStudent: Record<string, Workout[]> = clone(WORKOUTS_BY_STUDENT);
