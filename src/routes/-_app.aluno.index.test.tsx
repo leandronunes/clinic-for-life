@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TreinoCard } from "./_app.aluno.index";
+import { TreinoCard, ColarTreinoButton } from "./_app.aluno.index";
 import type { Exercise, Workout } from "@/lib/api/workouts";
-import { createExercise, deleteWorkout, updateExercise } from "@/lib/api/workouts";
+import { createExercise, createWorkout, deleteWorkout, updateExercise } from "@/lib/api/workouts";
+import { workoutToClipboard } from "@/hooks/use-workout-clipboard";
+import { toast } from "sonner";
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/lib/api/workouts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/workouts")>();
   return {
     ...actual,
+    createWorkout: vi.fn(),
     archiveWorkout: vi.fn(),
     unarchiveWorkout: vi.fn(),
     deleteWorkout: vi.fn(),
@@ -22,6 +27,7 @@ vi.mock("@/lib/api/workouts", async (importOriginal) => {
 });
 
 const mockCreateExercise = vi.mocked(createExercise);
+const mockCreateWorkout = vi.mocked(createWorkout);
 const mockDeleteWorkout = vi.mocked(deleteWorkout);
 const mockUpdateExercise = vi.mocked(updateExercise);
 
@@ -78,6 +84,7 @@ const mockWorkout: Workout = {
 describe("TreinoCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mockCreateExercise.mockResolvedValue({ ...mockWorkout.exercises[0], id: "new" });
     mockDeleteWorkout.mockResolvedValue(null);
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
@@ -181,6 +188,57 @@ describe("TreinoCard", () => {
     });
 
     expect(screen.getByText("Nenhum exercício neste treino ainda.")).toBeInTheDocument();
+  });
+
+  describe("copiar treino", () => {
+    it("shows the copy button when canEdit is true", () => {
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      expect(screen.getByLabelText("Copiar treino")).toBeInTheDocument();
+    });
+
+    it("shows the copy button when canUnarchive is true, even though the workout is read-only", () => {
+      const archivedWorkout: Workout = { ...mockWorkout, status: "archived" };
+      render(
+        <TreinoCard
+          treino={archivedWorkout}
+          alunoId="s1"
+          onWatch={vi.fn()}
+          canEdit={false}
+          canUnarchive={true}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.getByLabelText("Copiar treino")).toBeInTheDocument();
+    });
+
+    it("hides the copy button when neither canEdit nor canUnarchive is true", () => {
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
+        wrapper,
+      });
+
+      expect(screen.queryByLabelText("Copiar treino")).not.toBeInTheDocument();
+    });
+
+    it("writes the workout to the clipboard and shows a confirmation toast", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByLabelText("Copiar treino"));
+
+      const stored = JSON.parse(window.localStorage.getItem("cfl:workout-clipboard:v1")!);
+      expect(stored.sourceStudentId).toBe("s1");
+      expect(stored.title).toBe(mockWorkout.title);
+      expect(stored.exercises).toHaveLength(2);
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining(`Treino "${mockWorkout.title}" copiado`),
+      );
+    });
   });
 
   describe("cardio and mobility exercises", () => {
@@ -420,5 +478,158 @@ describe("TreinoCard", () => {
         expect.objectContaining({ rest_seconds: undefined }),
       );
     });
+  });
+});
+
+function seedClipboard(sourceStudentId: string, sourceStudentLabel?: string) {
+  const clip = workoutToClipboard(mockWorkout, sourceStudentId, sourceStudentLabel);
+  window.localStorage.setItem("cfl:workout-clipboard:v1", JSON.stringify(clip));
+  return clip;
+}
+
+describe("ColarTreinoButton", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    mockCreateWorkout.mockResolvedValue({ ...mockWorkout, id: "w-new" });
+    mockCreateExercise.mockImplementation((_studentId, _workoutId, payload) =>
+      Promise.resolve({ id: `new-${payload.name}`, position: 1, video_url: "", ...payload }),
+    );
+  });
+
+  it("renders nothing when there is no clipboard", () => {
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    expect(screen.queryByText("Colar treino")).not.toBeInTheDocument();
+  });
+
+  it("renders the paste button with the exercise count badge when a clipboard exists", () => {
+    seedClipboard("s1", "Júlia");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    expect(screen.getByText("Colar treino")).toBeInTheDocument();
+    expect(screen.getByText("2 ex.")).toBeInTheDocument();
+  });
+
+  it("clears the clipboard via the X button", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByLabelText("Limpar treino copiado"));
+
+    expect(screen.queryByText("Colar treino")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("cfl:workout-clipboard:v1")).toBeNull();
+  });
+
+  it("pre-fills the dialog with the clipboard's title and focus", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByDisplayValue(mockWorkout.title)).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue(mockWorkout.focus)).toBeInTheDocument();
+  });
+
+  it("shows the same-student message when pasting into the workout's own source student", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s2");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByText(/será duplicado como um novo treino/)).toBeInTheDocument();
+  });
+
+  it("shows the generic message when pasting into a different student", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByText(/Um novo treino será criado neste aluno/)).toBeInTheDocument();
+  });
+
+  it("disables the submit button when the title is cleared", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+    await user.clear(within(dialog).getByDisplayValue(mockWorkout.title));
+
+    expect(within(dialog).getByRole("button", { name: "Colar treino" })).toBeDisabled();
+  });
+
+  it("creates the workout and each exercise in position order, then reports success", async () => {
+    const user = userEvent.setup();
+    const onPasted = vi.fn();
+    seedClipboard("s1", "Júlia");
+    render(<ColarTreinoButton alunoId="s2" personalNome="Rafael Monteiro" onPasted={onPasted} />, {
+      wrapper,
+    });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Colar treino" }));
+
+    await waitFor(() =>
+      expect(onPasted).toHaveBeenCalledWith(expect.objectContaining({ id: "w-new" })),
+    );
+
+    expect(mockCreateWorkout).toHaveBeenCalledWith("s2", {
+      title: mockWorkout.title,
+      focus: mockWorkout.focus,
+      trainer_name: "Rafael Monteiro",
+    });
+    // A ordem de chamada precisa respeitar a `position` original (Supino
+    // reto=1 antes de Crucifixo=2), não a ordem do array de exercises.
+    expect(mockCreateExercise.mock.calls[0]).toEqual([
+      "s2",
+      "w-new",
+      expect.objectContaining({ name: "Supino reto" }),
+    ]);
+    expect(mockCreateExercise.mock.calls[1]).toEqual([
+      "s2",
+      "w-new",
+      expect.objectContaining({ name: "Crucifixo" }),
+    ]);
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("2 exercícios"));
+  });
+
+  it("falls back to the clipboard's trainer name when no personalNome is provided", async () => {
+    const user = userEvent.setup();
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Colar treino" }));
+
+    await waitFor(() => expect(mockCreateWorkout).toHaveBeenCalled());
+    expect(mockCreateWorkout).toHaveBeenCalledWith(
+      "s2",
+      expect.objectContaining({ trainer_name: mockWorkout.trainer_name }),
+    );
+  });
+
+  it("shows an error toast when the paste fails", async () => {
+    const user = userEvent.setup();
+    mockCreateWorkout.mockRejectedValue(new Error("network down"));
+    seedClipboard("s1");
+    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
+
+    await user.click(screen.getByText("Colar treino"));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Colar treino" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });

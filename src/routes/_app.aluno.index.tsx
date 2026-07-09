@@ -1567,7 +1567,7 @@ function Field({
   );
 }
 
-function ColarTreinoButton({
+export function ColarTreinoButton({
   alunoId,
   personalNome,
   onPasted,
@@ -1609,7 +1609,9 @@ function ColarTreinoButton({
       onPasted?.(workout);
     },
     onError: () =>
-      toast.error("Não foi possível colar o treino. Verifique se todos os exercícios foram criados."),
+      toast.error(
+        "Não foi possível colar o treino. Verifique se todos os exercícios foram criados.",
+      ),
   });
 
   if (!clipboard) return null;

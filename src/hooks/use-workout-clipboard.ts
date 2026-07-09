@@ -4,24 +4,23 @@ import type { Workout, Exercise, CreateExercisePayload } from "@/lib/api/workout
 const STORAGE_KEY = "cfl:workout-clipboard:v1";
 const EVENT_NAME = "cfl:workout-clipboard-change";
 
-export interface ClipboardExercise
-  extends Pick<
-    Exercise,
-    | "name"
-    | "kind"
-    | "sets"
-    | "reps"
-    | "load_kg"
-    | "rest_seconds"
-    | "muscle_group"
-    | "duration_seconds"
-    | "distance_value"
-    | "distance_unit"
-    | "hr_zone"
-    | "heart_rate_bpm"
-    | "video_url"
-    | "notes"
-  > {
+export interface ClipboardExercise extends Pick<
+  Exercise,
+  | "name"
+  | "kind"
+  | "sets"
+  | "reps"
+  | "load_kg"
+  | "rest_seconds"
+  | "muscle_group"
+  | "duration_seconds"
+  | "distance_value"
+  | "distance_unit"
+  | "hr_zone"
+  | "heart_rate_bpm"
+  | "video_url"
+  | "notes"
+> {
   position: number;
 }
 

@@ -96,3 +96,58 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await expect(page.getByText("Agachamento livre")).toBeVisible();
   });
 });
+
+test.describe("Copiar e colar treino entre alunos (personal)", () => {
+  test("copia o Treino A de Júlia e cola no aluno Pedro", async ({ page }) => {
+    await loginAs(page, "personal");
+
+    // Origem: Júlia (student-1) tem "Treino A" com 3 exercícios — ver fixtures.
+    await page.goto("/alunos/student-1");
+    await expect(page).toHaveURL("/aluno");
+    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
+
+    await page.getByLabel("Copiar treino").click();
+    await expect(page.getByText(/copiado/i)).toBeVisible();
+
+    // Destino: Pedro (student-2), sem nenhum treino cadastrado nas fixtures.
+    await page.goto("/alunos/student-2");
+    await expect(page).toHaveURL("/aluno");
+    await expect(page.getByText("Nenhum treino ativo.")).toBeVisible();
+
+    const colarTrigger = page.getByRole("button", { name: /Colar treino/ });
+    await expect(colarTrigger).toBeVisible();
+    await expect(colarTrigger.getByText("3 ex.")).toBeVisible();
+    await colarTrigger.click();
+
+    // Field (@/routes/_app.aluno.index.tsx) renders <Label> without htmlFor —
+    // getByLabel não funciona aqui; os inputs seguem a ordem "Novo título",
+    // "Novo foco" do formulário (ver docs/e2e.md).
+    const dialog = page.getByRole("dialog");
+    const titleInput = dialog.getByRole("textbox").nth(0);
+    const focusInput = dialog.getByRole("textbox").nth(1);
+    await expect(titleInput).toHaveValue("Treino A");
+    await expect(focusInput).toHaveValue("Superior");
+    await dialog.getByRole("button", { name: "Colar treino", exact: true }).click();
+
+    await expect(page.getByText(/Treino colado com 3 exercícios/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
+    await expect(page.getByText("Supino reto")).toBeVisible();
+    await expect(page.getByText("Puxada frente")).toBeVisible();
+    await expect(page.getByText("Desenvolvimento com halteres")).toBeVisible();
+  });
+
+  test("o botão de colar some depois de limpar o treino copiado", async ({ page }) => {
+    await loginAs(page, "personal");
+
+    await page.goto("/alunos/student-1");
+    await expect(page).toHaveURL("/aluno");
+    await page.getByLabel("Copiar treino").click();
+
+    await page.goto("/alunos/student-2");
+    await expect(page).toHaveURL("/aluno");
+    await expect(page.getByRole("button", { name: /Colar treino/ })).toBeVisible();
+
+    await page.getByLabel("Limpar treino copiado").click();
+    await expect(page.getByRole("button", { name: /Colar treino/ })).not.toBeVisible();
+  });
+});
