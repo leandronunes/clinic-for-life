@@ -37,12 +37,13 @@ export interface WorkoutClipboard {
   copiedAt: string;
 }
 
-function readStorage(): WorkoutClipboard | null {
+let cachedRaw: string | null = null;
+let cachedSnapshot: WorkoutClipboard | null = null;
+
+function readRaw(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as WorkoutClipboard;
+    return window.localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
@@ -62,7 +63,19 @@ function subscribe(callback: () => void) {
 }
 
 function getSnapshot(): WorkoutClipboard | null {
-  return readStorage();
+  const raw = readRaw();
+  if (raw === cachedRaw) return cachedSnapshot;
+  cachedRaw = raw;
+  if (!raw) {
+    cachedSnapshot = null;
+  } else {
+    try {
+      cachedSnapshot = JSON.parse(raw) as WorkoutClipboard;
+    } catch {
+      cachedSnapshot = null;
+    }
+  }
+  return cachedSnapshot;
 }
 
 function getServerSnapshot(): WorkoutClipboard | null {
