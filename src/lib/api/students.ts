@@ -13,6 +13,7 @@ export interface Student {
   trainer_id: string;
   trainer_name: string;
   status: StudentStatus;
+  partner_card_enabled: boolean;
   health_plan?: string | null;
   emergency_contact?: string | null;
   created_at: string;

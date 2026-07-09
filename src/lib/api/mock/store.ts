@@ -147,6 +147,7 @@ export function createStudent(payload: CreateStudentPayload): Student {
     trainer_id: payload.trainer_id ?? "",
     trainer_name: trainer?.name ?? "",
     status: "active",
+    partner_card_enabled: true,
     health_plan: null,
     emergency_contact: null,
     created_at: new Date().toISOString(),
