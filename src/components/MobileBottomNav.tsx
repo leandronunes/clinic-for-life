@@ -72,9 +72,6 @@ export function MobileBottomNav() {
     // remove Perfil from main bar (moved into More), keep 4 + More
     items = items.filter((i) => i.url !== "/perfil");
   }
-  if (isImpersonating) {
-    items.push({ title: "Voltar", url: "__stop__", icon: ArrowLeftCircle });
-  }
   if (items.length === 0 && !showMore) return null;
 
   const totalCols = items.length + (showMore ? 1 : 0);
@@ -91,24 +88,6 @@ export function MobileBottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
       <ul className={`grid ${colsClass}`}>
         {items.map((it) => {
-          if (it.url === "__stop__") {
-            return (
-              <li key="stop">
-                <button
-                  type="button"
-                  aria-label="Voltar ao meu perfil"
-                  onClick={() => {
-                    stopImpersonating();
-                    navigate({ to: "/usuarios" });
-                  }}
-                  className="flex w-full flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
-                >
-                  <it.icon className="h-5 w-5" aria-hidden="true" />
-                  {it.title}
-                </button>
-              </li>
-            );
-          }
           const active = pathname === it.url || pathname.startsWith(it.url + "/");
           return (
             <li key={it.url}>

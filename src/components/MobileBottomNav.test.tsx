@@ -103,4 +103,29 @@ describe("MobileBottomNav", () => {
     });
     expect(screen.queryByRole("link", { name: /parceiros/i })).not.toBeInTheDocument();
   });
+
+  it('ao impersonar, não duplica o botão de voltar na barra principal — só existe dentro de "Mais"', async () => {
+    const personalUser: AuthUser = {
+      id: "u3",
+      name: "Personal",
+      email: "personal@test.com",
+      role: "personal",
+    };
+    mockUseAuth.mockReturnValue(
+      buildAuth({ user: personalUser, effectiveRole: "personal", isImpersonating: true }),
+    );
+
+    render(<MobileBottomNav />);
+
+    // O Sheet "Mais" ainda não foi aberto — se algum "Voltar" aparecer aqui,
+    // é porque a barra principal está duplicando o item além do que já existe
+    // dentro do menu "Mais".
+    expect(screen.queryByText(/voltar/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /abrir mais opções/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Voltar ao meu perfil" })).toBeInTheDocument();
+    });
+  });
 });
