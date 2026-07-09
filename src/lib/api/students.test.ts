@@ -31,6 +31,7 @@ const student: Student = {
   trainer_id: "t1",
   trainer_name: "Rafael Monteiro",
   status: "active",
+  partner_card_enabled: true,
   created_at: "2025-09-12T00:00:00Z",
 };
 

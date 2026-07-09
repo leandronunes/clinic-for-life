@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -569,7 +570,9 @@ function EditAlunoDialog({
         sex: form.sex,
         birth_date: form.birth_date,
         status: form.status,
-        ...(canChangePersonal ? { trainer_id: form.trainer_id } : {}),
+        ...(canChangePersonal
+          ? { trainer_id: form.trainer_id, partner_card_enabled: form.partner_card_enabled }
+          : {}),
       }),
     onSuccess: () => {
       toast.success("Aluno atualizado");
@@ -653,6 +656,20 @@ function EditAlunoDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+          )}
+          {canChangePersonal && (
+            <Field label="Cartão de parceiros" className="sm:col-span-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  aria-label="Cartão de parceiros"
+                  checked={form.partner_card_enabled}
+                  onCheckedChange={(v) => setForm({ ...form, partner_card_enabled: v })}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {form.partner_card_enabled ? "Ativo" : "Desativado"}
+                </span>
+              </div>
             </Field>
           )}
         </div>

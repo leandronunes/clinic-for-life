@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -98,13 +98,14 @@ vi.mock("@/contexts/use-auth", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { Route } from "./_app.usuarios";
-import { fetchStudents, deleteStudent } from "@/lib/api/students";
+import { fetchStudents, deleteStudent, updateStudent } from "@/lib/api/students";
 import { fetchTrainers, deleteTrainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 const mockFetchStudents = vi.mocked(fetchStudents);
 const mockDeleteStudent = vi.mocked(deleteStudent);
+const mockUpdateStudent = vi.mocked(updateStudent);
 const mockFetchTrainers = vi.mocked(fetchTrainers);
 const mockDeleteTrainer = vi.mocked(deleteTrainer);
 const mockUseAuth = vi.mocked(useAuth);
@@ -119,6 +120,7 @@ const student = {
   trainer_id: "t1",
   trainer_name: "Rafael",
   status: "active" as const,
+  partner_card_enabled: true,
   created_at: "2025-01-01T00:00:00Z",
 };
 
@@ -231,6 +233,71 @@ describe("UsuariosPage — AlunosTab", () => {
       .getAllByRole("button")
       .filter((b) => b.getAttribute("class")?.includes("destructive"));
     expect(destructiveBtns).toHaveLength(0);
+  });
+
+  describe("Editar aluno — cartão de parceiros", () => {
+    async function openEditDialog() {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+      const editBtn = screen
+        .getAllByRole("button")
+        .find((b) => !b.getAttribute("class")?.includes("destructive") && b.closest("td"));
+      if (editBtn) fireEvent.click(editBtn);
+      return screen.findByRole("dialog");
+    }
+
+    it("shows the partner card toggle for an admin", async () => {
+      const dialog = await openEditDialog();
+      expect(within(dialog).getByLabelText("Cartão de parceiros")).toBeInTheDocument();
+    });
+
+    it("hides the partner card toggle for a personal", async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: "u2", email: "personal@test.com", role: "personal" } as ReturnType<
+          typeof useAuth
+        >["user"],
+        canWrite: true,
+        hasRole: (r: string) => r === "personal",
+        impersonateAluno: vi.fn(),
+      } as unknown as ReturnType<typeof useAuth>);
+
+      const dialog = await openEditDialog();
+      expect(within(dialog).queryByLabelText("Cartão de parceiros")).not.toBeInTheDocument();
+    });
+
+    it("includes partner_card_enabled in the update when an admin toggles it off", async () => {
+      mockUpdateStudent.mockResolvedValue(student);
+      const dialog = await openEditDialog();
+
+      await fireEvent.click(within(dialog).getByLabelText("Cartão de parceiros"));
+      await fireEvent.click(within(dialog).getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() =>
+        expect(mockUpdateStudent).toHaveBeenCalledWith(
+          "s1",
+          expect.objectContaining({ partner_card_enabled: false }),
+        ),
+      );
+    });
+
+    it("does not send partner_card_enabled when a personal saves the form", async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: "u2", email: "personal@test.com", role: "personal" } as ReturnType<
+          typeof useAuth
+        >["user"],
+        canWrite: true,
+        hasRole: (r: string) => r === "personal",
+        impersonateAluno: vi.fn(),
+      } as unknown as ReturnType<typeof useAuth>);
+      mockUpdateStudent.mockResolvedValue(student);
+
+      const dialog = await openEditDialog();
+      await fireEvent.click(within(dialog).getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(mockUpdateStudent).toHaveBeenCalled());
+      const payload = mockUpdateStudent.mock.calls[0][1];
+      expect(payload).not.toHaveProperty("partner_card_enabled");
+    });
   });
 });
 

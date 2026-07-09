@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchPartners, type Partner } from "@/lib/api/partners";
 import { useAuth } from "@/contexts/use-auth";
+import { usePartnerCardEnabled } from "@/hooks/use-partner-card-enabled";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PartnerDetailsDialog } from "@/components/PartnerDetailsDialog";
 export const Route = createFileRoute("/_app/aluno/parceiros")({
@@ -22,8 +23,9 @@ function buildMemberId(seed: string) {
   return `NFL-${n.slice(0, 4)}-${n.slice(4)}`;
 }
 
-function AlunoParceirosPage() {
+export function AlunoParceirosPage() {
   const { user, effectiveRole } = useAuth();
+  const partnerCardEnabled = usePartnerCardEnabled();
   const { data = [], isLoading } = useQuery({
     queryKey: ["parceiros"],
     queryFn: () => fetchPartners(),
@@ -44,45 +46,51 @@ function AlunoParceirosPage() {
         </p>
       </div>
 
-      {/* Cartão virtual */}
-      <section aria-label="Cartão virtual do aluno">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-5 text-primary-foreground shadow-lg sm:p-7">
-          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-black/10 blur-2xl" />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-white/15 p-2 backdrop-blur">
-                <BrandLogo size={36} />
+      {/* Cartão virtual — só para quem tem o cartão de parceiros habilitado. */}
+      {partnerCardEnabled && (
+        <section aria-label="Cartão virtual do aluno">
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-5 text-primary-foreground shadow-lg sm:p-7">
+            <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-black/10 blur-2xl" />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-white/15 p-2 backdrop-blur">
+                  <BrandLogo size={36} />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-widest opacity-80">
+                    Núcleo For Life
+                  </div>
+                  <div className="text-sm font-medium opacity-90">Cartão do Aluno</div>
+                </div>
               </div>
+              <Badge className="self-start bg-white/15 text-primary-foreground hover:bg-white/20 sm:self-auto">
+                <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Membro ativo
+              </Badge>
+            </div>
+
+            <div className="relative mt-8 grid gap-4 sm:grid-cols-2">
               <div>
-                <div className="text-xs uppercase tracking-widest opacity-80">Núcleo For Life</div>
-                <div className="text-sm font-medium opacity-90">Cartão do Aluno</div>
+                <div className="text-[11px] uppercase tracking-widest opacity-70">Nome</div>
+                <div className="text-lg font-semibold sm:text-xl">{nome}</div>
+              </div>
+              <div className="sm:text-right">
+                <div className="text-[11px] uppercase tracking-widest opacity-70">
+                  Identificador
+                </div>
+                <div className="font-mono text-lg font-semibold tracking-wider sm:text-xl">
+                  {memberId}
+                </div>
               </div>
             </div>
-            <Badge className="self-start bg-white/15 text-primary-foreground hover:bg-white/20 sm:self-auto">
-              <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Membro ativo
-            </Badge>
-          </div>
 
-          <div className="relative mt-8 grid gap-4 sm:grid-cols-2">
-            <div>
-              <div className="text-[11px] uppercase tracking-widest opacity-70">Nome</div>
-              <div className="text-lg font-semibold sm:text-xl">{nome}</div>
-            </div>
-            <div className="sm:text-right">
-              <div className="text-[11px] uppercase tracking-widest opacity-70">Identificador</div>
-              <div className="font-mono text-lg font-semibold tracking-wider sm:text-xl">
-                {memberId}
-              </div>
+            <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 text-[11px] opacity-80">
+              <span>Apresente este cartão ao parceiro para garantir seu desconto.</span>
+              <span className="capitalize">{role}</span>
             </div>
           </div>
-
-          <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 text-[11px] opacity-80">
-            <span>Apresente este cartão ao parceiro para garantir seu desconto.</span>
-            <span className="capitalize">{role}</span>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Lista de parceiros */}
       <section aria-label="Lista de parceiros">

@@ -53,6 +53,45 @@ test.describe("Gestão de usuários (admin)", () => {
     await expect(page.getByRole("cell", { name: "Pedro Almeida Editado" })).not.toBeVisible();
   });
 
+  test("desativa e reativa o cartão de parceiros de um aluno", async ({ page }) => {
+    // O mock offline guarda os dados só em memória (sem persistência em
+    // localStorage) — qualquer page.goto() causa reload e perde a edição.
+    // Por isso este teste navega só por interações client-side (clique em
+    // linha para impersonar, "Voltar ao meu perfil" para retornar).
+    const row = page.getByRole("row").filter({ hasText: "Pedro Almeida" });
+    await row.locator("button").first().click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("switch", { name: "Cartão de parceiros" }).click();
+    await dialog.getByRole("button", { name: "Salvar" }).click();
+    await expect(dialog).not.toBeVisible();
+
+    await row.click();
+    await expect(page).toHaveURL("/aluno");
+    // O menu "Parceiros" continua visível — só o cartão virtual do aluno some.
+    await page.getByRole("link", { name: "Parceiros" }).click();
+    await expect(page).toHaveURL("/aluno/parceiros");
+    await expect(page.getByLabel("Cartão virtual do aluno")).not.toBeVisible();
+    await expect(page.getByText("NutriVida")).toBeVisible();
+
+    await page.getByRole("button", { name: "Voltar ao meu perfil" }).click();
+    await expect(page).toHaveURL("/usuarios");
+
+    const row2 = page.getByRole("row").filter({ hasText: "Pedro Almeida" });
+    await row2.locator("button").first().click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("switch", { name: "Cartão de parceiros" }).click();
+    await dialog.getByRole("button", { name: "Salvar" }).click();
+    await expect(dialog).not.toBeVisible();
+
+    await row2.click();
+    await expect(page).toHaveURL("/aluno");
+    await page.getByRole("link", { name: "Parceiros" }).click();
+    await expect(page).toHaveURL("/aluno/parceiros");
+    await expect(page.getByLabel("Cartão virtual do aluno")).toBeVisible();
+  });
+
   test("mostra a aba de Personais com os personais seedados", async ({ page }) => {
     await page.getByRole("tab", { name: "Personais" }).click();
     await expect(page.getByRole("cell", { name: "Rafael Monteiro" })).toBeVisible();
