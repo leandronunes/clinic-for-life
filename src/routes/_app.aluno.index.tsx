@@ -18,7 +18,15 @@ import {
   Timer,
   Route as RouteIcon,
   Activity,
+  Copy,
+  ClipboardPaste,
+  X,
 } from "lucide-react";
+import {
+  useWorkoutClipboard,
+  toCreateExercisePayload,
+  type WorkoutClipboard,
+} from "@/hooks/use-workout-clipboard";
 import {
   DndContext,
   closestCenter,
