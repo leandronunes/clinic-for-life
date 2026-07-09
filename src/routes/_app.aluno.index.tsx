@@ -179,11 +179,18 @@ function MeuTreinoPage() {
           </p>
         </div>
         {canWrite && view === "ativos" && (
-          <NovoTreinoDialog
-            alunoId={alunoId}
-            personalNome={user?.role === "personal" ? user.name : undefined}
-            onCreated={(t) => setSelectedId(t.id)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ColarTreinoButton
+              alunoId={alunoId}
+              personalNome={user?.role === "personal" ? user.name : undefined}
+              onPasted={(t) => setSelectedId(t.id)}
+            />
+            <NovoTreinoDialog
+              alunoId={alunoId}
+              personalNome={user?.role === "personal" ? user.name : undefined}
+              onCreated={(t) => setSelectedId(t.id)}
+            />
+          </div>
         )}
       </div>
 
