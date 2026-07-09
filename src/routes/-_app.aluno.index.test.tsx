@@ -266,6 +266,28 @@ describe("TreinoCard", () => {
       );
     });
 
+    it("accepts a heart rate range like '133 - 150' instead of a single number", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.type(
+        within(dialog).getByPlaceholderText("Ex.: Corrida na esteira"),
+        "Corrida da manhã",
+      );
+      await user.type(within(dialog).getByPlaceholderText("Ex.: 145 ou 133 - 150"), "133 - 150");
+      await user.click(within(dialog).getByRole("button", { name: "Adicionar" }));
+
+      expect(mockCreateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        expect.objectContaining({ heart_rate_bpm: "133 - 150" }),
+      );
+    });
+
     it("creates a mobility exercise via the 'Adicionar mobilidade' dialog", async () => {
       const user = userEvent.setup();
       render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {

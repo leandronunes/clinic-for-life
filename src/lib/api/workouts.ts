@@ -23,7 +23,7 @@ export interface Exercise {
   distance_value?: number | null;
   distance_unit?: DistanceUnit | null;
   hr_zone?: HrZone | null;
-  heart_rate_bpm?: number | null;
+  heart_rate_bpm?: string | null;
   // Compartilhado
   video_url: string;
   notes?: string | null;
@@ -66,7 +66,7 @@ export interface CreateExercisePayload {
   distance_value?: number;
   distance_unit?: DistanceUnit;
   hr_zone?: HrZone;
-  heart_rate_bpm?: number;
+  heart_rate_bpm?: string;
   video_url?: string;
   notes?: string;
 }
