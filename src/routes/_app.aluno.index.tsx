@@ -472,7 +472,22 @@ export function TreinoCard({
           >
             {treino.status === "active" ? "Ativo" : "Arquivado"}
           </Badge>
-          {canEdit && (
+          {canCopy && (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Copiar treino"
+              title="Copiar treino para colar em outro aluno"
+              onClick={() => {
+                copyWorkout(treino, alunoId);
+                toast.success(
+                  `Treino "${treino.title}" copiado (${treino.exercises.length} exercícios). Abra outro aluno para colar.`,
+                );
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          )}
             <>
               <TreinoFormDialog
                 mode="edit"
