@@ -1303,11 +1303,11 @@ function ExercicioFormDialog({
                       <SelectValue placeholder="Selecione a zona" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Zona 1 — &lt; 133 bpm</SelectItem>
-                      <SelectItem value="2">Zona 2 — 134–146 bpm</SelectItem>
-                      <SelectItem value="3">Zona 3 — 147–159 bpm</SelectItem>
-                      <SelectItem value="4">Zona 4 — 160–172 bpm</SelectItem>
-                      <SelectItem value="5">Zona 5 — 173+ bpm</SelectItem>
+                      <SelectItem value="1">Zona 1</SelectItem>
+                      <SelectItem value="2">Zona 2</SelectItem>
+                      <SelectItem value="3">Zona 3</SelectItem>
+                      <SelectItem value="4">Zona 4</SelectItem>
+                      <SelectItem value="5">Zona 5</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
