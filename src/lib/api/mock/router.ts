@@ -157,6 +157,18 @@ async function routeMockRequest<T>({
     }
   }
 
+  // -------- Push subscriptions --------
+  if (m === "POST" && path === "/api/v1/push_subscriptions") {
+    return store.subscribePush(
+      token,
+      b as unknown as { endpoint: string; keys: { p256dh: string; auth: string } },
+    ) as T;
+  }
+  if (m === "DELETE" && path === "/api/v1/push_subscriptions") {
+    store.unsubscribePush(String(b.endpoint ?? ""));
+    return null as T;
+  }
+
   // -------- Dashboard --------
   if (m === "GET" && path === "/api/v1/dashboard/kpis") {
     return store.getDashboardKpis((params?.range as RangeFilter | undefined) ?? "month") as T;

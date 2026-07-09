@@ -157,6 +157,34 @@ describe("resolveMockRequest()", () => {
     expect(second.position - first.position).toBe(1);
   });
 
+  it("subscribes and unsubscribes a push notification endpoint", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "aluno@forlife.app", password: "Aluno@2026" },
+      token: null,
+    });
+
+    const subscription = await resolveMockRequest<{ id: string; endpoint: string }>({
+      method: "POST",
+      path: "/api/v1/push_subscriptions",
+      body: {
+        endpoint: "https://fcm.googleapis.com/fcm/send/mock-endpoint",
+        keys: { p256dh: "p256dh-value", auth: "auth-value" },
+      },
+      token: login.token,
+    });
+    expect(subscription.id).toBeTruthy();
+    expect(subscription.endpoint).toBe("https://fcm.googleapis.com/fcm/send/mock-endpoint");
+
+    await resolveMockRequest({
+      method: "DELETE",
+      path: "/api/v1/push_subscriptions",
+      body: { endpoint: subscription.endpoint },
+      token: login.token,
+    });
+  });
+
   it("returns a 404 ApiError for a route with no matching handler", async () => {
     await expect(
       resolveMockRequest({ method: "GET", path: "/api/v1/does/not/exist", token: null }),

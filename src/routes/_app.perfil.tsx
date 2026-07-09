@@ -17,6 +17,7 @@ import {
 import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
 import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
+import { NotificationsCard } from "@/components/NotificationsCard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/perfil")({
@@ -165,6 +166,8 @@ function PerfilPage() {
         onSelect={(t) => changePersonalMut.mutate(t.id)}
         pending={changePersonalMut.isPending}
       />
+
+      <NotificationsCard />
     </div>
   );
 }
