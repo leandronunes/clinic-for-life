@@ -267,9 +267,12 @@ function MeuTreinoPage() {
                         key={t.id}
                         variant={isActive ? "default" : "outline"}
                         onClick={() => setSelectedId(t.id)}
-                        className={isActive ? "brand-gradient text-primary-foreground" : ""}
+                        className={cn(
+                          "max-w-[70vw] sm:max-w-[240px]",
+                          isActive && "brand-gradient text-primary-foreground",
+                        )}
                       >
-                        {t.title}
+                        <span className="min-w-0 truncate">{t.title}</span>
                       </Button>
                     );
                   })}
@@ -346,13 +349,13 @@ function SortableWorkoutButton({
         variant={active ? "default" : "outline"}
         onClick={onClick}
         className={cn(
-          "touch-none cursor-grab active:cursor-grabbing",
+          "max-w-[70vw] touch-none cursor-grab active:cursor-grabbing sm:max-w-[240px]",
           active && "brand-gradient text-primary-foreground",
         )}
         {...attributes}
         {...listeners}
       >
-        {treino.title}
+        <span className="min-w-0 truncate">{treino.title}</span>
       </Button>
     </div>
   );
@@ -453,25 +456,27 @@ export function TreinoCard({
 
   return (
     <Card className="shadow-soft">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <span className="grid h-9 w-9 place-items-center rounded-lg brand-gradient text-base font-bold text-primary-foreground">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg brand-gradient text-base font-bold text-primary-foreground">
               {treino.position}
             </span>
-            {treino.title}
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
+            <CardTitle className="break-words text-lg leading-tight sm:text-xl">
+              {treino.title}
+            </CardTitle>
+            <Badge
+              variant={treino.status === "active" ? "default" : "secondary"}
+              className={treino.status === "active" ? "bg-success text-success-foreground" : ""}
+            >
+              {treino.status === "active" ? "Ativo" : "Arquivado"}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
             {treino.focus} · {treino.exercises.length} exercícios · Personal: {treino.trainer_name}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={treino.status === "active" ? "default" : "secondary"}
-            className={treino.status === "active" ? "bg-success text-success-foreground" : ""}
-          >
-            {treino.status === "active" ? "Ativo" : "Arquivado"}
-          </Badge>
+        <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
           {canCopy && (
             <Button
               size="icon"

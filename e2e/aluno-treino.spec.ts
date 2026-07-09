@@ -151,3 +151,31 @@ test.describe("Copiar e colar treino entre alunos (personal)", () => {
     await expect(page.getByRole("button", { name: /Colar treino/ })).not.toBeVisible();
   });
 });
+
+test.describe("Meu Treino — layout mobile", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test("não gera scroll horizontal com um título de treino longo (cabeçalho + seletor)", async ({
+    page,
+  }) => {
+    await loginAs(page, "personal");
+    await page.goto("/alunos/student-1");
+    await expect(page).toHaveURL("/aluno");
+    await page.getByRole("button", { name: "Treino A" }).click();
+
+    await page.getByLabel("Editar treino").click();
+    const dialog = page.getByRole("dialog");
+    await dialog
+      .getByRole("textbox")
+      .first()
+      .fill("Treino de Superiores com Ênfase em Peitoral e Ombros — Fase 2");
+    await dialog.getByRole("button", { name: "Salvar alterações" }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(page.getByText("Treino de Superiores com Ênfase").first()).toBeVisible();
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(0);
+  });
+});
