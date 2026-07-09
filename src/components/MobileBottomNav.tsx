@@ -166,7 +166,7 @@ export function MobileBottomNav() {
                         </Link>
                       </SheetClose>
                     ))}
-                  {!isImpersonating && role === "aluno" && (
+                  {/* {!isImpersonating && role === "aluno" && (
                     <SheetClose asChild>
                       <Link
                         to="/perfil"
@@ -176,7 +176,7 @@ export function MobileBottomNav() {
                         Perfil
                       </Link>
                     </SheetClose>
-                  )}
+                  )} */}
                   {!isInstalled && (
                     <SheetClose asChild>
                       <button
