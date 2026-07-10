@@ -778,3 +778,25 @@ export function currentUser(token: string | null): BackendUser {
   const { password: _password, ...rest } = found;
   return rest;
 }
+
+export function updateCurrentUser(
+  token: string | null,
+  payload: { name?: string; email?: string },
+): BackendUser {
+  const id = token ? userIdFromToken(token) : null;
+  const idx = id ? mockUsers.findIndex((u) => u.id === id) : -1;
+  if (idx === -1) {
+    const err: ApiError = { status: 401, message: "Sessão expirada" };
+    throw err;
+  }
+  if (
+    payload.email &&
+    mockUsers.some((u, i) => i !== idx && u.email.toLowerCase() === payload.email!.toLowerCase())
+  ) {
+    const err: ApiError = { status: 422, message: "E-mail já cadastrado" };
+    throw err;
+  }
+  mockUsers[idx] = { ...mockUsers[idx], ...payload };
+  const { password: _password, ...rest } = mockUsers[idx];
+  return rest;
+}

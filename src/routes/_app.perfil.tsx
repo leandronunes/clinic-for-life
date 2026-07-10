@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
 import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
+import { fetchCurrentUser, updateCurrentUser } from "@/lib/api/auth";
 import { useAuth } from "@/contexts/use-auth";
 import { NotificationsCard } from "@/components/NotificationsCard";
 import { toast } from "sonner";
@@ -24,16 +25,30 @@ export const Route = createFileRoute("/_app/perfil")({
   component: PerfilPage,
 });
 
-function PerfilPage() {
-  const { user, hasRole } = useAuth();
+export function PerfilPage() {
+  const { hasRole, isImpersonating, effectiveAlunoId } = useAuth();
+
+  if (isImpersonating && effectiveAlunoId) {
+    return <ImpersonatedStudentProfile alunoId={effectiveAlunoId} />;
+  }
+
+  if (hasRole("aluno") && effectiveAlunoId) {
+    return <AlunoProfile alunoId={effectiveAlunoId} />;
+  }
+
+  if (hasRole("admin", "personal")) {
+    return <OwnAccountProfile />;
+  }
+
+  return <Navigate to="/dashboard" />;
+}
+
+export function AlunoProfile({ alunoId }: { alunoId: string }) {
   const qc = useQueryClient();
-  const alunoId = user?.aluno_id;
-  const canAccess = hasRole("aluno") && !!alunoId;
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["aluno", alunoId],
-    queryFn: () => fetchStudent(alunoId!),
-    enabled: canAccess,
+    queryFn: () => fetchStudent(alunoId),
   });
 
   const [form, setForm] = useState<Student | null>(null);
@@ -41,7 +56,7 @@ function PerfilPage() {
 
   const saveMut = useMutation({
     mutationFn: () =>
-      updateStudent(alunoId!, {
+      updateStudent(alunoId, {
         name: current!.name,
         email: current!.email,
         phone: current!.phone,
@@ -57,15 +72,13 @@ function PerfilPage() {
   });
 
   const changePersonalMut = useMutation({
-    mutationFn: (trainerId: string) => updateStudent(alunoId!, { trainer_id: trainerId }),
+    mutationFn: (trainerId: string) => updateStudent(alunoId, { trainer_id: trainerId }),
     onSuccess: (res) => {
       toast.success(`Personal alterado para ${res.trainer_name}`);
       qc.invalidateQueries({ queryKey: ["aluno", alunoId] });
       setForm(null);
     },
   });
-
-  if (!canAccess) return <Navigate to="/dashboard" />;
 
   if (isLoading || !current) {
     return <div className="text-sm text-muted-foreground">Carregando...</div>;
@@ -172,6 +185,140 @@ function PerfilPage() {
   );
 }
 
+const SEX_LABELS: Record<Student["sex"], string> = {
+  female: "Feminino",
+  male: "Masculino",
+  other: "Outro",
+};
+
+export function ImpersonatedStudentProfile({ alunoId }: { alunoId: string }) {
+  const { data: student, isLoading } = useQuery({
+    queryKey: ["aluno", alunoId],
+    queryFn: () => fetchStudent(alunoId),
+  });
+
+  if (isLoading || !student) {
+    return <div className="text-sm text-muted-foreground">Carregando...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Perfil de {student.name}</h1>
+        <p className="text-sm text-muted-foreground">
+          Somente leitura — edite os dados do aluno em Usuários.
+        </p>
+      </div>
+
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserCircle className="h-4 w-4" /> Dados pessoais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ReadOnlyField label="Nome completo" value={student.name} className="sm:col-span-2" />
+            <ReadOnlyField label="E-mail" value={student.email} />
+            <ReadOnlyField label="Telefone" value={student.phone} />
+            <ReadOnlyField label="Nascimento" value={student.birth_date} />
+            <ReadOnlyField label="Gênero" value={SEX_LABELS[student.sex]} />
+            <ReadOnlyField
+              label="Plano de Saúde"
+              value={student.health_plan || "—"}
+              className="sm:col-span-2"
+            />
+            <ReadOnlyField
+              label="Contato de Emergência"
+              value={student.emergency_contact || "—"}
+              className="sm:col-span-2"
+            />
+            <ReadOnlyField
+              label="Personal"
+              value={student.trainer_name}
+              className="sm:col-span-2"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function OwnAccountProfile() {
+  const { updateUser } = useAuth();
+  const qc = useQueryClient();
+
+  const { data: me, isLoading } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchCurrentUser,
+  });
+
+  const [form, setForm] = useState<{ name: string; email: string } | null>(null);
+  const current = form ?? (me ? { name: me.name, email: me.email } : null);
+
+  const saveMut = useMutation({
+    mutationFn: () => updateCurrentUser({ name: current!.name, email: current!.email }),
+    onSuccess: (res) => {
+      toast.success("Perfil atualizado");
+      updateUser(res);
+      qc.invalidateQueries({ queryKey: ["auth", "me"] });
+      setForm(null);
+    },
+  });
+
+  if (isLoading || !current) {
+    return <div className="text-sm text-muted-foreground">Carregando...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Perfil</h1>
+        <p className="text-sm text-muted-foreground">Atualize seu nome e e-mail.</p>
+      </div>
+
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserCircle className="h-4 w-4" /> Dados pessoais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nome completo" className="sm:col-span-2">
+              <Input
+                value={current.name}
+                onChange={(e) => setForm({ ...current, name: e.target.value })}
+              />
+            </Field>
+            <Field label="E-mail" className="sm:col-span-2">
+              <Input
+                type="email"
+                value={current.email}
+                onChange={(e) => setForm({ ...current, email: e.target.value })}
+              />
+            </Field>
+          </div>
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setForm(null)}
+              disabled={!form || saveMut.isPending}
+            >
+              Descartar
+            </Button>
+            <Button onClick={() => saveMut.mutate()} disabled={!form || saveMut.isPending}>
+              {saveMut.isPending ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function PersonalSelector({
   currentTrainerId,
   currentTrainerName,
@@ -256,6 +403,23 @@ function Field({
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <Label className="text-xs">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-1.5 ${className ?? ""}`}>
+      <Label className="text-xs">{label}</Label>
+      <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">{value}</div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "@tanstack/react-router";
+import { Link, Navigate, Outlet } from "@tanstack/react-router";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
@@ -34,17 +34,22 @@ export function AppShell() {
             </div>
             <div className="ml-auto flex items-center gap-3">
               <PwaInstallButton />
-              <div className="hidden text-right text-xs md:block">
-                <div className="font-medium text-foreground">{user.name}</div>
-                <div className="text-muted-foreground capitalize">{user.role}</div>
-              </div>
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                {user.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")}
-              </div>
+              <Link
+                to="/perfil"
+                className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80"
+              >
+                <div className="hidden text-right text-xs md:block">
+                  <div className="font-medium text-foreground">{user.name}</div>
+                  <div className="text-muted-foreground capitalize">{user.role}</div>
+                </div>
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  {user.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join("")}
+                </div>
+              </Link>
             </div>
           </header>
 

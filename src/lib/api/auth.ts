@@ -81,6 +81,16 @@ export function fetchCurrentUser(): Promise<BackendUser> {
   return http.get<BackendUser>("/api/v1/auth/me");
 }
 
+export interface UpdateCurrentUserPayload {
+  name?: string;
+  email?: string;
+}
+
+/** Updates the authenticated user's own name/email — any role can call this. */
+export function updateCurrentUser(payload: UpdateCurrentUserPayload): Promise<BackendUser> {
+  return http.patch<BackendUser>("/api/v1/auth/me", payload);
+}
+
 /** Maps backend English fields to the shape the app currently consumes. */
 export function mapBackendUser(u: BackendUser): AuthUser {
   return {

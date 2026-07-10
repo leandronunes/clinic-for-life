@@ -106,6 +106,12 @@ async function routeMockRequest<T>({
   if (m === "GET" && path === "/api/v1/auth/me") {
     return store.currentUser(token) as T;
   }
+  if (m === "PATCH" && path === "/api/v1/auth/me") {
+    return store.updateCurrentUser(token, {
+      name: b.name as string | undefined,
+      email: b.email as string | undefined,
+    }) as T;
+  }
 
   // -------- Trainers --------
   if (m === "GET" && path === "/api/v1/trainers/search") {

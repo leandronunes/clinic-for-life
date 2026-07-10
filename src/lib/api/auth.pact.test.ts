@@ -15,7 +15,7 @@ import {
   nullValue,
 } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
-import { fetchCurrentUser, googleLogin, login, register } from "./auth";
+import { fetchCurrentUser, googleLogin, login, register, updateCurrentUser } from "./auth";
 
 const ROLES = ["admin", "personal", "student"];
 
@@ -361,6 +361,67 @@ describe("auth API contract", () => {
           mockServer.url,
           async () => {
             await expect(fetchCurrentUser()).rejects.toMatchObject({ status: 401 });
+          },
+          { authenticated: false },
+        );
+      });
+    });
+  });
+
+  describe("PATCH /api/v1/auth/me", () => {
+    it("updates the authenticated user's own name and e-mail", async () => {
+      const pact = createPact();
+      pact
+        .given("an authenticated user requests their own profile")
+        .uponReceiving("a request to update the current user's name and e-mail")
+        .withRequest({
+          method: "PATCH",
+          path: "/api/v1/auth/me",
+          headers: {
+            Authorization: bearerToken(),
+            "Content-Type": "application/json",
+          },
+          body: { name: "Novo Nome", email: "novo@forlife.app" },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: {
+            data: userTemplate({ name: like("Novo Nome"), email: like("novo@forlife.app") }),
+          },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const user = await updateCurrentUser({ name: "Novo Nome", email: "novo@forlife.app" });
+          expect(user.name).toEqual(expect.any(String));
+        });
+      });
+    });
+
+    it("rejects a request with no token", async () => {
+      const pact = createPact();
+      pact
+        .uponReceiving("a request to update the current user with no auth token")
+        .withRequest({
+          method: "PATCH",
+          path: "/api/v1/auth/me",
+          headers: { "Content-Type": "application/json" },
+          body: { name: "Novo Nome" },
+        })
+        .willRespondWith({
+          status: 401,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorStringBody("Unauthorized"),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            await expect(updateCurrentUser({ name: "Novo Nome" })).rejects.toMatchObject({
+              status: 401,
+            });
           },
           { authenticated: false },
         );

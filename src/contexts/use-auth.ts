@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AuthUser, RegisterParams, UserRole } from "@/lib/api/auth";
+import type { AuthUser, BackendUser, RegisterParams, UserRole } from "@/lib/api/auth";
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -9,6 +9,8 @@ export interface AuthContextValue {
   signUp: (params: RegisterParams) => Promise<AuthUser>;
   signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
   signOut: () => void;
+  /** Atualiza o usuário da sessão atual em memória/storage sem novo login. */
+  updateUser: (backendUser: BackendUser) => void;
   hasRole: (...roles: UserRole[]) => boolean;
   canWrite: boolean;
   /** Id do aluno que admin/personal está visualizando, se houver. */
