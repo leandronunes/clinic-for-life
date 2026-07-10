@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/use-auth";
 import { fetchMeasurements, type BioimpedanceMeasurement } from "@/lib/api/bioimpedance";
+import { formatDatePtBR } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/aluno/comparativo")({
   component: ComparativoPage,
@@ -85,7 +86,7 @@ function ComparativoPage() {
                   <SelectContent>
                     {snapshots.map((m) => (
                       <SelectItem key={m.id} value={m.id}>
-                        {formatDate(m.measured_on)}
+                        {formatDatePtBR(m.measured_on)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -103,7 +104,7 @@ function ComparativoPage() {
                   <SelectContent>
                     {snapshots.map((m) => (
                       <SelectItem key={m.id} value={m.id}>
-                        {formatDate(m.measured_on)}
+                        {formatDatePtBR(m.measured_on)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -151,15 +152,7 @@ function ComparativoPage() {
   );
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function SnapshotCard({
+export function SnapshotCard({
   label,
   measurement,
   accent,
@@ -186,7 +179,7 @@ function SnapshotCard({
       </div>
       <CardContent className="space-y-2 p-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" /> {formatDate(measurement.measured_on)}
+          <Calendar className="h-4 w-4" /> {formatDatePtBR(measurement.measured_on)}
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <Stat label="Peso" value={`${measurement.weight_kg.toFixed(1)} kg`} />
@@ -221,7 +214,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DiffRow({
+export function DiffRow({
   label,
   antes,
   depois,

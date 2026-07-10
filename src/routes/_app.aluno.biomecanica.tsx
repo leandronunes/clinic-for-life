@@ -30,6 +30,8 @@ import {
   newBiomechanicsAssessment,
   uploadBiomechanicsSlot,
   removeBiomechanicsSlot,
+  PLANO_CORONAL,
+  PLANO_SAGITAL,
   type BiomechanicsSlotBackend,
   type BiomechanicsImages,
   type BiomechanicalAssessment,
@@ -47,18 +49,6 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/aluno/biomecanica")({
   component: BiomecanicaPage,
 });
-
-const PLANO_CORONAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
-  { slot: "frontal", label: "Visão Frontal" },
-  { slot: "posterior", label: "Posterior" },
-  { slot: "trunk_flexion", label: "Flexão de tronco" },
-];
-
-const PLANO_SAGITAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
-  { slot: "left_side", label: "Lado esquerdo" },
-  { slot: "right_side", label: "Lado direito" },
-  { slot: "profile_flexion", label: "Flexão de tronco" },
-];
 
 const STRUCTURAL_ITEMS: { key: keyof StructuralAssessment; label: string }[] = [
   { key: "scoliosis", label: "Escoliose" },
@@ -261,7 +251,7 @@ function HistoricoBiomecanicaSection({ alunoId }: { alunoId: string }) {
   );
 }
 
-function HistoricoPlanoGrid({
+export function HistoricoPlanoGrid({
   titulo,
   slots,
   imagens,

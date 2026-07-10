@@ -14,6 +14,7 @@ import {
   Menu,
   FileText,
   Download,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/use-auth";
@@ -85,7 +86,7 @@ export function MobileBottomNav() {
           : "grid-cols-2";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur print:hidden md:hidden">
       <ul className={`grid ${colsClass}`}>
         {items.map((it) => {
           const active = pathname === it.url || pathname.startsWith(it.url + "/");
@@ -180,6 +181,18 @@ export function MobileBottomNav() {
                         <Download className="h-5 w-5" />
                         Instalar app
                       </button>
+                    </SheetClose>
+                  )}
+
+                  {isImpersonating && (
+                    <SheetClose asChild>
+                      <Link
+                        to="/aluno/laudo"
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                      >
+                        <Printer className="h-5 w-5" />
+                        Gerar Laudo
+                      </Link>
                     </SheetClose>
                   )}
 

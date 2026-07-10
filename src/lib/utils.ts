@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatDatePtBR(d: string): string {
+  return new Date(d).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export function validateStrongPassword(pw: string): string[] {
   const errs: string[] = [];
   if (pw.length < 8) errs.push("mínimo de 8 caracteres");
