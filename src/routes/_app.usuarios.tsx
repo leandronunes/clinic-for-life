@@ -204,6 +204,11 @@ function AlunosTab({
                     <TableCell>
                       <div className="font-medium text-foreground">{a.name}</div>
                       <div className="text-xs text-muted-foreground md:hidden">{a.email}</div>
+                      {isAdmin && (
+                        <div className="text-xs text-muted-foreground lg:hidden">
+                          Personal: {a.trainer_name}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{a.email}</TableCell>
                     {isAdmin && (
@@ -356,6 +361,9 @@ function PersonaisTab({
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground sm:hidden">
+                        {p.students_count} alunos
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{p.cref}</TableCell>
                     <TableCell className="hidden lg:table-cell">{p.email}</TableCell>
