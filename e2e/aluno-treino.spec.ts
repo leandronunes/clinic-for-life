@@ -58,6 +58,24 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
 
     await expect(page.getByText("Corrida no parque")).toBeVisible();
     await expect(page.getByRole("main").getByText("Cardio", { exact: true }).first()).toBeVisible();
+    // Nenhuma zona selecionada por padrão — não deve aparecer "Zona X" no card.
+    await expect(page.getByText(/Zona \d/)).not.toBeVisible();
+  });
+
+  test("admin adiciona um cardio sem escolher zona de frequência cardíaca", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("button", { name: "Adicionar cardio" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByPlaceholder("Ex.: Corrida na esteira").fill("Pedalada leve");
+    // Nenhuma zona é selecionada — o campo abre em "Nenhuma" por padrão.
+    await dialog.getByRole("button", { name: "Adicionar" }).click();
+
+    await expect(page.getByText("Pedalada leve")).toBeVisible();
+    await expect(page.getByText(/Zona \d/)).not.toBeVisible();
   });
 
   test("admin adiciona um exercício de mobilidade ao treino do aluno", async ({ page }) => {
