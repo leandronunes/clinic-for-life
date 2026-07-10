@@ -1074,7 +1074,10 @@ function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExerc
     duration_seconds: form.duration_seconds || undefined,
     distance_value: form.distance_value,
     distance_unit: form.distance_value ? form.distance_unit : undefined,
-    hr_zone: form.hr_zone,
+    // Explicit null (not undefined) — omitting the key on an update means
+    // "don't touch this column" server-side, which would leave a
+    // previously-set zone unchanged instead of clearing it.
+    hr_zone: form.hr_zone ?? null,
     heart_rate_bpm: form.heart_rate_bpm.trim() || undefined,
     video_url,
     notes,

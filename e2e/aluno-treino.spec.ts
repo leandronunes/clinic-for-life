@@ -78,6 +78,49 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await expect(page.getByText(/Zona \d/)).not.toBeVisible();
   });
 
+  test("limpar a zona de um cardio existente persiste após um refetch", async ({ page }) => {
+    // Regressão: um PATCH que omite hr_zone (em vez de enviar null) deixa o
+    // valor antigo intocado no banco. Navegar para outra rota e voltar força
+    // o TanStack Query a refazer o fetch (staleTime padrão = 0), sem recarregar
+    // a página inteira — um reload aqui reiniciaria o mock offline (guarda
+    // dados só em memória), mascarando a regressão em vez de expô-la.
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("button", { name: "Adicionar cardio" }).click();
+    const addDialog = page.getByRole("dialog");
+    await addDialog.getByPlaceholder("Ex.: Corrida na esteira").fill("Circuito com zona");
+    const addZonaLabel = addDialog.getByText("Zona / Intensidade");
+    await addZonaLabel.locator("xpath=following-sibling::button[1]").click();
+    await page.getByRole("option", { name: "Zona 4" }).click();
+    await addDialog.getByRole("button", { name: "Adicionar" }).click();
+
+    await expect(page.getByText("Zona 4")).toBeVisible();
+
+    const row = page
+      .getByText("Circuito com zona", { exact: true })
+      .locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]");
+    await row.getByLabel("Editar exercício").click();
+    const editDialog = page.getByRole("dialog");
+    const editZonaLabel = editDialog.getByText("Zona / Intensidade");
+    await editZonaLabel.locator("xpath=following-sibling::button[1]").click();
+    await page.getByRole("option", { name: "Nenhuma" }).click();
+    await editDialog.getByRole("button", { name: "Salvar alterações" }).click();
+    await expect(editDialog).not.toBeVisible();
+
+    await expect(page.getByText("Zona 4")).not.toBeVisible();
+
+    await page.getByRole("link", { name: "Evolução" }).click();
+    await expect(page).toHaveURL("/aluno/evolucao");
+    await page.getByRole("link", { name: "Meu Treino" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await expect(page.getByText("Circuito com zona")).toBeVisible();
+    await expect(page.getByText("Zona 4")).not.toBeVisible();
+  });
+
   test("admin adiciona um exercício de mobilidade ao treino do aluno", async ({ page }) => {
     await loginAs(page, "admin");
     await page.goto("/usuarios");
