@@ -235,6 +235,29 @@ describe("UsuariosPage — AlunosTab", () => {
     expect(destructiveBtns).toHaveLength(0);
   });
 
+  it("shows the personal's name inline under the student name for admin (mobile fallback)", async () => {
+    await renderPage();
+    await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+
+    expect(screen.getByText(`Personal: ${student.trainer_name}`)).toBeInTheDocument();
+  });
+
+  it("hides the inline personal name for a personal user (they already know it's them)", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "u2", email: "personal@test.com", role: "personal" } as ReturnType<
+        typeof useAuth
+      >["user"],
+      canWrite: true,
+      hasRole: (r: string) => r === "personal",
+      impersonateAluno: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+
+    await renderPage();
+    await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+
+    expect(screen.queryByText(`Personal: ${student.trainer_name}`)).not.toBeInTheDocument();
+  });
+
   describe("Editar aluno — cartão de parceiros", () => {
     async function openEditDialog() {
       await renderPage();
@@ -346,5 +369,12 @@ describe("UsuariosPage — PersonaisTab", () => {
     fireEvent.click(trashBtns[trashBtns.length - 1]);
 
     await waitFor(() => expect(screen.queryByText(/3 aluno\(s\)/)).toBeInTheDocument());
+  });
+
+  it("shows the student count inline under the personal's name (mobile fallback)", async () => {
+    await renderPage();
+    await waitFor(() => expect(screen.getByText("Rafael Monteiro")).toBeInTheDocument());
+
+    expect(screen.getByText(`${trainer.students_count} alunos`)).toBeInTheDocument();
   });
 });
