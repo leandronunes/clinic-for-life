@@ -65,7 +65,7 @@ export interface CreateExercisePayload {
   duration_seconds?: number;
   distance_value?: number;
   distance_unit?: DistanceUnit;
-  hr_zone?: HrZone;
+  hr_zone?: HrZone | null;
   heart_rate_bpm?: string;
   video_url?: string;
   notes?: string;

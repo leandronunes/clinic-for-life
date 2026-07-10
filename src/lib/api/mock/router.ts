@@ -57,7 +57,17 @@ export interface MockRequestInput {
  */
 export async function resolveMockRequest<T>(input: MockRequestInput): Promise<T> {
   await wait();
-  const result = await routeMockRequest<T>(input);
+  // A real request body always travels through JSON.stringify → the wire →
+  // JSON.parse, which silently drops any key whose value is `undefined`.
+  // Round-tripping here too means a payload that "forgets" to explicitly
+  // null out a field behaves the same against the mock as it would against
+  // the real Rails backend (a bug caught this way — an omitted key updating
+  // nothing, instead of clearing the column — see workouts.ts's hr_zone fix).
+  const body =
+    input.body && !(input.body instanceof FormData)
+      ? (JSON.parse(JSON.stringify(input.body)) as unknown)
+      : input.body;
+  const result = await routeMockRequest<T>({ ...input, body });
   // A real HTTP response is always a fresh value deserialized from JSON,
   // never aliased to server-side state. store.ts mutates its records in
   // place (e.g. createExercise reassigns workout.exercises), so without this

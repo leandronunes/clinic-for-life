@@ -319,8 +319,68 @@ describe("TreinoCard", () => {
           kind: "cardio",
           name: "Corrida da manhã",
           duration_seconds: 600,
-          hr_zone: 2,
+          hr_zone: null,
         }),
+      );
+    });
+
+    // "Zona / Intensidade" e "km" são dois <Select> distintos sem label
+    // associado via htmlFor (mesmo gap do Field documentado em outros
+    // arquivos) — escopamos pelo container do label pra pegar o combobox certo.
+    function zonaComboboxIn(container: HTMLElement) {
+      const label = within(container).getByText("Zona / Intensidade");
+      return within(label.parentElement!).getByRole("combobox");
+    }
+
+    it("lets the user pick a heart rate zone when adding cardio", async () => {
+      const user = userEvent.setup();
+      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.type(
+        within(dialog).getByPlaceholderText("Ex.: Corrida na esteira"),
+        "Corrida da manhã",
+      );
+      await user.click(zonaComboboxIn(dialog));
+      await user.click(await screen.findByRole("option", { name: "Zona 3" }));
+      await user.click(within(dialog).getByRole("button", { name: "Adicionar" }));
+
+      expect(mockCreateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        expect.objectContaining({ hr_zone: 3 }),
+      );
+    });
+
+    it("clears a previously selected heart rate zone when editing cardio, sending null (not omitting the key)", async () => {
+      // Regression test: PATCH must send `hr_zone: null` explicitly. Omitting
+      // the key entirely (e.g. via `undefined`, dropped by JSON.stringify)
+      // means "don't touch this column" server-side, so a workout that
+      // already had a zone silently kept its old value instead of clearing —
+      // reported after the zone reverted to "Zona 2" post-save in production.
+      const user = userEvent.setup();
+      const cardioWorkout: Workout = { ...mockWorkout, exercises: [cardioExercise] };
+      render(<TreinoCard treino={cardioWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
+        wrapper,
+      });
+
+      await user.click(screen.getByLabelText("Editar exercício"));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(zonaComboboxIn(dialog));
+      await user.click(await screen.findByRole("option", { name: "Nenhuma" }));
+      await user.click(within(dialog).getByRole("button", { name: "Salvar alterações" }));
+
+      // objectContaining({ hr_zone: null }) fails if the key is merely
+      // omitted (the original bug) — it requires the property to be present
+      // and strictly equal to null, not just absent/undefined.
+      expect(mockUpdateExercise).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        "e3",
+        expect.objectContaining({ hr_zone: null }),
       );
     });
 

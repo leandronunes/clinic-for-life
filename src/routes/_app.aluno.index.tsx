@@ -1001,7 +1001,7 @@ const EMPTY_FORM_BY_KIND: Record<ExerciseKind, ExercicioFormState> = {
     duration_seconds: 600,
     distance_value: undefined,
     distance_unit: "km",
-    hr_zone: 2,
+    hr_zone: undefined,
     heart_rate_bpm: "",
     video_url: "",
     notes: "",
@@ -1074,7 +1074,10 @@ function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExerc
     duration_seconds: form.duration_seconds || undefined,
     distance_value: form.distance_value,
     distance_unit: form.distance_value ? form.distance_unit : undefined,
-    hr_zone: form.hr_zone,
+    // Explicit null (not undefined) — omitting the key on an update means
+    // "don't touch this column" server-side, which would leave a
+    // previously-set zone unchanged instead of clearing it.
+    hr_zone: form.hr_zone ?? null,
     heart_rate_bpm: form.heart_rate_bpm.trim() || undefined,
     video_url,
     notes,
@@ -1340,13 +1343,19 @@ function ExercicioFormDialog({
                 </Field>
                 <Field label="Zona / Intensidade" className="sm:col-span-2">
                   <Select
-                    value={form.hr_zone ? String(form.hr_zone) : ""}
-                    onValueChange={(v) => setForm({ ...form, hr_zone: Number(v) as HrZone })}
+                    value={form.hr_zone ? String(form.hr_zone) : "none"}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        hr_zone: v === "none" ? undefined : (Number(v) as HrZone),
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a zona" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="1">Zona 1</SelectItem>
                       <SelectItem value="2">Zona 2</SelectItem>
                       <SelectItem value="3">Zona 3</SelectItem>
