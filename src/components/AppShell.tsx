@@ -22,12 +22,12 @@ export function AppShell() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <div className="hidden md:block">
+        <div className="hidden print:hidden md:block">
           <AppSidebar />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur md:px-6">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur print:hidden md:px-6">
             <SidebarTrigger className="hidden md:inline-flex" />
             <div className="md:hidden">
               <BrandLogo size={28} withWordmark />
@@ -48,7 +48,7 @@ export function AppShell() {
             </div>
           </header>
 
-          <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
+          <main className="flex-1 p-4 pb-24 print:p-0 md:p-8 md:pb-8">
             <Outlet />
           </main>
         </div>

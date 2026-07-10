@@ -13,6 +13,7 @@ import {
   Handshake,
   ClipboardList,
   FileText,
+  Printer,
 } from "lucide-react";
 import {
   Sidebar,
@@ -106,6 +107,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isImpersonating && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/aluno/laudo")}>
+                    <Link to="/aluno/laudo" className="flex items-center gap-2">
+                      <Printer className="h-4 w-4" />
+                      <span>Gerar Laudo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {isImpersonating && (
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={handleStopImpersonating}>

@@ -36,6 +36,18 @@ export const SLOT_FROM_BACKEND: Record<BiomechanicsSlotBackend, BiomechanicsSlot
 
 export type BiomechanicsImages = Partial<Record<BiomechanicsSlotBackend, string>>;
 
+export const PLANO_CORONAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
+  { slot: "frontal", label: "Visão Frontal" },
+  { slot: "posterior", label: "Posterior" },
+  { slot: "trunk_flexion", label: "Flexão de tronco" },
+];
+
+export const PLANO_SAGITAL: { slot: BiomechanicsSlotBackend; label: string }[] = [
+  { slot: "left_side", label: "Lado esquerdo" },
+  { slot: "right_side", label: "Lado direito" },
+  { slot: "profile_flexion", label: "Flexão de tronco" },
+];
+
 export interface BiomechanicalAssessment {
   id: string;
   created_at: string;
