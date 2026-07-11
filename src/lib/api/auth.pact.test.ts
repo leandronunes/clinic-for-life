@@ -450,7 +450,7 @@ describe("auth API contract", () => {
             "Content-Type": "application/json",
           },
           body: {
-            current_password: "Str0ng@Pass1",
+            current_password: "Str0ng@Pass",
             password: "N3w@Str0ngPass",
             password_confirmation: "N3w@Str0ngPass",
           },
@@ -464,7 +464,7 @@ describe("auth API contract", () => {
       await pact.executeTest(async (mockServer) => {
         await withMockServerEnv(mockServer.url, async () => {
           const result = await changePassword({
-            current_password: "Str0ng@Pass1",
+            current_password: "Str0ng@Pass",
             password: "N3w@Str0ngPass",
             password_confirmation: "N3w@Str0ngPass",
           });
@@ -482,7 +482,7 @@ describe("auth API contract", () => {
           path: "/api/v1/auth/password",
           headers: { "Content-Type": "application/json" },
           body: {
-            current_password: "Str0ng@Pass1",
+            current_password: "Str0ng@Pass",
             password: "N3w@Str0ngPass",
             password_confirmation: "N3w@Str0ngPass",
           },
@@ -499,7 +499,7 @@ describe("auth API contract", () => {
           async () => {
             await expect(
               changePassword({
-                current_password: "Str0ng@Pass1",
+                current_password: "Str0ng@Pass",
                 password: "N3w@Str0ngPass",
                 password_confirmation: "N3w@Str0ngPass",
               }),
