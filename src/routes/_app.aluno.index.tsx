@@ -714,10 +714,7 @@ function ExerciseRowContent({
   const KindIcon = meta.icon;
   return (
     <div
-      className={cn(
-        "flex flex-col gap-3 rounded-lg border p-4 transition-colors",
-        meta.rowClass,
-      )}
+      className={cn("flex flex-col gap-3 rounded-lg border p-4 transition-colors", meta.rowClass)}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">

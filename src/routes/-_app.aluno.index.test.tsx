@@ -361,6 +361,119 @@ describe("TreinoCard", () => {
     });
   });
 
+  describe("observação do personal (exercise notes)", () => {
+    it("shows the trainer's note for a strength exercise", () => {
+      const workout: Workout = {
+        ...mockWorkout,
+        exercises: [{ ...mockWorkout.exercises[0], notes: "Controlar a fase excêntrica." }],
+      };
+      render(
+        <TreinoCard
+          treino={workout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.getByText("Observação do Personal")).toBeInTheDocument();
+      expect(screen.getByText("Controlar a fase excêntrica.")).toBeInTheDocument();
+    });
+
+    it("shows the trainer's note for cardio and mobility exercises", () => {
+      const cardioExercise: Exercise = {
+        id: "e3",
+        position: 1,
+        kind: "cardio",
+        name: "Corrida na esteira",
+        duration_seconds: 1200,
+        video_url: "",
+        notes: "Manter ritmo constante.",
+      };
+      const mobilityExercise: Exercise = {
+        id: "e4",
+        position: 2,
+        kind: "mobility",
+        name: "Alongamento de quadril",
+        sets: 2,
+        reps: "10",
+        video_url: "",
+        notes: "Não forçar além do conforto.",
+      };
+      render(
+        <TreinoCard
+          treino={{ ...mockWorkout, exercises: [cardioExercise, mobilityExercise] }}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.getByText("Manter ritmo constante.")).toBeInTheDocument();
+      expect(screen.getByText("Não forçar além do conforto.")).toBeInTheDocument();
+    });
+
+    it("does not render the notes block when the exercise has no note", () => {
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(screen.queryByText("Observação do Personal")).not.toBeInTheDocument();
+    });
+
+    it("toggles between 'Ver mais' and 'Ver menos' for a note that overflows the preview", async () => {
+      const user = userEvent.setup();
+      const workout: Workout = {
+        ...mockWorkout,
+        exercises: [{ ...mockWorkout.exercises[0], notes: "Nota longa que ultrapassa o preview." }],
+      };
+
+      // jsdom não calcula layout real; o componente decide se o texto
+      // ultrapassa 2 linhas comparando scrollHeight × clientHeight no mount,
+      // então o stub precisa existir antes da primeira renderização.
+      const scrollHeightSpy = vi
+        .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+        .mockReturnValue(40);
+      const clientHeightSpy = vi
+        .spyOn(HTMLElement.prototype, "clientHeight", "get")
+        .mockReturnValue(20);
+
+      render(
+        <TreinoCard
+          treino={workout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const toggle = await screen.findByRole("button", { name: /ver mais/i });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+      await user.click(toggle);
+      expect(screen.getByRole("button", { name: /ver menos/i })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+
+      scrollHeightSpy.mockRestore();
+      clientHeightSpy.mockRestore();
+    });
+  });
+
   describe("cardio and mobility exercises", () => {
     const cardioExercise: Exercise = {
       id: "e3",
