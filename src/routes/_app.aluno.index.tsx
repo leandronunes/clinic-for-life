@@ -82,6 +82,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/use-auth";
+import { fetchStudent } from "@/lib/api/students";
 import {
   fetchWorkouts,
   createWorkout,
@@ -116,6 +117,10 @@ function MeuTreinoPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["treinos", alunoId],
     queryFn: () => fetchWorkouts(alunoId),
+  });
+  const { data: student } = useQuery({
+    queryKey: ["aluno", alunoId],
+    queryFn: () => fetchStudent(alunoId),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
@@ -180,16 +185,8 @@ function MeuTreinoPage() {
         </div>
         {canWrite && view === "ativos" && (
           <div className="flex flex-wrap items-center gap-2">
-            <ColarTreinoButton
-              alunoId={alunoId}
-              personalNome={user?.role === "personal" ? user.name : undefined}
-              onPasted={(t) => setSelectedId(t.id)}
-            />
-            <NovoTreinoDialog
-              alunoId={alunoId}
-              personalNome={user?.role === "personal" ? user.name : undefined}
-              onCreated={(t) => setSelectedId(t.id)}
-            />
+            <ColarTreinoButton alunoId={alunoId} onPasted={(t) => setSelectedId(t.id)} />
+            <NovoTreinoDialog alunoId={alunoId} onCreated={(t) => setSelectedId(t.id)} />
           </div>
         )}
       </div>
@@ -283,6 +280,7 @@ function MeuTreinoPage() {
                 <TreinoCard
                   treino={treinoAtual}
                   alunoId={alunoId}
+                  trainerName={student?.trainer_name ?? "—"}
                   onWatch={setVideoEx}
                   canEdit={canWrite && treinoAtual.status === "active"}
                   canUnarchive={canWrite && treinoAtual.status === "archived"}
@@ -364,6 +362,7 @@ function SortableWorkoutButton({
 export function TreinoCard({
   treino,
   alunoId,
+  trainerName,
   onWatch,
   canEdit,
   canUnarchive = false,
@@ -371,6 +370,7 @@ export function TreinoCard({
 }: {
   treino: Workout;
   alunoId: string;
+  trainerName: string;
   onWatch: (e: Exercise) => void;
   canEdit: boolean;
   canUnarchive?: boolean;
@@ -473,7 +473,7 @@ export function TreinoCard({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {treino.focus} · {treino.exercises.length} exercícios · Personal: {treino.trainer_name}
+            {treino.focus} · {treino.exercises.length} exercícios · Personal: {trainerName}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
@@ -833,18 +833,15 @@ function ExerciseRowContent({
 
 function NovoTreinoDialog({
   alunoId,
-  personalNome,
   onCreated,
 }: {
   alunoId: string;
-  personalNome?: string;
   onCreated?: (t: Workout) => void;
 }) {
   return (
     <TreinoFormDialog
       mode="create"
       alunoId={alunoId}
-      personalNome={personalNome}
       onCreated={onCreated}
       trigger={
         <Button size="sm">
@@ -858,14 +855,12 @@ function NovoTreinoDialog({
 function TreinoFormDialog({
   mode,
   alunoId,
-  personalNome,
   treino,
   trigger,
   onCreated,
 }: {
   mode: "create" | "edit";
   alunoId: string;
-  personalNome?: string;
   treino?: Workout;
   trigger?: React.ReactNode;
   onCreated?: (t: Workout) => void;
@@ -880,11 +875,7 @@ function TreinoFormDialog({
   const mut = useMutation({
     mutationFn: () =>
       mode === "create"
-        ? createWorkout(alunoId, {
-            title: form.title,
-            focus: form.focus,
-            trainer_name: personalNome,
-          })
+        ? createWorkout(alunoId, { title: form.title, focus: form.focus })
         : updateWorkout(alunoId, treino!.id, { title: form.title, focus: form.focus }),
     onSuccess: (novo) => {
       toast.success(mode === "create" ? `Treino ${novo.position} cadastrado` : "Treino atualizado");
@@ -1583,11 +1574,9 @@ function Field({
 
 export function ColarTreinoButton({
   alunoId,
-  personalNome,
   onPasted,
 }: {
   alunoId: string;
-  personalNome?: string;
   onPasted?: (t: Workout) => void;
 }) {
   const { clipboard, clear } = useWorkoutClipboard();
@@ -1608,7 +1597,6 @@ export function ColarTreinoButton({
       const workout = await createWorkout(alunoId, {
         title: payload.title,
         focus: payload.focus,
-        trainer_name: personalNome ?? payload.clip.trainerName,
       });
       // Sequenciar as criações de exercícios preserva a ordem original (position).
       for (const ex of payload.clip.exercises) {

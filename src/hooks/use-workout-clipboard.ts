@@ -31,7 +31,6 @@ export interface WorkoutClipboard {
   sourceStudentLabel?: string;
   title: string;
   focus: string;
-  trainerName?: string;
   exercises: ClipboardExercise[];
   copiedAt: string;
 }
@@ -129,7 +128,6 @@ export function workoutToClipboard(
     sourceStudentLabel,
     title: workout.title,
     focus: workout.focus,
-    trainerName: workout.trainer_name,
     exercises: [...workout.exercises]
       .sort((a, b) => a.position - b.position)
       .map(toClipboardExercise),

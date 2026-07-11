@@ -172,7 +172,6 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
       status: "active",
       created_at: "2026-01-05T10:00:00.000Z",
       archived_at: null,
-      trainer_name: "Rafael Monteiro",
       exercises: [
         {
           id: "exercise-s1-a-1",
@@ -220,7 +219,6 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
       status: "active",
       created_at: "2026-01-05T10:00:00.000Z",
       archived_at: null,
-      trainer_name: "Rafael Monteiro",
       exercises: [
         {
           id: "exercise-s1-b-1",
@@ -256,7 +254,6 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
       status: "archived",
       created_at: "2025-11-10T10:00:00.000Z",
       archived_at: "2025-12-20T10:00:00.000Z",
-      trainer_name: "Rafael Monteiro",
       exercises: [],
     },
   ],
