@@ -122,10 +122,16 @@ async function routeMockRequest<T>({
 
   // -------- Trainers --------
   if (m === "GET" && path === "/api/v1/trainers/search") {
-    return store.listTrainers(String(params?.query ?? "")) as T;
+    return store.listTrainers(
+      String(params?.query ?? ""),
+      params?.status !== undefined && params?.status !== null ? String(params.status) : undefined,
+    ) as T;
   }
   if (m === "GET" && path === "/api/v1/trainers") {
-    return store.listTrainers() as T;
+    return store.listTrainers(
+      undefined,
+      params?.status !== undefined && params?.status !== null ? String(params.status) : undefined,
+    ) as T;
   }
   if (m === "POST" && path === "/api/v1/trainers") {
     return store.createTrainer(b as unknown as CreateTrainerPayload) as T;

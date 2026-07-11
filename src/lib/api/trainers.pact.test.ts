@@ -61,6 +61,56 @@ describe("trainers API contract", () => {
     });
   });
 
+  it("lists trainers filtered by status", async () => {
+    const pact = createPact();
+    pact
+      .given("at least one active trainer exists, alongside an inactive one")
+      .uponReceiving("a request for the list of trainers filtered by status")
+      .withRequest({
+        method: "GET",
+        path: "/api/v1/trainers",
+        query: { status: "active" },
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: { data: [trainerTemplate({ status: enumString(STATUSES, "active") })] },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const trainers = await fetchTrainers(undefined, "active");
+        expect(trainers.every((t) => t.status === "active")).toBe(true);
+      });
+    });
+  });
+
+  it("searches trainers by query filtered by status", async () => {
+    const pact = createPact();
+    pact
+      .given("an active trainer matching the search query exists, alongside a blocked one")
+      .uponReceiving("a search request for trainers filtered by status")
+      .withRequest({
+        method: "GET",
+        path: "/api/v1/trainers/search",
+        query: { query: "Ana", status: "active" },
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: { data: [trainerTemplate({ status: enumString(STATUSES, "active") })] },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const trainers = await fetchTrainers("Ana", "active");
+        expect(trainers.every((t) => t.status === "active")).toBe(true);
+      });
+    });
+  });
+
   it("searches trainers by query", async () => {
     const pact = createPact();
     pact

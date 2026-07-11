@@ -337,8 +337,8 @@ function PersonalSelector({
 }) {
   const [q, setQ] = useState("");
   const { data: results = [] } = useQuery({
-    queryKey: ["search-trainers", q],
-    queryFn: () => fetchTrainers(q),
+    queryKey: ["search-trainers", q, "active"],
+    queryFn: () => fetchTrainers(q, "active"),
   });
 
   return (

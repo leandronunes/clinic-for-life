@@ -62,8 +62,17 @@ function withComputedCount(t: Trainer): Trainer {
   return { ...t, students_count: studentsCountFor(t.id) };
 }
 
-export function listTrainers(query?: string): Trainer[] {
-  const all = trainers.map(withComputedCount);
+export function listTrainers(query?: string, statusFilter?: string): Trainer[] {
+  let all = trainers.map(withComputedCount);
+
+  const statuses = statusFilter
+    ?.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (statuses?.length) {
+    all = all.filter((t) => statuses.includes(t.status));
+  }
+
   if (!query?.trim()) return all;
   const q = query.trim().toLowerCase();
   return all.filter(

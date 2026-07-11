@@ -210,6 +210,37 @@ describe("PerfilPage", () => {
     expect(screen.queryByTestId("notifications-card")).not.toBeInTheDocument();
   });
 
+  it("lista de personais no 'Meu Personal' pede apenas personais ativos ao backend", async () => {
+    mockUseAuth.mockReturnValue(
+      buildAuth({
+        hasRole: (...roles) => roles.includes("aluno"),
+        isImpersonating: false,
+        effectiveAlunoId: "s1",
+      }),
+    );
+    mockFetchStudent.mockResolvedValue(student);
+    // O backend já filtra por status — o mock aqui só devolve o que o
+    // endpoint filtrado retornaria (nenhum personal inativo).
+    mockFetchTrainers.mockResolvedValue([
+      {
+        id: "t1",
+        name: "Carlos Personal",
+        cpf: "111.111.111-11",
+        cref: "111111-G/SP",
+        email: "carlos@test.com",
+        phone: "11999990000",
+        status: "active",
+        students_count: 3,
+      },
+    ]);
+
+    render(<PerfilPage />, { wrapper });
+
+    await screen.findByText("Meu Personal");
+    await waitFor(() => expect(screen.getByText("Carlos Personal")).toBeInTheDocument());
+    expect(mockFetchTrainers).toHaveBeenCalledWith("", "active");
+  });
+
   it("redireciona para /dashboard quando não há papel reconhecido", () => {
     mockUseAuth.mockReturnValue(
       buildAuth({
