@@ -55,6 +55,26 @@ function renderInput(value = "", onChange = vi.fn()) {
   );
 }
 
+// useIsMobile (src/hooks/use-mobile.tsx) checks window.innerWidth, not
+// matchMedia's `matches` — matchMedia only needs stubbing so jsdom doesn't
+// throw (it has no real implementation).
+function stubIsMobile(isMobile: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: isMobile,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+  Object.defineProperty(window, "innerWidth", {
+    value: isMobile ? 375 : 1024,
+    configurable: true,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   FakeMediaRecorder.lastInstance = null;
@@ -68,6 +88,7 @@ beforeEach(() => {
     value: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
     configurable: true,
   });
+  stubIsMobile(false);
 });
 
 describe("ExercicioVideoInput", () => {
@@ -180,11 +201,52 @@ describe("ExercicioVideoInput", () => {
       });
     });
 
+    describe("on mobile", () => {
+      beforeEach(() => stubIsMobile(true));
+
+      it("opens the native camera app instead of the in-app recorder", async () => {
+        renderInput();
+        const user = await openUploadTab();
+
+        await user.click(screen.getByRole("button", { name: /Gravar agora/i }));
+
+        expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+        expect(screen.queryByRole("button", { name: /Parar gravação/i })).not.toBeInTheDocument();
+        const captureInput = document.querySelector<HTMLInputElement>("input[capture]")!;
+        expect(captureInput).toHaveAttribute("capture", "environment");
+        expect(captureInput).toHaveAttribute("accept", "video/*");
+      });
+
+      it("uploads the video the camera app hands back", async () => {
+        mockUpload.mockResolvedValue("https://s3.example.com/video.mp4");
+        const onChange = vi.fn();
+        renderInput("", onChange);
+        await openUploadTab();
+
+        const file = new File(["video"], "treino.mp4", { type: "video/mp4" });
+        const captureInput = document.querySelector<HTMLInputElement>("input[capture]")!;
+        Object.defineProperty(captureInput, "files", { value: [file], configurable: true });
+        fireEvent.change(captureInput);
+
+        await waitFor(() => {
+          expect(mockUpload).toHaveBeenCalledWith(
+            "s1",
+            file,
+            expect.stringContaining(".mp4"),
+            "video/mp4",
+            expect.any(Function),
+          );
+          expect(onChange).toHaveBeenCalledWith("https://s3.example.com/video.mp4");
+        });
+      });
+    });
+
     describe("file upload", () => {
-      it("does not force the camera to open — lets the user pick an existing file", async () => {
+      it("does not force the camera to open on 'Enviar arquivo' — lets the user pick an existing file", async () => {
         // A `capture` attribute here would make mobile browsers jump straight
-        // to the camera/recorder instead of showing the file picker, even
-        // though "Gravar agora" already covers recording via getUserMedia.
+        // to the camera instead of showing the file picker. That's the
+        // dedicated capture input's job (see "on mobile" above) — this
+        // button is for choosing an existing video from the gallery/files.
         renderInput();
         await openUploadTab();
 
