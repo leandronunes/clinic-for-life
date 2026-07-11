@@ -64,9 +64,6 @@ export function MobileBottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const role = pathname.startsWith("/aluno") ? "aluno" : (effectiveRole ?? user?.role);
   let items = role ? [...MENU[role]] : [];
-  if (isImpersonating) {
-    items = items.filter((i) => i.url !== "/perfil");
-  }
   // Show "Mais" menu for all roles to expose extras (aluno) and/or sair.
   const showMore = role === "aluno" || role === "admin" || role === "personal";
   if (showMore && role === "aluno") {
@@ -146,7 +143,7 @@ export function MobileBottomNav() {
                         </Link>
                       </SheetClose>
                     ))}
-                  {!isImpersonating && role === "aluno" && (
+                  {role === "aluno" && (
                     <SheetClose asChild>
                       <Link
                         to="/perfil"

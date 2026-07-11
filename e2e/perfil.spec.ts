@@ -40,6 +40,25 @@ test.describe("Link de perfil no header", () => {
     await expect(page.locator("main input")).toHaveCount(0);
   });
 
+  test("admin impersonando um aluno acessa o perfil somente leitura pelo menu lateral", async ({
+    page,
+  }) => {
+    // Regressão: o item "Perfil" do menu lateral (e do menu "Mais" no
+    // mobile) ficava escondido durante a impersonação — sobra de quando
+    // /perfil era exclusivo do aluno, antes de existir a visão somente
+    // leitura para admin/personal.
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("link", { name: "Perfil", exact: true }).click();
+    await expect(page).toHaveURL("/perfil");
+
+    await expect(page.getByRole("heading", { name: "Perfil de Júlia Ferreira" })).toBeVisible();
+    await expect(page.getByText(/somente leitura/i)).toBeVisible();
+  });
+
   test("aluno acessa e edita o próprio perfil (comportamento existente)", async ({ page }) => {
     await loginAs(page, "aluno");
 
