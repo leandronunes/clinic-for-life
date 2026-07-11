@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AuthSession, RegisterParams, UserRole } from "@/lib/api/auth";
+import type { AuthSession, BackendUser, RegisterParams, UserRole } from "@/lib/api/auth";
 import { login, register, googleLogin, fetchCurrentUser, mapBackendUser } from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 import { AuthContext, type AuthContextValue } from "./use-auth";
@@ -125,6 +125,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(IMPERSONATE_KEY);
   };
 
+  const updateUser = useCallback((backendUser: BackendUser) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const fresh: AuthSession = { ...prev, user: mapBackendUser(backendUser) };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      return fresh;
+    });
+  }, []);
+
   const impersonateAluno = useCallback((alunoId: string) => {
     setImpersonatedAlunoId(alunoId);
     localStorage.setItem(IMPERSONATE_KEY, alunoId);
@@ -152,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signInWithGoogle,
       signOut,
+      updateUser,
       hasRole: (...roles: UserRole[]) => !!role && roles.includes(role),
       canWrite: role === "admin" || role === "personal",
       impersonatedAlunoId: activeImpersonation,
@@ -161,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       impersonateAluno,
       stopImpersonating,
     };
-  }, [session, loading, impersonatedAlunoId, impersonateAluno, stopImpersonating]);
+  }, [session, loading, impersonatedAlunoId, impersonateAluno, stopImpersonating, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
