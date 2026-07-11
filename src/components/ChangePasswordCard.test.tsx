@@ -9,6 +9,10 @@ vi.mock("@/lib/api/auth", () => ({ changePassword: vi.fn() }));
 import { changePassword } from "@/lib/api/auth";
 const mockChangePassword = vi.mocked(changePassword);
 
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+import { toast } from "sonner";
+const mockToastError = vi.mocked(toast.error);
+
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -52,6 +56,22 @@ describe("ChangePasswordCard", () => {
 
     await waitFor(() => expect(screen.getByText("Senha atual incorreta")).toBeInTheDocument());
     expect(screen.getByLabelText("Senha atual")).toHaveValue("Wrong@Pass1");
+  });
+
+  it("does not blame the password field for a stale/invalid session (generic Unauthorized)", async () => {
+    // The backend's session guard (Authenticable#render_unauthorized) returns
+    // this exact generic message for an expired/invalid token — distinct from
+    // the endpoint's specific "Senha atual incorreta" for a wrong password.
+    // Both share status 401, so the field must not treat them the same way.
+    mockChangePassword.mockRejectedValue({ status: 401, message: "Unauthorized" });
+
+    render(<ChangePasswordCard />, { wrapper });
+    await fillAndSubmit("Aluno@2026", "N3w@Str0ngPass", "N3w@Str0ngPass");
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(expect.stringMatching(/sessão expirada/i)),
+    );
+    expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
   });
 
   it("blocks submission client-side for a weak new password", async () => {
