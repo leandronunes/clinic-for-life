@@ -59,9 +59,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const menuRole = effectiveRole ?? user?.role;
-  let items = menuRole ? MENU[menuRole] : [];
-  // Quando admin/personal está visualizando como aluno, esconde a tela de "Perfil" do aluno.
-  if (isImpersonating) items = items.filter((i) => i.url !== "/perfil");
+  const items = menuRole ? MENU[menuRole] : [];
 
   const isActive = (url: string) =>
     pathname === url || (url !== "/dashboard" && pathname.startsWith(url + "/"));

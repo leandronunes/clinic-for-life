@@ -128,4 +128,20 @@ describe("MobileBottomNav", () => {
       expect(screen.getByRole("button", { name: "Voltar ao meu perfil" })).toBeInTheDocument();
     });
   });
+
+  it('exibe "Perfil" no menu "Mais" ao impersonar um aluno, para visualização somente leitura', async () => {
+    const adminUser: AuthUser = { id: "u4", name: "Admin", email: "admin@test.com", role: "admin" };
+    mockUseRouterState.mockReturnValue("/aluno");
+    mockUseAuth.mockReturnValue(
+      buildAuth({ user: adminUser, effectiveRole: "admin", isImpersonating: true }),
+    );
+
+    render(<MobileBottomNav />);
+
+    await userEvent.click(screen.getByRole("button", { name: /abrir mais opções/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: /perfil/i })).toHaveAttribute("href", "/perfil");
+    });
+  });
 });
