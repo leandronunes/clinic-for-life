@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { uploadVideoToS3 } from "@/lib/api/uploads";
 import { isUploadedVideo } from "@/lib/video-url";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Props = {
   studentId: string;
@@ -16,9 +17,16 @@ type Props = {
 };
 
 export function ExercicioVideoInput({ studentId, value, onChange, onUploadingChange }: Props) {
+  const isMobile = useIsMobile();
   const initialTab = isUploadedVideo(value) ? "upload" : "youtube";
   const [tab, setTab] = useState<"youtube" | "upload">(initialTab);
   const fileRef = useRef<HTMLInputElement>(null);
+  // On mobile, "Gravar agora" hands off to the device's native camera app
+  // (via `capture`) instead of the in-app getUserMedia/MediaRecorder flow
+  // below — the OS camera gives full controls (switch camera, zoom, flash)
+  // that a custom webcam preview can't replicate. Desktop has no native
+  // camera app to hand off to, so it keeps the in-app recording flow.
+  const captureRef = useRef<HTMLInputElement>(null);
 
   // Local blob URL used only for preview while uploading
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -193,6 +201,18 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
             e.target.value = "";
           }}
         />
+        <input
+          ref={captureRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.target.value = "";
+          }}
+        />
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -209,7 +229,7 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
               variant="outline"
               size="sm"
               disabled={uploading}
-              onClick={startRecording}
+              onClick={() => (isMobile ? captureRef.current?.click() : startRecording())}
             >
               <Camera className="mr-1 h-4 w-4" /> Gravar agora
             </Button>
@@ -243,7 +263,8 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
         )}
 
         <p className="text-[11px] text-muted-foreground">
-          Formatos de vídeo aceitos (máx. 200 MB). No celular, "Gravar agora" abre a câmera.
+          Formatos de vídeo aceitos (máx. 200 MB). No celular, "Gravar agora" abre o app de câmera
+          do aparelho.
         </p>
       </TabsContent>
     </Tabs>
