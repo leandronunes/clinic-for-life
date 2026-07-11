@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./fixtures";
+import { loginAs, DEMO_ACCOUNTS } from "./fixtures";
 
 test.describe("Link de perfil no header", () => {
   test("admin (sem impersonar) acessa e edita o próprio perfil", async ({ page }) => {
@@ -49,5 +49,56 @@ test.describe("Link de perfil no header", () => {
     await expect(page.locator("main input").nth(0)).toHaveValue("Júlia Ferreira");
     await expect(page.getByRole("button", { name: "Salvar alterações" })).toBeVisible();
     await expect(page.getByText("Meu Personal")).toBeVisible();
+  });
+});
+
+test.describe("Alterar senha em /perfil", () => {
+  test("aluno altera a própria senha e consegue logar com a nova senha", async ({ page }) => {
+    await loginAs(page, "aluno");
+    await page.goto("/perfil");
+
+    const newPassword = "N3w@Str0ngPass";
+    await page.getByLabel("Senha atual").fill(DEMO_ACCOUNTS.aluno.password);
+    await page.getByLabel("Nova senha", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirmar nova senha").fill(newPassword);
+    await page.getByRole("button", { name: "Alterar senha" }).click();
+
+    await expect(page.getByText("Senha atualizada com sucesso")).toBeVisible();
+
+    // A troca de senha só existe no mock em memória desta execução — um
+    // page.goto (navegação completa) reiniciaria o mock, então usamos o
+    // logout em si (client-side, sem reload) para voltar ao /login e
+    // confirmar que a nova senha já funciona.
+    await page.getByRole("button", { name: /sair/i }).click();
+    await page.waitForURL("/login");
+    await page.getByLabel("E-mail").fill(DEMO_ACCOUNTS.aluno.email);
+    await page.getByLabel("Senha", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await expect(page).toHaveURL("/aluno");
+  });
+
+  test("rejeita senha atual incorreta sem limpar o formulário", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/perfil");
+
+    await page.getByLabel("Senha atual").fill("senha-errada-123");
+    await page.getByLabel("Nova senha", { exact: true }).fill("N3w@Str0ngPass");
+    await page.getByLabel("Confirmar nova senha").fill("N3w@Str0ngPass");
+    await page.getByRole("button", { name: "Alterar senha" }).click();
+
+    await expect(page.getByText("Senha atual incorreta")).toBeVisible();
+    await expect(page.getByLabel("Senha atual")).toHaveValue("senha-errada-123");
+  });
+
+  test("admin impersonando um aluno não vê o card de alterar senha", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/usuarios");
+    await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
+    await expect(page).toHaveURL("/aluno");
+
+    await page.getByRole("link", { name: /dra\. camila andrade/i }).click();
+    await expect(page).toHaveURL("/perfil");
+
+    await expect(page.getByText("Alterar senha")).not.toBeVisible();
   });
 });

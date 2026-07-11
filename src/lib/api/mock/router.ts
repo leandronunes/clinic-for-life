@@ -112,6 +112,13 @@ async function routeMockRequest<T>({
       email: b.email as string | undefined,
     }) as T;
   }
+  if (m === "PATCH" && path === "/api/v1/auth/password") {
+    return store.changePassword(token, {
+      current_password: String(b.current_password ?? ""),
+      password: String(b.password ?? ""),
+      password_confirmation: String(b.password_confirmation ?? ""),
+    }) as T;
+  }
 
   // -------- Trainers --------
   if (m === "GET" && path === "/api/v1/trainers/search") {

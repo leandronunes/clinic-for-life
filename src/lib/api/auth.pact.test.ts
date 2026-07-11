@@ -15,7 +15,14 @@ import {
   nullValue,
 } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
-import { fetchCurrentUser, googleLogin, login, register, updateCurrentUser } from "./auth";
+import {
+  changePassword,
+  fetchCurrentUser,
+  googleLogin,
+  login,
+  register,
+  updateCurrentUser,
+} from "./auth";
 
 const ROLES = ["admin", "personal", "student"];
 
@@ -422,6 +429,81 @@ describe("auth API contract", () => {
             await expect(updateCurrentUser({ name: "Novo Nome" })).rejects.toMatchObject({
               status: 401,
             });
+          },
+          { authenticated: false },
+        );
+      });
+    });
+  });
+
+  describe("PATCH /api/v1/auth/password", () => {
+    it("changes the authenticated user's own password", async () => {
+      const pact = createPact();
+      pact
+        .given("an authenticated user requests their own profile")
+        .uponReceiving("a request to change the current user's password")
+        .withRequest({
+          method: "PATCH",
+          path: "/api/v1/auth/password",
+          headers: {
+            Authorization: bearerToken(),
+            "Content-Type": "application/json",
+          },
+          body: {
+            current_password: "Str0ng@Pass1",
+            password: "N3w@Str0ngPass",
+            password_confirmation: "N3w@Str0ngPass",
+          },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: { data: { message: like("Senha atualizada com sucesso") } },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const result = await changePassword({
+            current_password: "Str0ng@Pass1",
+            password: "N3w@Str0ngPass",
+            password_confirmation: "N3w@Str0ngPass",
+          });
+          expect(result.message).toEqual(expect.any(String));
+        });
+      });
+    });
+
+    it("rejects a request with no token", async () => {
+      const pact = createPact();
+      pact
+        .uponReceiving("a request to change the current user's password with no auth token")
+        .withRequest({
+          method: "PATCH",
+          path: "/api/v1/auth/password",
+          headers: { "Content-Type": "application/json" },
+          body: {
+            current_password: "Str0ng@Pass1",
+            password: "N3w@Str0ngPass",
+            password_confirmation: "N3w@Str0ngPass",
+          },
+        })
+        .willRespondWith({
+          status: 401,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorStringBody("Unauthorized"),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            await expect(
+              changePassword({
+                current_password: "Str0ng@Pass1",
+                password: "N3w@Str0ngPass",
+                password_confirmation: "N3w@Str0ngPass",
+              }),
+            ).rejects.toMatchObject({ status: 401 });
           },
           { authenticated: false },
         );

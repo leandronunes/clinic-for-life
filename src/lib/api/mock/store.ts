@@ -800,3 +800,25 @@ export function updateCurrentUser(
   const { password: _password, ...rest } = mockUsers[idx];
   return rest;
 }
+
+export function changePassword(
+  token: string | null,
+  payload: { current_password: string; password: string; password_confirmation: string },
+): { message: string } {
+  const id = token ? userIdFromToken(token) : null;
+  const idx = id ? mockUsers.findIndex((u) => u.id === id) : -1;
+  if (idx === -1) {
+    const err: ApiError = { status: 401, message: "Sessão expirada" };
+    throw err;
+  }
+  if (mockUsers[idx].password !== payload.current_password) {
+    const err: ApiError = { status: 401, message: "Senha atual incorreta" };
+    throw err;
+  }
+  if (payload.password !== payload.password_confirmation) {
+    const err: ApiError = { status: 422, message: "As senhas não coincidem" };
+    throw err;
+  }
+  mockUsers[idx] = { ...mockUsers[idx], password: payload.password };
+  return { message: "Senha atualizada com sucesso" };
+}
