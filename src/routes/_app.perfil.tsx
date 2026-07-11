@@ -19,6 +19,7 @@ import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
 import { fetchCurrentUser, updateCurrentUser } from "@/lib/api/auth";
 import { useAuth } from "@/contexts/use-auth";
 import { NotificationsCard } from "@/components/NotificationsCard";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/perfil")({
@@ -180,6 +181,8 @@ export function AlunoProfile({ alunoId }: { alunoId: string }) {
         pending={changePersonalMut.isPending}
       />
 
+      <ChangePasswordCard />
+
       <NotificationsCard />
     </div>
   );
@@ -315,6 +318,8 @@ export function OwnAccountProfile() {
           </div>
         </CardContent>
       </Card>
+
+      <ChangePasswordCard />
     </div>
   );
 }

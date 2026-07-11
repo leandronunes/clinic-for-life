@@ -91,6 +91,17 @@ export function updateCurrentUser(payload: UpdateCurrentUserPayload): Promise<Ba
   return http.patch<BackendUser>("/api/v1/auth/me", payload);
 }
 
+export interface ChangePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/** Changes the authenticated user's own password — any role can call this. */
+export function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
+  return http.patch<{ message: string }>("/api/v1/auth/password", payload);
+}
+
 /** Maps backend English fields to the shape the app currently consumes. */
 export function mapBackendUser(u: BackendUser): AuthUser {
   return {
