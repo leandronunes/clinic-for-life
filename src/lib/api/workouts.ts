@@ -37,7 +37,6 @@ export interface Workout {
   status: WorkoutStatus;
   created_at: string;
   archived_at?: string | null;
-  trainer_name: string;
   exercises: Exercise[];
 }
 
@@ -49,7 +48,6 @@ export interface WorkoutList {
 export interface CreateWorkoutPayload {
   title: string;
   focus: string;
-  trainer_name?: string;
 }
 
 export type UpdateWorkoutPayload = Partial<Pick<Workout, "title" | "focus">>;

@@ -44,7 +44,6 @@ const workout: Workout = {
   focus: "Empurrar",
   status: "active",
   created_at: "2026-05-01T00:00:00Z",
-  trainer_name: "Rafael",
   exercises: [exercise],
 };
 
@@ -73,11 +72,10 @@ describe("workouts API", () => {
   describe("createWorkout()", () => {
     it("posts to the correct URL with payload", async () => {
       mockPost.mockResolvedValue(workout);
-      await createWorkout("s1", { title: "Treino A", focus: "Push", trainer_name: "Rafael" });
+      await createWorkout("s1", { title: "Treino A", focus: "Push" });
       expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts", {
         title: "Treino A",
         focus: "Push",
-        trainer_name: "Rafael",
       });
     });
   });

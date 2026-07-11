@@ -269,7 +269,6 @@ function getWorkout(studentId: string, workoutId: string): Workout {
 
 export function createWorkout(studentId: string, payload: CreateWorkoutPayload): Workout {
   const list = workoutsFor(studentId);
-  const student = students.find((s) => s.id === studentId);
   const workout: Workout = {
     id: nextId("workout"),
     position: list.filter((w) => w.status === "active").length,
@@ -278,7 +277,6 @@ export function createWorkout(studentId: string, payload: CreateWorkoutPayload):
     status: "active",
     created_at: new Date().toISOString(),
     archived_at: null,
-    trainer_name: payload.trainer_name ?? student?.trainer_name ?? "",
     exercises: [],
   };
   workoutsByStudent[studentId] = [...list, workout];

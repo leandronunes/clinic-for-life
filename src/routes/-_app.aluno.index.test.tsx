@@ -56,7 +56,6 @@ const mockWorkout: Workout = {
   focus: "Empurrar",
   status: "active",
   created_at: "2026-01-01",
-  trainer_name: "Rafael",
   exercises: [
     {
       id: "e2",
@@ -91,9 +90,18 @@ describe("TreinoCard", () => {
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     // mockWorkout has e2 (position=2) before e1 (position=1) in the array —
     // the component must reorder so position=1 (Supino reto) appears first.
@@ -102,26 +110,68 @@ describe("TreinoCard", () => {
     expect(nameSpans[1].textContent).toBe("Crucifixo");
   });
 
+  it("shows the trainerName prop, not any field on the workout, as the personal's name", () => {
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Beatriz Lima"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByText(/Personal: Beatriz Lima/)).toBeInTheDocument();
+  });
+
   it("shows drag handles for every exercise when canEdit is true", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={true}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.getAllByLabelText("Reordenar exercício")).toHaveLength(2);
   });
 
   it("hides drag handles when canEdit is false", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.queryAllByLabelText("Reordenar exercício")).toHaveLength(0);
   });
 
   it("displays sequential numbering (#1, #2, …) based on position order", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.getByText("#1")).toBeInTheDocument();
     expect(screen.getByText("#2")).toBeInTheDocument();
@@ -133,6 +183,7 @@ describe("TreinoCard", () => {
       <TreinoCard
         treino={archivedWorkout}
         alunoId="s1"
+        trainerName="Rafael Monteiro"
         onWatch={vi.fn()}
         canEdit={false}
         canUnarchive={true}
@@ -144,16 +195,32 @@ describe("TreinoCard", () => {
   });
 
   it("hides unarchive button when canUnarchive is false", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.queryByLabelText("Reativar treino")).not.toBeInTheDocument();
   });
 
   it("shows delete button when canDelete is true", () => {
     render(
-      <TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} canDelete />,
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+        canDelete
+      />,
       { wrapper },
     );
 
@@ -161,9 +228,18 @@ describe("TreinoCard", () => {
   });
 
   it("hides delete button when canDelete is false", () => {
-    render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.queryByLabelText("Remover treino")).not.toBeInTheDocument();
   });
@@ -171,7 +247,14 @@ describe("TreinoCard", () => {
   it("deletes the workout after confirming the removal dialog", async () => {
     const user = userEvent.setup();
     render(
-      <TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} canDelete />,
+      <TreinoCard
+        treino={mockWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+        canDelete
+      />,
       { wrapper },
     );
 
@@ -183,18 +266,36 @@ describe("TreinoCard", () => {
 
   it("shows empty state when workout has no exercises", () => {
     const emptyWorkout: Workout = { ...mockWorkout, exercises: [] };
-    render(<TreinoCard treino={emptyWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-      wrapper,
-    });
+    render(
+      <TreinoCard
+        treino={emptyWorkout}
+        alunoId="s1"
+        trainerName="Rafael Monteiro"
+        onWatch={vi.fn()}
+        canEdit={false}
+      />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.getByText("Nenhum exercício neste treino ainda.")).toBeInTheDocument();
   });
 
   describe("copiar treino", () => {
     it("shows the copy button when canEdit is true", () => {
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       expect(screen.getByLabelText("Copiar treino")).toBeInTheDocument();
     });
@@ -205,6 +306,7 @@ describe("TreinoCard", () => {
         <TreinoCard
           treino={archivedWorkout}
           alunoId="s1"
+          trainerName="Rafael Monteiro"
           onWatch={vi.fn()}
           canEdit={false}
           canUnarchive={true}
@@ -216,18 +318,36 @@ describe("TreinoCard", () => {
     });
 
     it("hides the copy button when neither canEdit nor canUnarchive is true", () => {
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={false} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       expect(screen.queryByLabelText("Copiar treino")).not.toBeInTheDocument();
     });
 
     it("writes the workout to the clipboard and shows a confirmation toast", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByLabelText("Copiar treino"));
 
@@ -272,6 +392,7 @@ describe("TreinoCard", () => {
         <TreinoCard
           treino={cardioMobilityWorkout}
           alunoId="s1"
+          trainerName="Rafael Monteiro"
           onWatch={vi.fn()}
           canEdit={false}
         />,
@@ -288,6 +409,7 @@ describe("TreinoCard", () => {
         <TreinoCard
           treino={cardioMobilityWorkout}
           alunoId="s1"
+          trainerName="Rafael Monteiro"
           onWatch={vi.fn()}
           canEdit={false}
         />,
@@ -300,9 +422,18 @@ describe("TreinoCard", () => {
 
     it("creates a cardio exercise via the 'Adicionar cardio' dialog", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -334,9 +465,18 @@ describe("TreinoCard", () => {
 
     it("lets the user pick a heart rate zone when adding cardio", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -363,9 +503,18 @@ describe("TreinoCard", () => {
       // reported after the zone reverted to "Zona 2" post-save in production.
       const user = userEvent.setup();
       const cardioWorkout: Workout = { ...mockWorkout, exercises: [cardioExercise] };
-      render(<TreinoCard treino={cardioWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={cardioWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByLabelText("Editar exercício"));
       const dialog = await screen.findByRole("dialog");
@@ -386,9 +535,18 @@ describe("TreinoCard", () => {
 
     it("accepts a heart rate range like '133 - 150' instead of a single number", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -408,9 +566,18 @@ describe("TreinoCard", () => {
 
     it("creates a mobility exercise via the 'Adicionar mobilidade' dialog", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar mobilidade" }));
       const dialog = await screen.findByRole("dialog");
@@ -434,9 +601,18 @@ describe("TreinoCard", () => {
 
     it("disables submit for cardio without duration or distance", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -449,9 +625,18 @@ describe("TreinoCard", () => {
 
     it("formats the cardio duration field correctly while digits are typed", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -465,9 +650,18 @@ describe("TreinoCard", () => {
 
     it("clears the cardio duration field when the value is selected and deleted", async () => {
       const user = userEvent.setup();
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
 
       await user.click(screen.getByRole("button", { name: "Adicionar cardio" }));
       const dialog = await screen.findByRole("dialog");
@@ -488,9 +682,18 @@ describe("TreinoCard", () => {
     }
 
     async function openEditDialogForSupinoReto(user: ReturnType<typeof userEvent.setup>) {
-      render(<TreinoCard treino={mockWorkout} alunoId="s1" onWatch={vi.fn()} canEdit={true} />, {
-        wrapper,
-      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={true}
+        />,
+        {
+          wrapper,
+        },
+      );
       // Sorted by position — Supino reto (position 1) renders before Crucifixo (position 2).
       await user.click(screen.getAllByLabelText("Editar exercício")[0]);
       return screen.findByRole("dialog");
@@ -632,7 +835,7 @@ describe("ColarTreinoButton", () => {
     const user = userEvent.setup();
     const onPasted = vi.fn();
     seedClipboard("s1", "Júlia");
-    render(<ColarTreinoButton alunoId="s2" personalNome="Rafael Monteiro" onPasted={onPasted} />, {
+    render(<ColarTreinoButton alunoId="s2" onPasted={onPasted} />, {
       wrapper,
     });
 
@@ -647,7 +850,6 @@ describe("ColarTreinoButton", () => {
     expect(mockCreateWorkout).toHaveBeenCalledWith("s2", {
       title: mockWorkout.title,
       focus: mockWorkout.focus,
-      trainer_name: "Rafael Monteiro",
     });
     // A ordem de chamada precisa respeitar a `position` original (Supino
     // reto=1 antes de Crucifixo=2), não a ordem do array de exercises.
@@ -662,22 +864,6 @@ describe("ColarTreinoButton", () => {
       expect.objectContaining({ name: "Crucifixo" }),
     ]);
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("2 exercícios"));
-  });
-
-  it("falls back to the clipboard's trainer name when no personalNome is provided", async () => {
-    const user = userEvent.setup();
-    seedClipboard("s1");
-    render(<ColarTreinoButton alunoId="s2" />, { wrapper });
-
-    await user.click(screen.getByText("Colar treino"));
-    const dialog = await screen.findByRole("dialog");
-    await user.click(within(dialog).getByRole("button", { name: "Colar treino" }));
-
-    await waitFor(() => expect(mockCreateWorkout).toHaveBeenCalled());
-    expect(mockCreateWorkout).toHaveBeenCalledWith(
-      "s2",
-      expect.objectContaining({ trainer_name: mockWorkout.trainer_name }),
-    );
   });
 
   it("shows an error toast when the paste fails", async () => {

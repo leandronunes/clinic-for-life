@@ -61,7 +61,6 @@ const workoutTemplate = (overrides: Record<string, unknown> = {}) => ({
   status: enumString(WORKOUT_STATUSES, "active"),
   created_at: like("2026-01-01"),
   archived_at: nullValue(),
-  trainer_name: like("Rafael Monteiro"),
   exercises: [exerciseTemplate()],
   ...overrides,
 });

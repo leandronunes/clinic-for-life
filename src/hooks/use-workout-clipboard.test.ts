@@ -15,7 +15,6 @@ const workout: Workout = {
   focus: "Push",
   status: "active",
   created_at: "2026-01-01T00:00:00Z",
-  trainer_name: "Rafael",
   exercises: [
     {
       id: "e1",
@@ -129,7 +128,6 @@ describe("useWorkoutClipboard", () => {
     expect(clip.exercises.map((e) => e.name)).toEqual(["Supino", "Crucifixo"]);
     expect(clip.sourceStudentId).toBe("aluno-1");
     expect(clip.sourceStudentLabel).toBe("Julia");
-    expect(clip.trainerName).toBe("Rafael");
     expect(clip.title).toBe("Treino A");
     expect(clip.focus).toBe("Push");
   });
