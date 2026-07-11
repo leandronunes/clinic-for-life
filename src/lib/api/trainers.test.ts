@@ -60,6 +60,28 @@ describe("trainers API", () => {
       await fetchTrainers("  ");
       expect(mockGet).toHaveBeenCalledWith("/api/v1/trainers");
     });
+
+    it("passes a single status as a query param on the list endpoint", async () => {
+      mockGet.mockResolvedValue([trainer]);
+      await fetchTrainers(undefined, "active");
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/trainers", { params: { status: "active" } });
+    });
+
+    it("joins multiple statuses into a comma-separated param", async () => {
+      mockGet.mockResolvedValue([trainer]);
+      await fetchTrainers(undefined, ["active", "blocked"]);
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/trainers", {
+        params: { status: "active,blocked" },
+      });
+    });
+
+    it("combines query and status on the search endpoint", async () => {
+      mockGet.mockResolvedValue([trainer]);
+      await fetchTrainers("rafael", "active");
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/trainers/search", {
+        params: { query: "rafael", status: "active" },
+      });
+    });
   });
 
   describe("fetchTrainer()", () => {

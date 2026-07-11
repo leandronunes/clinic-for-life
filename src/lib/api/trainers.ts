@@ -25,9 +25,24 @@ export interface CreateTrainerPayload {
 
 export type UpdateTrainerPayload = Partial<CreateTrainerPayload>;
 
-export function fetchTrainers(query?: string): Promise<Trainer[]> {
+/**
+ * @param status Filters by trainer status, resolved server-side. Pass a
+ * single status or an array (sent as a comma-separated list, e.g.
+ * "active,blocked"). Omit to get trainers of any status.
+ */
+export function fetchTrainers(
+  query?: string,
+  status?: TrainerStatus | TrainerStatus[],
+): Promise<Trainer[]> {
+  const statusValue = Array.isArray(status) ? status.join(",") : status;
+  const params: Record<string, string> = {};
+  if (statusValue) params.status = statusValue;
+
   if (query && query.trim()) {
-    return http.get<Trainer[]>("/api/v1/trainers/search", { params: { query } });
+    return http.get<Trainer[]>("/api/v1/trainers/search", { params: { query, ...params } });
+  }
+  if (Object.keys(params).length > 0) {
+    return http.get<Trainer[]>("/api/v1/trainers", { params });
   }
   return http.get<Trainer[]>("/api/v1/trainers");
 }
