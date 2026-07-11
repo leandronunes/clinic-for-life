@@ -109,7 +109,13 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       mr.onstop = async () => {
-        const contentType = mime || "video/webm";
+        // `mr.mimeType` reflects what the browser actually recorded with.
+        // When we don't force one via the constructor (e.g. Safari, which
+        // doesn't support "video/webm" at all), it's the only accurate
+        // source — trusting the outer `mime`/a hardcoded "video/webm" here
+        // mislabels the blob (e.g. real mp4 bytes tagged as webm), which
+        // makes the upload's Content-Type wrong and playback fail afterward.
+        const contentType = mr.mimeType || mime || "video/webm";
         const blob = new Blob(chunksRef.current, { type: contentType });
         const blobUrl = URL.createObjectURL(blob);
         setPreviewUrl(blobUrl);
@@ -120,7 +126,8 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
         setProgress(0);
         setUploadingState(true);
         try {
-          const filename = `exercise_recorded_${Date.now()}.webm`;
+          const ext = contentType.split(";")[0].split("/")[1] || "webm";
+          const filename = `exercise_recorded_${Date.now()}.${ext}`;
           const s3Url = await uploadVideoToS3(studentId, blob, filename, contentType, setProgress);
           onChange(s3Url);
           toast.success("Gravação enviada com sucesso");

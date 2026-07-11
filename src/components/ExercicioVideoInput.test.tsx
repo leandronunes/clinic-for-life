@@ -19,17 +19,23 @@ const mockTrack = { stop: vi.fn() };
 const mockStream = { getTracks: () => [mockTrack] };
 
 // MediaRecorder must be a proper class to support `new MediaRecorder(...)`.
+// `mimeType` mirrors the real API: it reflects what the browser actually
+// picked, which matters when the constructor wasn't given an explicit one
+// (e.g. Safari, simulated here via `isTypeSupported` always returning false).
 class FakeMediaRecorder {
   ondataavailable: ((e: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
+  mimeType: string;
   readonly start = vi.fn();
   readonly stop = vi.fn().mockImplementation(() => {
     this.onstop?.();
   });
   static isTypeSupported = vi.fn().mockReturnValue(false);
   static lastInstance: FakeMediaRecorder | null = null;
+  static nextMimeType = "video/mp4";
 
-  constructor() {
+  constructor(_stream: unknown, options?: { mimeType?: string }) {
+    this.mimeType = options?.mimeType ?? FakeMediaRecorder.nextMimeType;
     FakeMediaRecorder.lastInstance = this;
   }
 }
@@ -52,6 +58,7 @@ function renderInput(value = "", onChange = vi.fn()) {
 beforeEach(() => {
   vi.clearAllMocks();
   FakeMediaRecorder.lastInstance = null;
+  FakeMediaRecorder.nextMimeType = "video/mp4";
   vi.stubGlobal("URL", {
     createObjectURL: vi.fn().mockReturnValue("blob:mock-video"),
     revokeObjectURL: vi.fn(),
@@ -143,6 +150,32 @@ describe("ExercicioVideoInput", () => {
 
         await waitFor(() => {
           expect(screen.queryByRole("button", { name: /Parar gravação/i })).not.toBeInTheDocument();
+        });
+      });
+
+      it("uploads with the browser's actual recording mimeType, not a hardcoded webm (Safari case)", async () => {
+        // Simulates Safari: no webm codec is supported, so the constructor
+        // gets no explicit mimeType and the browser falls back to mp4.
+        FakeMediaRecorder.nextMimeType = "video/mp4";
+        mockUpload.mockResolvedValue("https://s3.example.com/video.mp4");
+        renderInput();
+        const user = await openUploadTab();
+
+        await user.click(screen.getByRole("button", { name: /Gravar agora/i }));
+        await waitFor(() =>
+          expect(screen.getByRole("button", { name: /Parar gravação/i })).toBeInTheDocument(),
+        );
+
+        await user.click(screen.getByRole("button", { name: /Parar gravação/i }));
+
+        await waitFor(() => {
+          expect(mockUpload).toHaveBeenCalledWith(
+            "s1",
+            expect.any(Blob),
+            expect.stringContaining(".mp4"),
+            "video/mp4",
+            expect.any(Function),
+          );
         });
       });
     });
