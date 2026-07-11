@@ -34,8 +34,15 @@ export function ChangePasswordCard() {
       setNewPasswordErrors([]);
     },
     onError: (err: ApiError) => {
-      if (err.status === 401) {
-        setCurrentPasswordError(err.message || "Senha atual incorreta");
+      // The backend returns 401 for two distinct cases that share the same
+      // status: a wrong current password ("Senha atual incorreta") and an
+      // expired/invalid session (Authenticable's generic "Unauthorized").
+      // Only the former is actually about this field — misattributing the
+      // latter here reads as "your password is wrong" when it isn't.
+      if (err.status === 401 && err.message === "Senha atual incorreta") {
+        setCurrentPasswordError(err.message);
+      } else if (err.status === 401) {
+        toast.error("Sessão expirada. Faça login novamente para alterar sua senha.");
       } else {
         setNewPasswordErrors([err.message || "Não foi possível atualizar a senha"]);
       }
