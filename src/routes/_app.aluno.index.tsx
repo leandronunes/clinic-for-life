@@ -21,6 +21,9 @@ import {
   Copy,
   ClipboardPaste,
   X,
+  StickyNote,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   useWorkoutClipboard,
