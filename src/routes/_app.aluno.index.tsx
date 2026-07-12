@@ -776,6 +776,17 @@ export function TreinoCard({
           </div>
         )}
       </CardContent>
+      {checkIn && checkIn.status === "in_progress" && (
+        <ExecucaoTreinoDialog
+          open={execOpen}
+          onOpenChange={setExecOpen}
+          treino={treino}
+          checkIn={checkIn}
+          onToggleExercise={(exerciseId, completed) =>
+            toggleExerciseMut.mutate({ exerciseId, completed })
+          }
+        />
+      )}
     </Card>
   );
 }
