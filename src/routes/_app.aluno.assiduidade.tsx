@@ -239,7 +239,7 @@ export function AssiduidadePage() {
           ) : (
             <PeriodView
               view={view}
-              anchor={anchor}
+              anchor={effectiveAnchor}
               range={range}
               dayCheckIns={dayCheckIns}
               onSelectDay={(d) => {
