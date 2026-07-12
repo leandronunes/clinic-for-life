@@ -131,8 +131,6 @@ export function AssiduidadePage() {
   const [anchor, setAnchorState] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
-  const range = useMemo(() => getRange(view, anchor ?? new Date()), [view, anchor]);
-
   const { data: historico = [], isLoading: loadingHistorico } = useQuery({
     queryKey: ["check-in", "history", alunoId],
     queryFn: () => fetchCheckInHistory(alunoId),
@@ -158,7 +156,28 @@ export function AssiduidadePage() {
     return map;
   }, [historico]);
 
+  // Default anchor: most recent check-in date, or today.
+  const effectiveAnchor = useMemo(() => {
+    if (anchor) return anchor;
+    if (historico.length === 0) return new Date();
+    const latest = historico.reduce((acc, ci) => {
+      const d = new Date(ci.completed_at ?? ci.started_at);
+      return d > acc ? d : acc;
+    }, new Date(0));
+    return latest;
+  }, [anchor, historico]);
+
+  const setAnchor = (updater: Date | ((prev: Date) => Date)) => {
+    setAnchorState((prev) => {
+      const base = prev ?? effectiveAnchor;
+      return typeof updater === "function" ? updater(base) : updater;
+    });
+  };
+
+  const range = useMemo(() => getRange(view, effectiveAnchor), [view, effectiveAnchor]);
+
   const dayCheckIns = (d: Date) => byDay.get(format(d, "yyyy-MM-dd")) ?? [];
+
 
   return (
     <div className="space-y-6">
