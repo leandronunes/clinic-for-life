@@ -128,10 +128,10 @@ export function AssiduidadePage() {
   const qc = useQueryClient();
 
   const [view, setView] = useState<PeriodView>("dia");
-  const [anchor, setAnchor] = useState<Date | null>(null);
+  const [anchor, setAnchorState] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
-  const range = useMemo(() => getRange(view, anchor), [view, anchor]);
+  const range = useMemo(() => getRange(view, anchor ?? new Date()), [view, anchor]);
 
   const { data: historico = [], isLoading: loadingHistorico } = useQuery({
     queryKey: ["check-in", "history", alunoId],
