@@ -667,29 +667,34 @@ export function TreinoCard({
               <Badge variant="outline">
                 {checkIn.exercises_completed}/{checkIn.exercises_total} concluídos
               </Badge>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" disabled={finishCheckInMut.isPending}>
-                    <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar treino
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Finalizar o treino agora?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {checkIn.exercises_completed < checkIn.exercises_total
-                        ? `Você concluiu ${checkIn.exercises_completed} de ${checkIn.exercises_total} exercícios. O check-in será registrado como parcial.`
-                        : "Todos os exercícios foram concluídos."}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => finishCheckInMut.mutate()}>
-                      Finalizar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={() => setExecOpen(true)}>
+                  <Play className="mr-1 h-4 w-4" /> Retomar execução
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" disabled={finishCheckInMut.isPending}>
+                      <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar treino
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Finalizar o treino agora?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {checkIn.exercises_completed < checkIn.exercises_total
+                          ? `Você concluiu ${checkIn.exercises_completed} de ${checkIn.exercises_total} exercícios. O check-in será registrado como parcial.`
+                          : "Todos os exercícios foram concluídos."}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => finishCheckInMut.mutate()}>
+                        Finalizar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           ))}
 
