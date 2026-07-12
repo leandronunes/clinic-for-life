@@ -9,6 +9,7 @@ import {
   Dumbbell,
   TrendingUp,
   TrendingDown,
+  CalendarCheck,
 } from "lucide-react";
 import {
   Area,
@@ -21,7 +22,12 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchKpis, fetchActivity, type RangeFilter } from "@/lib/api/dashboard";
+import {
+  fetchKpis,
+  fetchActivity,
+  fetchAttendanceSummary,
+  type RangeFilter,
+} from "@/lib/api/dashboard";
 import { useAuth } from "@/contexts/use-auth";
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -37,7 +43,7 @@ const ICONS = {
 
 const ADMIN_ONLY_ICONS = new Set(["trainer", "handshake"]);
 
-function DashboardPage() {
+export function DashboardPage() {
   const { hasRole } = useAuth();
   const isAdminOnly = hasRole("admin");
   const [range, setRange] = useState<RangeFilter>("month");
@@ -49,6 +55,10 @@ function DashboardPage() {
   const { data: series = [] } = useQuery({
     queryKey: ["activity", range],
     queryFn: () => fetchActivity(range),
+  });
+  const { data: attendance, isLoading: loadingAttendance } = useQuery({
+    queryKey: ["attendance", range],
+    queryFn: () => fetchAttendanceSummary(range),
   });
 
   return (
@@ -160,6 +170,40 @@ function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4" /> Assiduidade
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingAttendance || !attendance ? (
+            <p className="text-sm text-muted-foreground">Carregando…</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <AttendanceStat label="Check-ins" value={attendance.total_check_ins} />
+              <AttendanceStat label="Concluídos" value={attendance.completed_check_ins} />
+              <AttendanceStat
+                label="Alunos ativos no período"
+                value={attendance.students_with_check_in}
+              />
+              <AttendanceStat label="Alunos ativos" value={attendance.active_students} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AttendanceStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-bold text-foreground">{value.toLocaleString("pt-BR")}</div>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import type { Trainer } from "../trainers";
 import type { Workout } from "../workouts";
 import type { LoginResponse } from "../auth";
 import type { ApiError } from "../http";
+import type { WorkoutCheckIn } from "../check-ins";
+import type { Feedback } from "../feedbacks";
+import type { AttendanceSummary } from "../dashboard";
 
 describe("resolveMockRequest()", () => {
   it("logs in with a valid demo account", async () => {
@@ -189,5 +192,164 @@ describe("resolveMockRequest()", () => {
     await expect(
       resolveMockRequest({ method: "GET", path: "/api/v1/does/not/exist", token: null }),
     ).rejects.toMatchObject({ status: 404 } satisfies Partial<ApiError>);
+  });
+
+  // The mock store's state is module-level and persists across tests in this
+  // file (see the other tests here creating throwaway workouts by unique
+  // title, rather than mutating a shared seed workout) — so every check-in
+  // test below creates its own fresh workout instead of reusing the seeded
+  // workout-s1-a/workout-s1-b, to avoid one test's in-progress check-in
+  // leaking into the next.
+  async function createWorkoutWithExercises(count: number) {
+    const workout = await resolveMockRequest<Workout>({
+      method: "POST",
+      path: "/api/v1/students/student-1/workouts",
+      body: { title: `Check-in Test ${Math.random()}`, focus: "Push" },
+      token: null,
+    });
+    const exerciseIds: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const exercise = await resolveMockRequest<{ id: string }>({
+        method: "POST",
+        path: `/api/v1/students/student-1/workouts/${workout.id}/exercises`,
+        body: {
+          name: `Exercise ${i}`,
+          kind: "strength",
+          sets: 3,
+          reps: "10",
+          rest_seconds: 60,
+          muscle_group: "Peito",
+        },
+        token: null,
+      });
+      exerciseIds.push(exercise.id);
+    }
+    return { workoutId: workout.id, exerciseIds };
+  }
+
+  it("starts a check-in, toggles exercises, and auto-completes on the last one", async () => {
+    const { workoutId, exerciseIds } = await createWorkoutWithExercises(2);
+
+    const current = await resolveMockRequest<WorkoutCheckIn | null>({
+      method: "GET",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/current`,
+      token: null,
+    });
+    expect(current).toBeNull();
+
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+    expect(started.status).toBe("in_progress");
+
+    const firstToggle = await resolveMockRequest<WorkoutCheckIn>({
+      method: "PATCH",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/exercises/${exerciseIds[0]}`,
+      body: { completed: true },
+      token: null,
+    });
+    expect(firstToggle.status).toBe("in_progress");
+    expect(firstToggle.exercises_completed).toBe(1);
+
+    const secondToggle = await resolveMockRequest<WorkoutCheckIn>({
+      method: "PATCH",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/exercises/${exerciseIds[1]}`,
+      body: { completed: true },
+      token: null,
+    });
+    expect(secondToggle.status).toBe("completed");
+    expect(secondToggle.exercises_completed).toBe(2);
+  });
+
+  it("rejects starting a second check-in while one is already in progress", async () => {
+    const { workoutId } = await createWorkoutWithExercises(1);
+    await resolveMockRequest({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+
+    await expect(
+      resolveMockRequest({
+        method: "POST",
+        path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+        token: null,
+      }),
+    ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);
+  });
+
+  it("rejects starting a check-in on an archived workout", async () => {
+    await expect(
+      resolveMockRequest({
+        method: "POST",
+        path: "/api/v1/students/student-1/workouts/workout-s1-c/check_ins",
+        token: null,
+      }),
+    ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);
+  });
+
+  it("finishes a check-in manually, even with exercises still pending", async () => {
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+
+    const finished = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/finish`,
+      token: null,
+    });
+    expect(finished.status).toBe("completed");
+    expect(finished.exercises_completed).toBe(0);
+  });
+
+  it("lists a student's check-in history across workouts", async () => {
+    const history = await resolveMockRequest<WorkoutCheckIn[]>({
+      method: "GET",
+      path: "/api/v1/students/student-1/check_ins",
+      token: null,
+    });
+    expect(history.some((c) => c.id === "check-in-s1-a-1")).toBe(true);
+  });
+
+  it("sends feedback to a student and lists it afterwards", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
+      token: null,
+    });
+
+    const created = await resolveMockRequest<Feedback>({
+      method: "POST",
+      path: "/api/v1/students/student-1/feedbacks",
+      body: { kind: "elogio", message: "Muito bem no treino de hoje!" },
+      token: login.token,
+    });
+    expect(created.kind).toBe("elogio");
+    expect(created.message).toBe("Muito bem no treino de hoje!");
+    expect(created.author_name).toBe(login.user.name);
+
+    const list = await resolveMockRequest<Feedback[]>({
+      method: "GET",
+      path: "/api/v1/students/student-1/feedbacks",
+      token: null,
+    });
+    expect(list.some((f) => f.id === created.id)).toBe(true);
+  });
+
+  it("returns the dashboard attendance summary", async () => {
+    const summary = await resolveMockRequest<AttendanceSummary>({
+      method: "GET",
+      path: "/api/v1/dashboard/attendance",
+      params: { range: "year" },
+      token: null,
+    });
+    expect(summary.total_check_ins).toBeGreaterThanOrEqual(1);
+    expect(summary).toHaveProperty("active_students");
   });
 });

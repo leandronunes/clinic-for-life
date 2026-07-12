@@ -49,11 +49,14 @@ Ver `e2e/fixtures.ts` — mesmas contas do modo offline (`docs`/`.env.example`):
 - `e2e/fixtures.ts` — helper `loginAs(page, role)` e as contas de demonstração.
 - `e2e/auth.spec.ts` — login (as 3 contas, credenciais inválidas), logout,
   proteção de rota para usuário não autenticado.
-- `e2e/dashboard.spec.ts` — KPIs por papel, troca de período.
+- `e2e/dashboard.spec.ts` — KPIs por papel, troca de período, card de assiduidade.
 - `e2e/usuarios-admin.spec.ts` — CRUD de alunos e personais (admin), busca,
   visão restrita do personal.
 - `e2e/aluno-treino.spec.ts` — visualização de treinos (ativos/arquivados),
   troca de treino, admin "entrando como aluno" (impersonation).
+- `e2e/aluno-checkin.spec.ts` — check-in de treino (iniciar, marcar exercícios,
+  conclusão automática e manual/parcial) e Assiduidade (histórico + envio de
+  feedback pelo personal, visão somente leitura do aluno).
 - `e2e/parceiros.spec.ts` — vitrine pública de parceiros + CRUD (admin).
 - `e2e/evolucao.spec.ts` — cartões de métricas e gráfico de evolução;
   regressão de layout mobile (sem scroll horizontal) na visão com upload

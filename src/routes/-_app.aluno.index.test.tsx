@@ -39,6 +39,24 @@ vi.mock("@/lib/video-url", () => ({
   isUploadedVideo: vi.fn().mockReturnValue(false),
 }));
 
+vi.mock("@/lib/api/check-ins", () => ({
+  fetchCurrentCheckIn: vi.fn(),
+  startCheckIn: vi.fn(),
+  finishCheckIn: vi.fn(),
+  toggleExerciseCheckIn: vi.fn(),
+}));
+import {
+  fetchCurrentCheckIn,
+  startCheckIn,
+  finishCheckIn,
+  toggleExerciseCheckIn,
+  type WorkoutCheckIn,
+} from "@/lib/api/check-ins";
+const mockFetchCurrentCheckIn = vi.mocked(fetchCurrentCheckIn);
+const mockStartCheckIn = vi.mocked(startCheckIn);
+const mockFinishCheckIn = vi.mocked(finishCheckIn);
+const mockToggleExerciseCheckIn = vi.mocked(toggleExerciseCheckIn);
+
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -87,6 +105,7 @@ describe("TreinoCard", () => {
     mockCreateExercise.mockResolvedValue({ ...mockWorkout.exercises[0], id: "new" });
     mockDeleteWorkout.mockResolvedValue(null);
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
+    mockFetchCurrentCheckIn.mockResolvedValue(null);
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
@@ -783,6 +802,164 @@ describe("TreinoCard", () => {
       await user.clear(tempoInput);
 
       expect(tempoInput).toHaveValue("");
+    });
+  });
+
+  describe("check-in", () => {
+    const inProgressCheckIn: WorkoutCheckIn = {
+      id: "ci1",
+      workout_id: "w1",
+      workout_title: "Treino A — Push",
+      status: "in_progress",
+      exercises_completed: 1,
+      exercises_total: 2,
+      completed_exercise_ids: ["e1"],
+      started_at: "2026-07-12T10:00:00Z",
+      completed_at: null,
+    };
+
+    it("shows 'Iniciar treino' when there is no check-in in progress", async () => {
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Iniciar treino/i });
+      expect(screen.queryByRole("button", { name: /Finalizar treino/i })).not.toBeInTheDocument();
+    });
+
+    it("starts a check-in when 'Iniciar treino' is clicked", async () => {
+      mockStartCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Iniciar treino/i }));
+
+      await waitFor(() => expect(mockStartCheckIn).toHaveBeenCalledWith("s1", "w1"));
+    });
+
+    it("shows progress and 'Finalizar treino' once a check-in is in progress", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Finalizar treino/i });
+      expect(screen.getByText("1/2 concluídos")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Iniciar treino/i })).not.toBeInTheDocument();
+    });
+
+    it("toggles an exercise checkbox, calling the mutation with the exercise id", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      mockToggleExerciseCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        exercises_completed: 2,
+        completed_exercise_ids: ["e1", "e2"],
+      });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const checkbox = await screen.findByRole("checkbox", {
+        name: /Marcar "Crucifixo" como concluído/i,
+      });
+      expect(checkbox).not.toBeChecked();
+      await user.click(checkbox);
+
+      await waitFor(() =>
+        expect(mockToggleExerciseCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1", "e2", true),
+      );
+    });
+
+    it("marks the checkbox checked for an exercise already completed in this check-in", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Finalizar treino/i });
+      const checkbox = screen.getByRole("checkbox", {
+        name: /Marcar "Supino reto" como concluído/i,
+      });
+      expect(checkbox).toBeChecked();
+    });
+
+    it("disables checkboxes once the check-in is completed", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({ ...inProgressCheckIn, status: "completed" });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const checkbox = await screen.findByRole("checkbox", {
+        name: /Marcar "Crucifixo" como concluído/i,
+      });
+      expect(checkbox).toBeDisabled();
+    });
+
+    it("finishes the check-in when 'Finalizar treino' is confirmed", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      mockFinishCheckIn.mockResolvedValue({ ...inProgressCheckIn, status: "completed" });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Finalizar treino/i }));
+      const dialog = await screen.findByRole("alertdialog");
+      await user.click(within(dialog).getByRole("button", { name: "Finalizar" }));
+
+      await waitFor(() => expect(mockFinishCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
     });
   });
 

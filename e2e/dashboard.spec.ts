@@ -26,6 +26,13 @@ test.describe("Dashboard", () => {
     await expect(page.getByRole("tab", { name: "Dia" })).toHaveAttribute("data-state", "active");
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   });
+
+  test("mostra o card de assiduidade", async ({ page }) => {
+    const main = page.getByRole("main");
+    await expect(main.getByText("Assiduidade", { exact: true })).toBeVisible();
+    await expect(main.getByText("Check-ins", { exact: true })).toBeVisible();
+    await expect(main.getByText("Concluídos", { exact: true })).toBeVisible();
+  });
 });
 
 test.describe("Dashboard — personal", () => {

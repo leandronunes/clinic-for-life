@@ -109,6 +109,14 @@ import {
 import { ExercicioVideoInput } from "@/components/ExercicioVideoInput";
 import { isUploadedVideo } from "@/lib/video-url";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  fetchCurrentCheckIn,
+  startCheckIn,
+  finishCheckIn,
+  toggleExerciseCheckIn,
+  type WorkoutCheckIn,
+} from "@/lib/api/check-ins";
 
 export const Route = createFileRoute("/_app/aluno/")({
   component: MeuTreinoPage,
@@ -397,6 +405,45 @@ export function TreinoCard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Check-in: independent of canEdit/canWrite — whoever is viewing as the
+  // aluno (the student themselves, or a personal/admin impersonating them)
+  // can start/finish a session and mark exercises, regardless of who can
+  // edit the workout's structure.
+  const { data: checkIn } = useQuery({
+    queryKey: ["check-in", "current", alunoId, treino.id],
+    queryFn: () => fetchCurrentCheckIn(alunoId, treino.id),
+    enabled: treino.status === "active",
+  });
+
+  const startCheckInMut = useMutation({
+    mutationFn: () => startCheckIn(alunoId, treino.id),
+    onSuccess: (data) => qc.setQueryData(["check-in", "current", alunoId, treino.id], data),
+    onError: () => toast.error("Não foi possível iniciar o treino"),
+  });
+
+  const finishCheckInMut = useMutation({
+    mutationFn: () => finishCheckIn(alunoId, treino.id, checkIn!.id),
+    onSuccess: (data) => {
+      toast.success("Treino finalizado");
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
+      qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível finalizar o treino"),
+  });
+
+  const toggleExerciseMut = useMutation({
+    mutationFn: ({ exerciseId, completed }: { exerciseId: string; completed: boolean }) =>
+      toggleExerciseCheckIn(alunoId, treino.id, checkIn!.id, exerciseId, completed),
+    onSuccess: (data) => {
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
+      if (data.status === "completed") {
+        toast.success("Treino concluído!");
+        qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
+      }
+    },
+    onError: () => toast.error("Não foi possível atualizar o exercício"),
+  });
+
   const archiveMut = useMutation({
     mutationFn: () => archiveWorkout(alunoId, treino.id),
     onSuccess: () => {
@@ -590,6 +637,58 @@ export function TreinoCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {treino.status === "active" &&
+          (!checkIn || checkIn.status === "completed" ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
+              {checkIn?.status === "completed" ? (
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Treino concluído ({checkIn.exercises_completed}/{checkIn.exercises_total})
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Marque os exercícios concluídos durante o treino.
+                </span>
+              )}
+              <Button
+                size="sm"
+                onClick={() => startCheckInMut.mutate()}
+                disabled={startCheckInMut.isPending}
+              >
+                <Play className="mr-1 h-4 w-4" /> Iniciar treino
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
+              <Badge variant="outline">
+                {checkIn.exercises_completed}/{checkIn.exercises_total} concluídos
+              </Badge>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={finishCheckInMut.isPending}>
+                    <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar treino
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Finalizar o treino agora?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {checkIn.exercises_completed < checkIn.exercises_total
+                        ? `Você concluiu ${checkIn.exercises_completed} de ${checkIn.exercises_total} exercícios. O check-in será registrado como parcial.`
+                        : "Todos os exercícios foram concluídos."}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => finishCheckInMut.mutate()}>
+                      Finalizar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ))}
+
         {localExercises.length === 0 && (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Nenhum exercício neste treino ainda.
@@ -616,6 +715,10 @@ export function TreinoCard({
                     alunoId={alunoId}
                     onWatch={onWatch}
                     canEdit
+                    checkIn={checkIn}
+                    onToggleExercise={(exerciseId, completed) =>
+                      toggleExerciseMut.mutate({ exerciseId, completed })
+                    }
                   />
                 ))}
               </div>
@@ -632,6 +735,10 @@ export function TreinoCard({
                 alunoId={alunoId}
                 onWatch={onWatch}
                 canEdit={false}
+                checkIn={checkIn}
+                onToggleExercise={(exerciseId, completed) =>
+                  toggleExerciseMut.mutate({ exerciseId, completed })
+                }
               />
             ))}
           </div>
@@ -671,6 +778,8 @@ interface ExerciseRowProps {
   alunoId: string;
   onWatch: (e: Exercise) => void;
   canEdit: boolean;
+  checkIn?: WorkoutCheckIn | null;
+  onToggleExercise?: (exerciseId: string, completed: boolean) => void;
 }
 
 function SortableExerciseItem(props: ExerciseRowProps) {
@@ -703,6 +812,8 @@ function ExerciseRowContent({
   alunoId,
   onWatch,
   canEdit,
+  checkIn,
+  onToggleExercise,
   dragHandleListeners,
   dragHandleAttributes,
 }: ExerciseRowProps & {
@@ -718,6 +829,15 @@ function ExerciseRowContent({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
+          {onToggleExercise && (
+            <Checkbox
+              className="mt-1 shrink-0"
+              checked={checkIn?.completed_exercise_ids.includes(exercise.id) ?? false}
+              disabled={!checkIn || checkIn.status === "completed"}
+              onCheckedChange={(value) => onToggleExercise(exercise.id, value === true)}
+              aria-label={`Marcar "${exercise.name}" como concluído`}
+            />
+          )}
           {dragHandleListeners && (
             <button
               type="button"

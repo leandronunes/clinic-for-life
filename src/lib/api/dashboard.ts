@@ -43,3 +43,14 @@ export async function fetchActivity(range: RangeFilter = "month"): Promise<Activ
     avaliacoes: p.assessments,
   }));
 }
+
+export interface AttendanceSummary {
+  total_check_ins: number;
+  completed_check_ins: number;
+  students_with_check_in: number;
+  active_students: number;
+}
+
+export function fetchAttendanceSummary(range: RangeFilter = "month"): Promise<AttendanceSummary> {
+  return http.get<AttendanceSummary>("/api/v1/dashboard/attendance", { params: { range } });
+}

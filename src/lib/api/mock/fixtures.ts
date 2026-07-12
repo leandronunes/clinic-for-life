@@ -9,6 +9,8 @@ import type { Anamnesis } from "../anamnesis";
 import type { Exam } from "../exams";
 import type { EvolutionPhoto } from "../evolution-photos";
 import type { BackendUser } from "../auth";
+import type { WorkoutCheckIn } from "../check-ins";
+import type { Feedback } from "../feedbacks";
 
 /** Seed trainers. `students_count` is recomputed by the store, not read from here. */
 export const TRAINERS: Trainer[] = [
@@ -255,6 +257,46 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
       created_at: "2025-11-10T10:00:00.000Z",
       archived_at: "2025-12-20T10:00:00.000Z",
       exercises: [],
+    },
+  ],
+};
+
+/** Check-ins keyed by workout id. Only `workout-s1-a` ships with sample data:
+ * a completed session with 2 of its 3 exercises done, so the Assiduidade
+ * page and Dashboard attendance widget show a non-empty, partial-completion
+ * state by default in offline/demo mode. */
+export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
+  "workout-s1-a": [
+    {
+      id: "check-in-s1-a-1",
+      workout_id: "workout-s1-a",
+      workout_title: "Treino A",
+      status: "completed",
+      exercises_completed: 2,
+      exercises_total: 3,
+      completed_exercise_ids: ["exercise-s1-a-1", "exercise-s1-a-2"],
+      started_at: "2026-01-10T13:00:00.000Z",
+      completed_at: "2026-01-10T13:45:00.000Z",
+    },
+  ],
+};
+
+/** Feedback notes keyed by student id. Only `student-1` ships with sample data. */
+export const FEEDBACKS_BY_STUDENT: Record<string, Feedback[]> = {
+  "student-1": [
+    {
+      id: "feedback-s1-1",
+      kind: "elogio",
+      message: "Mandou muito bem no treino de hoje, continue assim!",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-01-10T14:00:00.000Z",
+    },
+    {
+      id: "feedback-s1-2",
+      kind: "incentivo",
+      message: "Bora fechar a semana com o treino de pernas!",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-01-08T09:30:00.000Z",
     },
   ],
 };
