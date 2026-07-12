@@ -418,7 +418,10 @@ export function TreinoCard({
 
   const startCheckInMut = useMutation({
     mutationFn: () => startCheckIn(alunoId, treino.id),
-    onSuccess: (data) => qc.setQueryData(["check-in", "current", alunoId, treino.id], data),
+    onSuccess: (data) => {
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
+      setExecOpen(true);
+    },
     onError: () => toast.error("Não foi possível iniciar o treino"),
   });
 
