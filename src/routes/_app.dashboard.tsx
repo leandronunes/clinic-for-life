@@ -171,7 +171,7 @@ export function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-soft">
+      {/* <Card className="shadow-soft">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4" /> Assiduidade
@@ -192,7 +192,7 @@ export function DashboardPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

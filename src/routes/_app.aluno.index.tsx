@@ -663,39 +663,40 @@ export function TreinoCard({
               </Button>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
-              <Badge variant="outline">
-                {checkIn.exercises_completed}/{checkIn.exercises_total} concluídos
-              </Badge>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" onClick={() => setExecOpen(true)}>
-                  <Play className="mr-1 h-4 w-4" /> Retomar execução
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" disabled={finishCheckInMut.isPending}>
-                      <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar treino
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Finalizar o treino agora?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {checkIn.exercises_completed < checkIn.exercises_total
-                          ? `Você concluiu ${checkIn.exercises_completed} de ${checkIn.exercises_total} exercícios. O check-in será registrado como parcial.`
-                          : "Todos os exercícios foram concluídos."}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => finishCheckInMut.mutate()}>
-                        Finalizar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
+            <div></div>
+            // <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
+            //   <Badge variant="outline">
+            //     {checkIn.exercises_completed}/{checkIn.exercises_total} concluídos
+            //   </Badge>
+            //   <div className="flex flex-wrap items-center gap-2">
+            //     <Button size="sm" onClick={() => setExecOpen(true)}>
+            //       <Play className="mr-1 h-4 w-4" /> Retomar execução
+            //     </Button>
+            //     <AlertDialog>
+            //       <AlertDialogTrigger asChild>
+            //         <Button size="sm" variant="outline" disabled={finishCheckInMut.isPending}>
+            //           <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar treino
+            //         </Button>
+            //       </AlertDialogTrigger>
+            //       <AlertDialogContent>
+            //         <AlertDialogHeader>
+            //           <AlertDialogTitle>Finalizar o treino agora?</AlertDialogTitle>
+            //           <AlertDialogDescription>
+            //             {checkIn.exercises_completed < checkIn.exercises_total
+            //               ? `Você concluiu ${checkIn.exercises_completed} de ${checkIn.exercises_total} exercícios. O check-in será registrado como parcial.`
+            //               : "Todos os exercícios foram concluídos."}
+            //           </AlertDialogDescription>
+            //         </AlertDialogHeader>
+            //         <AlertDialogFooter>
+            //           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            //           <AlertDialogAction onClick={() => finishCheckInMut.mutate()}>
+            //             Finalizar
+            //           </AlertDialogAction>
+            //         </AlertDialogFooter>
+            //       </AlertDialogContent>
+            //     </AlertDialog>
+            //   </div>
+            // </div>
           ))}
 
         {localExercises.length === 0 && (
@@ -849,7 +850,7 @@ function ExerciseRowContent({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          {onToggleExercise && (
+          {/* {onToggleExercise && (
             <Checkbox
               className="mt-1 shrink-0"
               checked={checkIn?.completed_exercise_ids.includes(exercise.id) ?? false}
@@ -857,7 +858,7 @@ function ExerciseRowContent({
               onCheckedChange={(value) => onToggleExercise(exercise.id, value === true)}
               aria-label={`Marcar "${exercise.name}" como concluído`}
             />
-          )}
+          )} */}
           {dragHandleListeners && (
             <button
               type="button"

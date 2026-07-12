@@ -45,7 +45,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   ],
   aluno: [
     { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
-    { title: "Assiduidade", url: "/aluno/assiduidade", icon: CalendarCheck },
+    // { title: "Assiduidade", url: "/aluno/assiduidade", icon: CalendarCheck },
     { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
     { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
     { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
