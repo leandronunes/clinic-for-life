@@ -23,6 +23,9 @@ import type { Exam, CreateExamPayload } from "../exams";
 import type { EvolutionPhoto, CreateEvolutionPhotoPayload } from "../evolution-photos";
 import type { BackendUser, LoginResponse } from "../auth";
 import type { BioImportResult } from "../bioimpedance-import";
+import type { WorkoutCheckIn } from "../check-ins";
+import type { Feedback, CreateFeedbackPayload } from "../feedbacks";
+import type { AttendanceSummary } from "../dashboard";
 import {
   TRAINERS,
   STUDENTS,
@@ -34,6 +37,8 @@ import {
   ANAMNESIS_BY_STUDENT,
   EXAMS_BY_STUDENT,
   EVOLUTION_PHOTOS_BY_STUDENT,
+  CHECK_INS_BY_WORKOUT,
+  FEEDBACKS_BY_STUDENT,
   MOCK_USERS,
 } from "./fixtures";
 
@@ -403,6 +408,136 @@ export function deleteExercise(studentId: string, workoutId: string, exerciseId:
   workout.exercises = workout.exercises.filter((e) => e.id !== exerciseId);
 }
 
+/* -------------------- Check-ins -------------------- */
+
+const checkInsByWorkout: Record<string, WorkoutCheckIn[]> = clone(CHECK_INS_BY_WORKOUT);
+
+function checkInsFor(workoutId: string): WorkoutCheckIn[] {
+  return (checkInsByWorkout[workoutId] ??= []);
+}
+
+function alreadyFinishedCheckIn(): never {
+  const err: ApiError = { status: 422, message: "Check-in já finalizado" };
+  throw err;
+}
+
+function getCheckIn(studentId: string, workoutId: string, checkInId: string): WorkoutCheckIn {
+  const workout = getWorkout(studentId, workoutId);
+  const found = checkInsFor(workout.id).find((c) => c.id === checkInId);
+  if (!found) notFound("Check-in não encontrado");
+  return found;
+}
+
+export function getCurrentCheckIn(studentId: string, workoutId: string): WorkoutCheckIn | null {
+  const workout = getWorkout(studentId, workoutId);
+  return checkInsFor(workout.id).find((c) => c.status === "in_progress") ?? null;
+}
+
+export function startCheckIn(studentId: string, workoutId: string): WorkoutCheckIn {
+  const workout = getWorkout(studentId, workoutId);
+  if (workout.status === "archived") {
+    const err: ApiError = { status: 422, message: "Treino arquivado é somente leitura" };
+    throw err;
+  }
+  const list = checkInsFor(workout.id);
+  if (list.some((c) => c.status === "in_progress")) {
+    const err: ApiError = {
+      status: 422,
+      message: "Já existe um check-in em andamento para este treino",
+    };
+    throw err;
+  }
+  const checkIn: WorkoutCheckIn = {
+    id: nextId("check-in"),
+    workout_id: workout.id,
+    workout_title: workout.title,
+    status: "in_progress",
+    exercises_completed: 0,
+    exercises_total: workout.exercises.length,
+    completed_exercise_ids: [],
+    started_at: new Date().toISOString(),
+    completed_at: null,
+  };
+  checkInsByWorkout[workout.id] = [checkIn, ...list];
+  return checkIn;
+}
+
+export function finishCheckIn(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): WorkoutCheckIn {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  if (checkIn.status === "completed") alreadyFinishedCheckIn();
+  checkIn.status = "completed";
+  checkIn.completed_at = new Date().toISOString();
+  return checkIn;
+}
+
+export function toggleExerciseCheckIn(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  exerciseId: string,
+  completed: boolean,
+): WorkoutCheckIn {
+  const workout = getWorkout(studentId, workoutId);
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  if (checkIn.status === "completed") alreadyFinishedCheckIn();
+  const exercise = workout.exercises.find((e) => e.id === exerciseId);
+  if (!exercise) notFound("Exercício não encontrado");
+
+  const already = checkIn.completed_exercise_ids.includes(exerciseId);
+  if (completed && !already) {
+    checkIn.completed_exercise_ids = [...checkIn.completed_exercise_ids, exerciseId];
+  } else if (!completed && already) {
+    checkIn.completed_exercise_ids = checkIn.completed_exercise_ids.filter(
+      (id) => id !== exerciseId,
+    );
+  }
+  checkIn.exercises_total = workout.exercises.length;
+  checkIn.exercises_completed = checkIn.completed_exercise_ids.length;
+
+  if (checkIn.exercises_total > 0 && checkIn.exercises_completed >= checkIn.exercises_total) {
+    checkIn.status = "completed";
+    checkIn.completed_at = new Date().toISOString();
+  }
+
+  return checkIn;
+}
+
+export function listCheckIns(studentId: string): WorkoutCheckIn[] {
+  const workoutIds = workoutsFor(studentId).map((w) => w.id);
+  return workoutIds
+    .flatMap((id) => checkInsFor(id))
+    .sort((a, b) => b.started_at.localeCompare(a.started_at));
+}
+
+/* -------------------- Feedbacks -------------------- */
+
+const feedbacksByStudent: Record<string, Feedback[]> = clone(FEEDBACKS_BY_STUDENT);
+
+export function listFeedbacks(studentId: string): Feedback[] {
+  return (feedbacksByStudent[studentId] ??= []);
+}
+
+export function createFeedback(
+  studentId: string,
+  payload: CreateFeedbackPayload,
+  token: string | null,
+): Feedback {
+  const feedback: Feedback = {
+    id: nextId("feedback"),
+    kind: payload.kind,
+    message: payload.message,
+    author_name: currentUser(token).name,
+    created_at: new Date().toISOString(),
+  };
+  const list = (feedbacksByStudent[studentId] ??= []);
+  feedbacksByStudent[studentId] = [feedback, ...list];
+  return feedback;
+}
+
 /* -------------------- Dashboard -------------------- */
 
 const RANGE_MULTIPLIER: Record<RangeFilter, number> = { day: 0.2, week: 0.6, month: 1, year: 1.3 };
@@ -458,6 +593,41 @@ export function getDashboardActivity(days: number): Array<{
     workouts: 20 + ((i * 7) % 30),
     assessments: 4 + ((i * 3) % 12),
   }));
+}
+
+const ATTENDANCE_RANGE_DAYS: Record<RangeFilter, number> = {
+  day: 1,
+  week: 7,
+  month: 30,
+  year: 365,
+};
+
+export function getAttendanceSummary(range: RangeFilter): AttendanceSummary {
+  const cutoff = Date.now() - ATTENDANCE_RANGE_DAYS[range] * 24 * 60 * 60 * 1000;
+
+  let totalCheckIns = 0;
+  let completedCheckIns = 0;
+  let studentsWithCheckIn = 0;
+
+  for (const workouts of Object.values(workoutsByStudent)) {
+    let studentHasCheckIn = false;
+    for (const workout of workouts) {
+      for (const checkIn of checkInsFor(workout.id)) {
+        if (new Date(checkIn.started_at).getTime() < cutoff) continue;
+        totalCheckIns += 1;
+        studentHasCheckIn = true;
+        if (checkIn.status === "completed") completedCheckIns += 1;
+      }
+    }
+    if (studentHasCheckIn) studentsWithCheckIn += 1;
+  }
+
+  return {
+    total_check_ins: totalCheckIns,
+    completed_check_ins: completedCheckIns,
+    students_with_check_in: studentsWithCheckIn,
+    active_students: students.filter((s) => s.status === "active").length,
+  };
 }
 
 /* -------------------- Bioimpedance -------------------- */

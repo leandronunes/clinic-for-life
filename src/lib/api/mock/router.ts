@@ -15,6 +15,7 @@ import type { UpdateStructuralPayload } from "../structural-assessment";
 import type { UpdateAnamnesisPayload } from "../anamnesis";
 import type { CreateExamPayload } from "../exams";
 import type { CreateEvolutionPhotoPayload } from "../evolution-photos";
+import type { CreateFeedbackPayload } from "../feedbacks";
 import * as store from "./store";
 
 const wait = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -205,6 +206,9 @@ async function routeMockRequest<T>({
   if (m === "GET" && path === "/api/v1/dashboard/activity") {
     return store.getDashboardActivity(activityDaysFromParam(params)) as T;
   }
+  if (m === "GET" && path === "/api/v1/dashboard/attendance") {
+    return store.getAttendanceSummary((params?.range as RangeFilter | undefined) ?? "month") as T;
+  }
 
   // -------- Bioimpedance import (multipart) --------
   if (m === "POST" && path === "/api/v1/bioimpedance/import" && body instanceof FormData) {
@@ -261,6 +265,39 @@ async function routeMockRequest<T>({
     if (m === "GET") return store.listWorkouts(match[1]) as T;
     if (m === "POST")
       return store.createWorkout(match[1], b as unknown as CreateWorkoutPayload) as T;
+  }
+
+  // -------- Check-ins (student- and workout-scoped) --------
+  match =
+    /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/exercises\/([^/]+)$/.exec(
+      path,
+    );
+  if (match && m === "PATCH") {
+    return store.toggleExerciseCheckIn(
+      match[1],
+      match[2],
+      match[3],
+      match[4],
+      Boolean(b.completed),
+    ) as T;
+  }
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/finish$/.exec(
+    path,
+  );
+  if (match && m === "POST") return store.finishCheckIn(match[1], match[2], match[3]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/current$/.exec(path);
+  if (match && m === "GET") return store.getCurrentCheckIn(match[1], match[2]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins$/.exec(path);
+  if (match && m === "POST") return store.startCheckIn(match[1], match[2]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/check_ins$/.exec(path);
+  if (match && m === "GET") return store.listCheckIns(match[1]) as T;
+
+  // -------- Feedbacks (student-scoped) --------
+  match = /^\/api\/v1\/students\/([^/]+)\/feedbacks$/.exec(path);
+  if (match) {
+    if (m === "GET") return store.listFeedbacks(match[1]) as T;
+    if (m === "POST")
+      return store.createFeedback(match[1], b as unknown as CreateFeedbackPayload, token) as T;
   }
 
   // -------- Biomechanics --------
