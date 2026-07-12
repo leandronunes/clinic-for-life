@@ -2072,9 +2072,7 @@ function ExecucaoTreinoDialog({
               <>
                 <StatBox
                   label="Duração"
-                  value={
-                    current.duration_seconds ? formatDuration(current.duration_seconds) : "—"
-                  }
+                  value={current.duration_seconds ? formatDuration(current.duration_seconds) : "—"}
                 />
                 <StatBox
                   label="Distância"
@@ -2103,8 +2101,7 @@ function ExecucaoTreinoDialog({
               "rounded-lg border p-4 text-center transition-colors",
               phase === "resting" &&
                 "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-              phase === "rest-done" &&
-                "animate-pulse border-success/60 bg-success/10 text-success",
+              phase === "rest-done" && "animate-pulse border-success/60 bg-success/10 text-success",
               phase === "executing" && "border-primary/60 bg-primary/5",
             )}
             aria-live="polite"
