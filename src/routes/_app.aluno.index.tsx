@@ -390,6 +390,7 @@ export function TreinoCard({
   const qc = useQueryClient();
   const { copyWorkout } = useWorkoutClipboard();
   const canCopy = canEdit || canUnarchive;
+  const [execOpen, setExecOpen] = useState(false);
 
   const [localExercises, setLocalExercises] = useState(() =>
     [...treino.exercises].sort((a, b) => a.position - b.position),
