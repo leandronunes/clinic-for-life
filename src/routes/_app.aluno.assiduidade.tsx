@@ -127,8 +127,8 @@ export function AssiduidadePage() {
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const qc = useQueryClient();
 
-  const [view, setView] = useState<PeriodView>("semana");
-  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [view, setView] = useState<PeriodView>("dia");
+  const [anchor, setAnchor] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const range = useMemo(() => getRange(view, anchor), [view, anchor]);
