@@ -2091,11 +2091,28 @@ function ExecucaoTreinoDialog({
   }, [exercises, checkIn.completed_exercise_ids]);
 
   const [idx, setIdx] = useState(firstPendingIdx);
-  // Realinha o índice quando o modal reabre — evita continuar num exercício
-  // que já foi marcado como concluído em outra sessão do modal.
+
+  // O exercício "iniciado" (com o cronômetro rodando/pausado) é independente
+  // do exercício sendo visualizado (`idx`) — navegar pelos cards (swipe ou
+  // setas) nunca para o cronômetro. Só existe um por vez: só é possível
+  // iniciar outro depois que este for concluído (ver handleConcluir).
+  const [startedIdx, setStartedIdx] = useState<number | null>(null);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [phase, setPhase] = useState<ExecPhase>("idle");
+  const [elapsed, setElapsed] = useState(0);
+  const [remaining, setRemaining] = useState(0);
+
+  // Realinha o índice visualizado quando o modal reabre — prioriza o
+  // exercício em andamento, senão o primeiro pendente. Só na abertura (não a
+  // cada render com o modal já aberto), por isso os valores mais recentes
+  // são lidos via ref em vez de entrar nas deps do efeito.
+  const startedIdxRef = useRef(startedIdx);
+  startedIdxRef.current = startedIdx;
+  const firstPendingIdxRef = useRef(firstPendingIdx);
+  firstPendingIdxRef.current = firstPendingIdx;
   useEffect(() => {
-    if (open) setIdx(firstPendingIdx);
-  }, [open, firstPendingIdx]);
+    if (open) setIdx(startedIdxRef.current ?? firstPendingIdxRef.current);
+  }, [open]);
 
   // Navegação entre os cards de exercício — swipe no mobile (nativo do
   // Embla) e as setas no header. `idx` é a fonte da verdade: sincroniza nos
@@ -2117,20 +2134,7 @@ function ExecucaoTreinoDialog({
   const kind = current ? getKind(current) : "strength";
   const totalSets = Math.max(1, current?.sets ?? 1);
   const restSecs = current?.rest_seconds ?? 0;
-
-  const [currentSet, setCurrentSet] = useState(1);
-  const [phase, setPhase] = useState<ExecPhase>("idle");
-  const [elapsed, setElapsed] = useState(0);
-  const [remaining, setRemaining] = useState(0);
-
-  // Reset dos cronômetros ao trocar de exercício ou reabrir o modal.
-  useEffect(() => {
-    if (!open) return;
-    setCurrentSet(1);
-    setPhase("idle");
-    setElapsed(0);
-    setRemaining(0);
-  }, [open, current?.id]);
+  const isViewingStarted = startedIdx !== null && idx === startedIdx;
 
   // Cronômetros: executing conta pra cima, resting decrementa até zero.
   useEffect(() => {
@@ -2179,6 +2183,13 @@ function ExecucaoTreinoDialog({
 
   function handleConcluir() {
     if (!alreadyCompleted) onToggleExercise(current.id, true);
+    if (isViewingStarted) {
+      setStartedIdx(null);
+      setCurrentSet(1);
+      setPhase("idle");
+      setElapsed(0);
+      setRemaining(0);
+    }
     goToNext(current.id);
   }
 
@@ -2247,7 +2258,7 @@ function ExecucaoTreinoDialog({
               >
                 <ExerciseExecutionCard
                   exercise={ex}
-                  active={i === idx ? { phase, currentSet, phaseLabel, clockValue } : null}
+                  active={i === startedIdx ? { phase, currentSet, phaseLabel, clockValue } : null}
                 />
               </CarouselItem>
             ))}
@@ -2256,91 +2267,119 @@ function ExecucaoTreinoDialog({
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0">
           <div className="flex w-full flex-wrap gap-2">
-            {(phase === "idle" || phase === "paused") && (
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  if (phase === "idle") setElapsed(0);
-                  setPhase("executing");
-                }}
-              >
-                <Play className="mr-1 h-4 w-4" />
-                {phase === "paused"
-                  ? "Retomar"
-                  : isCardio
-                    ? "Iniciar cardio"
-                    : `Iniciar série ${currentSet}`}
-              </Button>
-            )}
+            {isViewingStarted ? (
+              <>
+                {(phase === "idle" || phase === "paused") && (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      if (phase === "idle") setElapsed(0);
+                      setPhase("executing");
+                    }}
+                  >
+                    <Play className="mr-1 h-4 w-4" />
+                    {phase === "paused"
+                      ? "Retomar"
+                      : isCardio
+                        ? "Iniciar cardio"
+                        : `Iniciar série ${currentSet}`}
+                  </Button>
+                )}
 
-            {phase === "executing" && (
-              <Button className="flex-1" variant="secondary" onClick={() => setPhase("paused")}>
-                <Pause className="mr-1 h-4 w-4" /> Parar
-              </Button>
-            )}
+                {phase === "executing" && (
+                  <Button className="flex-1" variant="secondary" onClick={() => setPhase("paused")}>
+                    <Pause className="mr-1 h-4 w-4" /> Parar
+                  </Button>
+                )}
 
-            {(phase === "executing" || phase === "paused") && (
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Zerar cronômetro"
-                onClick={() => setElapsed(0)}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            )}
+                {(phase === "executing" || phase === "paused") && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Zerar cronômetro"
+                    onClick={() => setElapsed(0)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
 
-            {phase === "executing" && !isCardio && restSecs > 0 && !isLastSet && (
-              <Button
-                className="flex-1"
-                variant="secondary"
-                onClick={() => {
-                  setRemaining(restSecs);
-                  setPhase("resting");
-                }}
-              >
-                <Clock className="mr-1 h-4 w-4" /> Iniciar descanso ({restSecs}s)
-              </Button>
-            )}
+                {phase === "executing" && !isCardio && restSecs > 0 && !isLastSet && (
+                  <Button
+                    className="flex-1"
+                    variant="secondary"
+                    onClick={() => {
+                      setRemaining(restSecs);
+                      setPhase("resting");
+                    }}
+                  >
+                    <Clock className="mr-1 h-4 w-4" /> Iniciar descanso ({restSecs}s)
+                  </Button>
+                )}
 
-            {phase === "executing" && !isCardio && (restSecs === 0 || isLastSet) && !isLastSet && (
-              <Button
-                className="flex-1"
-                variant="secondary"
-                onClick={() => {
-                  setCurrentSet((s) => s + 1);
-                  setElapsed(0);
-                  setPhase("idle");
-                }}
-              >
-                Próxima série
-              </Button>
-            )}
+                {phase === "executing" &&
+                  !isCardio &&
+                  (restSecs === 0 || isLastSet) &&
+                  !isLastSet && (
+                    <Button
+                      className="flex-1"
+                      variant="secondary"
+                      onClick={() => {
+                        setCurrentSet((s) => s + 1);
+                        setElapsed(0);
+                        setPhase("idle");
+                      }}
+                    >
+                      Próxima série
+                    </Button>
+                  )}
 
-            {phase === "resting" && (
-              <Button
-                className="flex-1"
-                variant="ghost"
-                onClick={() => {
-                  setPhase("rest-done");
-                  setRemaining(0);
-                }}
-              >
-                Pular descanso
-              </Button>
-            )}
+                {phase === "resting" && (
+                  <Button
+                    className="flex-1"
+                    variant="ghost"
+                    onClick={() => {
+                      setPhase("rest-done");
+                      setRemaining(0);
+                    }}
+                  >
+                    Pular descanso
+                  </Button>
+                )}
 
-            {phase === "rest-done" && !isLastSet && (
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  setCurrentSet((s) => s + 1);
-                  setElapsed(0);
-                  setPhase("executing");
-                }}
-              >
-                <Play className="mr-1 h-4 w-4" /> Iniciar série {currentSet + 1}
-              </Button>
+                {phase === "rest-done" && !isLastSet && (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setCurrentSet((s) => s + 1);
+                      setElapsed(0);
+                      setPhase("executing");
+                    }}
+                  >
+                    <Play className="mr-1 h-4 w-4" /> Iniciar série {currentSet + 1}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="flex-1 space-y-1">
+                <Button
+                  className="w-full"
+                  disabled={startedIdx !== null}
+                  onClick={() => {
+                    setStartedIdx(idx);
+                    setCurrentSet(1);
+                    setElapsed(0);
+                    setPhase("executing");
+                  }}
+                >
+                  <Play className="mr-1 h-4 w-4" />
+                  {isCardio ? "Iniciar cardio" : "Iniciar série 1"}
+                </Button>
+                {startedIdx !== null && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Conclua "{exercises[startedIdx].name}" para iniciar este exercício.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
