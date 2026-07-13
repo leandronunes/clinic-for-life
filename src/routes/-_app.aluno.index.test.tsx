@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TreinoCard, ColarTreinoButton } from "./_app.aluno.index";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Exercise, Workout } from "@/lib/api/workouts";
 import { createExercise, createWorkout, deleteWorkout, updateExercise } from "@/lib/api/workouts";
 import { workoutToClipboard } from "@/hooks/use-workout-clipboard";
@@ -64,7 +65,11 @@ function createQueryClient() {
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={createQueryClient()}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 const mockWorkout: Workout = {
@@ -897,6 +902,7 @@ describe("TreinoCard", () => {
       const checkbox = await screen.findByRole("checkbox", {
         name: /Marcar "Crucifixo" como concluído/i,
       });
+      await waitFor(() => expect(checkbox).toBeEnabled());
       expect(checkbox).not.toBeChecked();
       await user.click(checkbox);
 
@@ -942,6 +948,53 @@ describe("TreinoCard", () => {
         name: /Marcar "Crucifixo" como concluído/i,
       });
       expect(checkbox).toBeDisabled();
+    });
+
+    it("shows a tooltip explaining that the workout must be started before checking an exercise", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(null);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const checkbox = await screen.findByRole("checkbox", {
+        name: /Marcar "Crucifixo" como concluído/i,
+      });
+      expect(checkbox).toBeDisabled();
+
+      await user.hover(checkbox);
+      await waitFor(() =>
+        expect(
+          screen.getAllByText(/Inicie o treino para marcar este exercício como concluído/i).length,
+        ).toBeGreaterThan(0),
+      );
+    });
+
+    it("shows the instruction to start the workout in the check-in card", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(null);
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const startButton = await screen.findByRole("button", { name: /Iniciar treino/i });
+      const checkInCard = startButton.closest("div[class*='border-dashed']");
+      expect(checkInCard).toHaveTextContent(
+        /Clique em .*Iniciar treino.* para marcar os exercícios concluídos/i,
+      );
     });
 
     it("finishes the check-in when 'Finalizar treino' is confirmed", async () => {
