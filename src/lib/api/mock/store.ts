@@ -24,7 +24,11 @@ import type { EvolutionPhoto, CreateEvolutionPhotoPayload } from "../evolution-p
 import type { BackendUser, LoginResponse } from "../auth";
 import type { BioImportResult } from "../bioimpedance-import";
 import type { WorkoutCheckIn } from "../check-ins";
-import type { Feedback, CreateFeedbackPayload } from "../feedbacks";
+import type {
+  CheckInFeedback,
+  CreateCheckInFeedbackPayload,
+  UpdateCheckInFeedbackPayload,
+} from "../check-in-feedbacks";
 import type { AttendanceSummary } from "../dashboard";
 import {
   TRAINERS,
@@ -38,7 +42,7 @@ import {
   EXAMS_BY_STUDENT,
   EVOLUTION_PHOTOS_BY_STUDENT,
   CHECK_INS_BY_WORKOUT,
-  FEEDBACKS_BY_STUDENT,
+  FEEDBACKS_BY_CHECK_IN,
   MOCK_USERS,
 } from "./fixtures";
 
@@ -411,6 +415,7 @@ export function deleteExercise(studentId: string, workoutId: string, exerciseId:
 /* -------------------- Check-ins -------------------- */
 
 const checkInsByWorkout: Record<string, WorkoutCheckIn[]> = clone(CHECK_INS_BY_WORKOUT);
+const feedbacksByCheckIn: Record<string, CheckInFeedback[]> = clone(FEEDBACKS_BY_CHECK_IN);
 
 function checkInsFor(workoutId: string): WorkoutCheckIn[] {
   return (checkInsByWorkout[workoutId] ??= []);
@@ -419,6 +424,21 @@ function checkInsFor(workoutId: string): WorkoutCheckIn[] {
 function alreadyFinishedCheckIn(): never {
   const err: ApiError = { status: 422, message: "Check-in já finalizado" };
   throw err;
+}
+
+function notCompletedCheckIn(message: string): never {
+  const err: ApiError = { status: 422, message };
+  throw err;
+}
+
+/** Merges in the always-current feedbacks before returning a check-in to a
+ * caller — the feedbacks list changes independently over time
+ * (createCheckInFeedback), so the stored check-in never carries them directly. */
+function hydrateCheckIn(checkIn: WorkoutCheckIn): WorkoutCheckIn {
+  return {
+    ...checkIn,
+    feedbacks: feedbacksByCheckIn[checkIn.id] ?? [],
+  };
 }
 
 function getCheckIn(studentId: string, workoutId: string, checkInId: string): WorkoutCheckIn {
@@ -430,7 +450,8 @@ function getCheckIn(studentId: string, workoutId: string, checkInId: string): Wo
 
 export function getCurrentCheckIn(studentId: string, workoutId: string): WorkoutCheckIn | null {
   const workout = getWorkout(studentId, workoutId);
-  return checkInsFor(workout.id).find((c) => c.status === "in_progress") ?? null;
+  const found = checkInsFor(workout.id).find((c) => c.status === "in_progress");
+  return found ? hydrateCheckIn(found) : null;
 }
 
 export function startCheckIn(studentId: string, workoutId: string): WorkoutCheckIn {
@@ -447,19 +468,24 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     };
     throw err;
   }
+  const student = getStudent(studentId);
   const checkIn: WorkoutCheckIn = {
     id: nextId("check-in"),
     workout_id: workout.id,
     workout_title: workout.title,
+    student_id: student.id,
+    student_name: student.name,
     status: "in_progress",
     exercises_completed: 0,
     exercises_total: workout.exercises.length,
     completed_exercise_ids: [],
     started_at: new Date().toISOString(),
     completed_at: null,
+    viewed_at: null,
+    feedbacks: [],
   };
   checkInsByWorkout[workout.id] = [checkIn, ...list];
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function finishCheckIn(
@@ -471,7 +497,7 @@ export function finishCheckIn(
   if (checkIn.status === "completed") alreadyFinishedCheckIn();
   checkIn.status = "completed";
   checkIn.completed_at = new Date().toISOString();
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function toggleExerciseCheckIn(
@@ -503,39 +529,108 @@ export function toggleExerciseCheckIn(
     checkIn.completed_at = new Date().toISOString();
   }
 
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function listCheckIns(studentId: string): WorkoutCheckIn[] {
   const workoutIds = workoutsFor(studentId).map((w) => w.id);
   return workoutIds
     .flatMap((id) => checkInsFor(id))
-    .sort((a, b) => b.started_at.localeCompare(a.started_at));
+    .sort((a, b) => b.started_at.localeCompare(a.started_at))
+    .map(hydrateCheckIn);
 }
 
-/* -------------------- Feedbacks -------------------- */
-
-const feedbacksByStudent: Record<string, Feedback[]> = clone(FEEDBACKS_BY_STUDENT);
-
-export function listFeedbacks(studentId: string): Feedback[] {
-  return (feedbacksByStudent[studentId] ??= []);
-}
-
-export function createFeedback(
+export function markCheckInViewed(
   studentId: string,
-  payload: CreateFeedbackPayload,
+  workoutId: string,
+  checkInId: string,
+): WorkoutCheckIn {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  checkIn.viewed_at ??= new Date().toISOString();
+  return hydrateCheckIn(checkIn);
+}
+
+/** Portfolio-wide list for the personal/admin review page — every completed
+ * check-in across every student that ships with check-in fixtures, most
+ * recently completed first. Offline mode doesn't model per-trainer student
+ * ownership beyond the seed data, so (unlike the real API) this doesn't
+ * filter by the current user's trainer_id. */
+export function listCompletedCheckIns(): WorkoutCheckIn[] {
+  return Object.values(checkInsByWorkout)
+    .flat()
+    .filter((c) => c.status === "completed")
+    .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))
+    .map(hydrateCheckIn);
+}
+
+/* -------------------- Check-in feedbacks -------------------- */
+
+export function createCheckInFeedback(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  payload: CreateCheckInFeedbackPayload,
   token: string | null,
-): Feedback {
-  const feedback: Feedback = {
+): CheckInFeedback {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  if (checkIn.status !== "completed") {
+    notCompletedCheckIn("Só é possível dar feedback em um treino concluído");
+  }
+  if (!payload.emoji && !payload.message) {
+    const err: ApiError = { status: 422, message: "Emoji ou mensagem é obrigatório" };
+    throw err;
+  }
+
+  const feedback: CheckInFeedback = {
     id: nextId("feedback"),
-    kind: payload.kind,
-    message: payload.message,
+    workout_check_in_id: checkIn.id,
+    emoji: payload.emoji ?? null,
+    message: payload.message ?? null,
     author_name: currentUser(token).name,
     created_at: new Date().toISOString(),
   };
-  const list = (feedbacksByStudent[studentId] ??= []);
-  feedbacksByStudent[studentId] = [feedback, ...list];
+  const list = (feedbacksByCheckIn[checkIn.id] ??= []);
+  feedbacksByCheckIn[checkIn.id] = [feedback, ...list];
   return feedback;
+}
+
+export function updateCheckInFeedback(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  feedbackId: string,
+  payload: UpdateCheckInFeedbackPayload,
+): CheckInFeedback {
+  getCheckIn(studentId, workoutId, checkInId);
+  const list = feedbacksByCheckIn[checkInId] ?? [];
+  const idx = list.findIndex((f) => f.id === feedbackId);
+  if (idx === -1) {
+    const err: ApiError = { status: 404, message: "Feedback não encontrado" };
+    throw err;
+  }
+  const updated: CheckInFeedback = {
+    ...list[idx],
+    emoji: payload.emoji !== undefined ? (payload.emoji ?? null) : list[idx].emoji,
+    message: payload.message !== undefined ? (payload.message ?? null) : list[idx].message,
+  };
+  list[idx] = updated;
+  return updated;
+}
+
+export function deleteCheckInFeedback(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  feedbackId: string,
+): void {
+  getCheckIn(studentId, workoutId, checkInId);
+  const list = feedbacksByCheckIn[checkInId] ?? [];
+  const idx = list.findIndex((f) => f.id === feedbackId);
+  if (idx === -1) {
+    const err: ApiError = { status: 404, message: "Feedback não encontrado" };
+    throw err;
+  }
+  list.splice(idx, 1);
 }
 
 /* -------------------- Dashboard -------------------- */

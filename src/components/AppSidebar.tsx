@@ -12,6 +12,7 @@ import {
   Eye,
   Handshake,
   ClipboardList,
+  ClipboardCheck,
   FileText,
   Printer,
   CalendarCheck,
@@ -37,11 +38,13 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   admin: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Usuários", url: "/usuarios", icon: Users },
+    { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
     { title: "Parceiros", url: "/parceiros", icon: Handshake },
   ],
   personal: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Meus Alunos", url: "/usuarios", icon: Users },
+    { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
   ],
   aluno: [
     { title: "Meu Treino", url: "/aluno", icon: Dumbbell },

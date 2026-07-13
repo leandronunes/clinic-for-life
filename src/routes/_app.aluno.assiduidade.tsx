@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   CalendarCheck,
@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Dumbbell,
   Loader2,
-  MessageSquarePlus,
   ThumbsUp,
 } from "lucide-react";
 import {
@@ -29,35 +28,12 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
-import {
-  fetchFeedbacks,
-  createFeedback,
-  type Feedback,
-  type FeedbackKind,
-} from "@/lib/api/feedbacks";
 import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/assiduidade")({
   head: () =>
@@ -68,18 +44,6 @@ export const Route = createFileRoute("/_app/aluno/assiduidade")({
     }),
   component: AssiduidadePage,
 });
-
-const KIND_LABEL: Record<FeedbackKind, string> = {
-  elogio: "Elogio",
-  correcao: "Correção",
-  incentivo: "Incentivo",
-};
-
-const KIND_BADGE_CLASS: Record<FeedbackKind, string> = {
-  elogio: "bg-success text-success-foreground",
-  correcao: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  incentivo: "",
-};
 
 type PeriodView = "dia" | "semana" | "mes";
 
@@ -123,9 +87,8 @@ function shiftAnchor(view: PeriodView, anchor: Date, dir: 1 | -1): Date {
 }
 
 export function AssiduidadePage() {
-  const { user, effectiveAlunoId, canWrite } = useAuth();
+  const { user, effectiveAlunoId } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
-  const qc = useQueryClient();
 
   const [view, setView] = useState<PeriodView>("dia");
   const [anchor, setAnchorState] = useState<Date | null>(null);
@@ -134,12 +97,6 @@ export function AssiduidadePage() {
   const { data: historico = [], isLoading: loadingHistorico } = useQuery({
     queryKey: ["check-in", "history", alunoId],
     queryFn: () => fetchCheckInHistory(alunoId),
-    enabled: !!alunoId,
-  });
-
-  const { data: feedbacks = [], isLoading: loadingFeedbacks } = useQuery({
-    queryKey: ["feedbacks", alunoId],
-    queryFn: () => fetchFeedbacks(alunoId),
     enabled: !!alunoId,
   });
 
@@ -187,13 +144,9 @@ export function AssiduidadePage() {
             Visualize quando você executou seus treinos.
           </p>
         </div>
-        {/* {canWrite && (
-          <SendFeedbackDialog
-            alunoId={alunoId}
-            onSent={() => qc.invalidateQueries({ queryKey: ["feedbacks", alunoId] })}
-          />
-        )} */}
       </div>
+
+      {!loadingHistorico && <TodayFeedbackBanner byDay={byDay} />}
 
       <Card className="shadow-soft">
         <CardContent className="space-y-4 p-4 sm:p-6">
@@ -248,29 +201,6 @@ export function AssiduidadePage() {
           )}
         </CardContent>
       </Card>
-
-      {/* <section aria-label="Feedback do personal" className="space-y-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <ThumbsUp className="h-4 w-4" /> Feedback do Personal
-        </h2>
-        {loadingFeedbacks ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-          </div>
-        ) : feedbacks.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              Nenhum recado recebido ainda.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {feedbacks.map((feedback) => (
-              <FeedbackCard key={feedback.id} feedback={feedback} />
-            ))}
-          </div>
-        )}
-      </section> */}
 
       <DayDetailsDialog
         day={selectedDay}
@@ -461,12 +391,25 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
           </p>
         </div>
       </div>
-      <Badge
-        variant={checkIn.status === "completed" ? "default" : "secondary"}
-        className={checkIn.status === "completed" ? "bg-success text-success-foreground" : ""}
-      >
-        {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
-      </Badge>
+      <div className="flex items-center gap-2">
+        {checkIn.feedbacks.some((f) => f.emoji) && (
+          <div className="flex gap-0.5" aria-label="Reação do personal">
+            {checkIn.feedbacks
+              .filter((f) => f.emoji)
+              .map((f) => (
+                <span key={f.id} className="text-lg">
+                  {f.emoji}
+                </span>
+              ))}
+          </div>
+        )}
+        <Badge
+          variant={checkIn.status === "completed" ? "default" : "secondary"}
+          className={checkIn.status === "completed" ? "bg-success text-success-foreground" : ""}
+        >
+          {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
+        </Badge>
+      </div>
     </div>
   );
 }
@@ -562,101 +505,90 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           />
         </div>
       </div>
+      {checkIn.feedbacks.length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <ThumbsUp className="h-3.5 w-3.5" /> Feedback do Personal
+          </h3>
+          {checkIn.feedbacks.some((f) => f.emoji) && (
+            <div className="flex flex-wrap gap-1">
+              {checkIn.feedbacks
+                .filter((f) => f.emoji)
+                .map((f) => (
+                  <span
+                    key={f.id}
+                    className="rounded-full bg-muted px-2 py-1 text-base"
+                    title={f.author_name ?? undefined}
+                  >
+                    {f.emoji}
+                  </span>
+                ))}
+            </div>
+          )}
+          {checkIn.feedbacks.some((f) => f.message) && (
+            <ul className="space-y-2">
+              {checkIn.feedbacks
+                .filter((f) => f.message)
+                .map((f) => (
+                  <li key={f.id} className="rounded-lg bg-muted/50 p-3 text-sm">
+                    <p>{f.message}</p>
+                    {f.author_name && (
+                      <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function FeedbackCard({ feedback }: { feedback: Feedback }) {
+function TodayFeedbackBanner({ byDay }: { byDay: Map<string, WorkoutCheckIn[]> }) {
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const todayCheckIns = byDay.get(todayKey) ?? [];
+  const todayFeedbacks = todayCheckIns.flatMap((ci) => ci.feedbacks);
+
+  if (todayFeedbacks.length === 0) return null;
+
   return (
-    <Card className="shadow-soft">
-      <CardContent className="space-y-2 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge className={cn("text-[10px]", KIND_BADGE_CLASS[feedback.kind])}>
-            {KIND_LABEL[feedback.kind]}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {new Date(feedback.created_at).toLocaleDateString("pt-BR")}
-          </span>
+    <Card className="border-primary/30 bg-primary/5 shadow-soft">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <ThumbsUp className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm font-semibold">Feedback do personal de hoje</span>
         </div>
-        <p className="text-sm">{feedback.message}</p>
-        {feedback.author_name && (
-          <p className="text-xs text-muted-foreground">— {feedback.author_name}</p>
+        {todayFeedbacks.some((f) => f.emoji) && (
+          <div className="flex flex-wrap gap-2">
+            {todayFeedbacks
+              .filter((f) => f.emoji)
+              .map((f) => (
+                <span
+                  key={f.id}
+                  className="rounded-full bg-background px-2 py-1 text-xl shadow-sm"
+                  title={f.author_name ?? undefined}
+                >
+                  {f.emoji}
+                </span>
+              ))}
+          </div>
+        )}
+        {todayFeedbacks.some((f) => f.message) && (
+          <ul className="space-y-2">
+            {todayFeedbacks
+              .filter((f) => f.message)
+              .map((f) => (
+                <li key={f.id} className="rounded-lg bg-background p-3 text-sm shadow-sm">
+                  <p>{f.message}</p>
+                  {f.author_name && (
+                    <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
+                  )}
+                </li>
+              ))}
+          </ul>
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function SendFeedbackDialog({ alunoId, onSent }: { alunoId: string; onSent: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FeedbackKind>("elogio");
-  const [message, setMessage] = useState("");
-
-  const sendMut = useMutation({
-    mutationFn: () => createFeedback(alunoId, { kind, message }),
-    onSuccess: () => {
-      toast.success("Recado enviado");
-      setMessage("");
-      setKind("elogio");
-      setOpen(false);
-      onSent();
-    },
-    onError: () => toast.error("Não foi possível enviar o recado"),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <MessageSquarePlus className="mr-2 h-4 w-4" /> Enviar feedback
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enviar feedback ao aluno</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="feedback-kind">Tipo</Label>
-            <Select value={kind} onValueChange={(v) => setKind(v as FeedbackKind)}>
-              <SelectTrigger id="feedback-kind">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="elogio">Elogio</SelectItem>
-                <SelectItem value="correcao">Correção</SelectItem>
-                <SelectItem value="incentivo">Incentivo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="feedback-message">Mensagem</Label>
-            <Textarea
-              id="feedback-message"
-              rows={4}
-              maxLength={500}
-              placeholder="Escreva um recado para o aluno…"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={() => sendMut.mutate()}
-            disabled={!message.trim() || sendMut.isPending}
-          >
-            {sendMut.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando…
-              </>
-            ) : (
-              "Enviar"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

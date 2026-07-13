@@ -5,6 +5,8 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   fetchCheckInHistory,
+  fetchCompletedCheckIns,
+  markCheckInViewed,
   type WorkoutCheckIn,
 } from "./check-ins";
 
@@ -22,12 +24,16 @@ const checkIn: WorkoutCheckIn = {
   id: "ci1",
   workout_id: "w1",
   workout_title: "Treino A",
+  student_id: "s1",
+  student_name: "Julia Ferreira",
   status: "in_progress",
   exercises_completed: 1,
   exercises_total: 3,
   completed_exercise_ids: ["e1"],
   started_at: "2026-07-12T10:00:00Z",
   completed_at: null,
+  viewed_at: null,
+  feedbacks: [],
 };
 
 describe("check-ins API", () => {
@@ -93,6 +99,25 @@ describe("check-ins API", () => {
       const result = await fetchCheckInHistory("s1");
       expect(mockGet).toHaveBeenCalledWith("/api/v1/students/s1/check_ins");
       expect(result).toEqual([checkIn]);
+    });
+  });
+
+  describe("fetchCompletedCheckIns()", () => {
+    it("calls GET /api/v1/completed_check_ins", async () => {
+      mockGet.mockResolvedValue([checkIn]);
+      const result = await fetchCompletedCheckIns();
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/completed_check_ins");
+      expect(result).toEqual([checkIn]);
+    });
+  });
+
+  describe("markCheckInViewed()", () => {
+    it("posts to .../check_ins/:id/view", async () => {
+      const viewed = { ...checkIn, viewed_at: "2026-07-13T10:00:00Z" };
+      mockPost.mockResolvedValue(viewed);
+      const result = await markCheckInViewed("s1", "w1", "ci1");
+      expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/check_ins/ci1/view");
+      expect(result).toEqual(viewed);
     });
   });
 });
