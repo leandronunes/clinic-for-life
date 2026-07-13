@@ -151,6 +151,36 @@ describe("AssiduidadePage", () => {
     expect(within(dialog).queryByText("Mandou muito bem!")).not.toBeInTheDocument();
   });
 
+  it("shows the feedback message inside the day's check-in detail", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        feedbacks: [
+          {
+            id: "f1",
+            workout_check_in_id: "ci1",
+            emoji: null,
+            message: "Mandou muito bem no treino de hoje, continue assim!",
+            author_name: "Rafael Monteiro",
+            created_at: "2026-07-10T11:00:00Z",
+          },
+        ],
+      }),
+    ]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("Mandou muito bem no treino de hoje, continue assim!"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("— Rafael Monteiro")).toBeInTheDocument();
+  });
+
   it("shows today's emoji reactions in the feedback banner", async () => {
     const todayIso = new Date().toISOString();
     mockFetchHistory.mockResolvedValue([

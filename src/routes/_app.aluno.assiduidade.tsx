@@ -525,6 +525,20 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
                 ))}
             </div>
           )}
+          {checkIn.feedbacks.some((f) => f.message) && (
+            <ul className="space-y-2">
+              {checkIn.feedbacks
+                .filter((f) => f.message)
+                .map((f) => (
+                  <li key={f.id} className="rounded-lg bg-muted/50 p-3 text-sm">
+                    <p>{f.message}</p>
+                    {f.author_name && (
+                      <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

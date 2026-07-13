@@ -33,7 +33,6 @@ const checkInTemplate = (overrides: Record<string, unknown> = {}) => ({
   completed_at: nullValue(),
   viewed_at: nullValue(),
   feedbacks: like([]),
-  reactions: like([]),
   ...overrides,
 });
 

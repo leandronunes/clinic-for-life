@@ -200,11 +200,13 @@ describe("TreinosConcluidosPage", () => {
         message: "Mandou muito bem!",
       });
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+    // The dialog stays open afterwards so the personal can review the sent
+    // message in the history — it only closes on explicit dismissal.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("sends an emoji reaction for the selected check-in", async () => {
+  it("sends an emoji reaction immediately, independent of the message", async () => {
     mockFetchCompleted.mockResolvedValue([buildCheckIn()]);
     mockCreateFeedback.mockResolvedValue({
       id: "r1",
@@ -222,23 +224,23 @@ describe("TreinosConcluidosPage", () => {
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
     await user.click(screen.getByRole("button", { name: "💪" }));
-    // emoji is selected but NOT yet submitted — "Enviar feedback" button must be clicked
-    expect(mockCreateFeedback).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
 
+    // Picking the emoji submits the reaction right away — no "Enviar feedback" click needed,
+    // and the dialog stays open so the personal can still add a message separately.
     await waitFor(() => {
       expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", { emoji: "💪" });
-      expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
+      expect(toast.success).toHaveBeenCalledWith("Reação enviada");
     });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("sends emoji and message together in a single feedback", async () => {
+  it("sends the emoji reaction and the message as two independent feedback entries", async () => {
     mockFetchCompleted.mockResolvedValue([buildCheckIn()]);
     mockCreateFeedback.mockResolvedValue({
-      id: "f2",
+      id: "r1",
       workout_check_in_id: "ci1",
       emoji: "💪",
-      message: "Excelente execução!",
+      message: null,
       author_name: "Rafael Monteiro",
       created_at: "2026-07-13T09:00:00Z",
     });
@@ -250,16 +252,28 @@ describe("TreinosConcluidosPage", () => {
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
     await user.click(screen.getByRole("button", { name: "💪" }));
+    await waitFor(() => {
+      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", { emoji: "💪" });
+    });
+
+    mockCreateFeedback.mockResolvedValue({
+      id: "f2",
+      workout_check_in_id: "ci1",
+      emoji: null,
+      message: "Excelente execução!",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-07-13T09:00:00Z",
+    });
     await user.type(screen.getByLabelText(/Mensagem/i), "Excelente execução!");
     await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
 
     await waitFor(() => {
       expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", {
-        emoji: "💪",
         message: "Excelente execução!",
       });
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
     });
+    expect(mockCreateFeedback).toHaveBeenCalledTimes(2);
   });
 
   function buildCheckInWithFeedback() {

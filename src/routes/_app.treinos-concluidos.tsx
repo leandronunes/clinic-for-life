@@ -157,7 +157,6 @@ function CheckInReviewDialog({
   onChanged: () => void;
 }) {
   const [message, setMessage] = useState("");
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editEmoji, setEditEmoji] = useState<string | null>(null);
@@ -176,19 +175,31 @@ function CheckInReviewDialog({
   }, [checkIn, onChanged]);
 
   const feedbackMut = useMutation({
-    mutationFn: (payload: { emoji?: string; message?: string }) => {
+    mutationFn: (message: string) => {
       if (!checkIn) throw new Error("Nenhum check-in selecionado");
-      return createCheckInFeedback(checkIn.student_id, checkIn.workout_id, checkIn.id, payload);
+      return createCheckInFeedback(checkIn.student_id, checkIn.workout_id, checkIn.id, {
+        message,
+      });
     },
     onSuccess: () => {
       toast.success("Feedback enviado");
       setMessage("");
-      setSelectedEmoji(null);
-      setEmojiOpen(false);
       onChanged();
-      onClose();
     },
     onError: () => toast.error("Não foi possível enviar o feedback"),
+  });
+
+  const reactionMut = useMutation({
+    mutationFn: (emoji: string) => {
+      if (!checkIn) throw new Error("Nenhum check-in selecionado");
+      return createCheckInFeedback(checkIn.student_id, checkIn.workout_id, checkIn.id, { emoji });
+    },
+    onSuccess: () => {
+      toast.success("Reação enviada");
+      setEmojiOpen(false);
+      onChanged();
+    },
+    onError: () => toast.error("Não foi possível enviar a reação"),
   });
 
   const updateMut = useMutation({
@@ -377,39 +388,26 @@ function CheckInReviewDialog({
 
             <div className="space-y-4 border-t pt-4">
               <div className="grid gap-2">
-                <Label>Emoji (opcional)</Label>
-                <div className="flex items-center gap-2">
-                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" size="sm">
-                        <Smile className="mr-2 h-4 w-4" /> Escolher emoji
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <EmojiPicker
-                        onEmojiClick={(data: EmojiClickData) => {
-                          setSelectedEmoji(data.emoji);
-                          setEmojiOpen(false);
-                        }}
-                        emojiStyle={EmojiStyle.NATIVE}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {selectedEmoji && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-2xl leading-none">{selectedEmoji}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-1 text-muted-foreground"
-                        onClick={() => setSelectedEmoji(null)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <Label>Reação</Label>
+                <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-fit"
+                      disabled={reactionMut.isPending}
+                    >
+                      <Smile className="mr-2 h-4 w-4" /> Escolher emoji
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <EmojiPicker
+                      onEmojiClick={(data: EmojiClickData) => reactionMut.mutate(data.emoji)}
+                      emojiStyle={EmojiStyle.NATIVE}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="grid gap-2">
@@ -425,13 +423,8 @@ function CheckInReviewDialog({
               </div>
               <Button
                 type="button"
-                onClick={() =>
-                  feedbackMut.mutate({
-                    ...(selectedEmoji ? { emoji: selectedEmoji } : {}),
-                    ...(message.trim() ? { message: message.trim() } : {}),
-                  })
-                }
-                disabled={(!message.trim() && !selectedEmoji) || feedbackMut.isPending}
+                onClick={() => feedbackMut.mutate(message.trim())}
+                disabled={!message.trim() || feedbackMut.isPending}
               >
                 {feedbackMut.isPending ? (
                   <>
