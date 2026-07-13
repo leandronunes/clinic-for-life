@@ -2475,21 +2475,13 @@ function ExecucaoTreinoDialog({
           {/* Secondary controls row */}
           {isViewingStarted && (phase === "executing" || phase === "paused") && (
             <div className="flex w-full items-center gap-2">
-              {phase === "executing" ? (
+              {phase === "executing" && (
                 <Button
                   variant="secondary"
                   className="h-11 flex-1"
                   onClick={() => setPhase("paused")}
                 >
                   <Pause className="mr-1.5 h-4 w-4" /> Parar
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  className="h-11 flex-1"
-                  onClick={() => setPhase("executing")}
-                >
-                  <Play className="mr-1.5 h-4 w-4" /> Retomar
                 </Button>
               )}
               <Button
