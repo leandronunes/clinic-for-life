@@ -972,8 +972,8 @@ describe("TreinoCard", () => {
       await user.hover(checkbox);
       await waitFor(() =>
         expect(
-          screen.getByText(/Inicie o treino para marcar este exercício como concluído/i),
-        ).toBeInTheDocument(),
+          screen.getAllByText(/Inicie o treino para marcar este exercício como concluído/i).length,
+        ).toBeGreaterThan(0),
       );
     });
 
