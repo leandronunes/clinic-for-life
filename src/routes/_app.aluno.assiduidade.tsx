@@ -178,7 +178,6 @@ export function AssiduidadePage() {
 
   const dayCheckIns = (d: Date) => byDay.get(format(d, "yyyy-MM-dd")) ?? [];
 
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -394,9 +393,7 @@ function DayCell({
           {format(day, "EEE", { locale: ptBR })}
         </div>
       )}
-      <div className={cn("font-semibold", compact ? "text-sm" : "text-lg")}>
-        {format(day, "d")}
-      </div>
+      <div className={cn("font-semibold", compact ? "text-sm" : "text-lg")}>{format(day, "d")}</div>
       {has ? (
         <div className="mt-1 flex items-center gap-1">
           {checkIns.slice(0, 3).map((c) => (
@@ -520,9 +517,7 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
       <div className="flex items-start justify-between gap-2">
         <div className="font-semibold">{checkIn.workout_title}</div>
         <Badge
-          className={cn(
-            checkIn.status === "completed" ? "bg-success text-success-foreground" : "",
-          )}
+          className={cn(checkIn.status === "completed" ? "bg-success text-success-foreground" : "")}
           variant={checkIn.status === "completed" ? "default" : "secondary"}
         >
           {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
