@@ -992,7 +992,9 @@ describe("TreinoCard", () => {
 
       const startButton = await screen.findByRole("button", { name: /Iniciar treino/i });
       const checkInCard = startButton.closest("div[class*='border-dashed']");
-      expect(checkInCard).toHaveTextContent(/Clique em .*Iniciar treino.* para marcar os exercícios concluídos/i);
+      expect(checkInCard).toHaveTextContent(
+        /Clique em .*Iniciar treino.* para marcar os exercícios concluídos/i,
+      );
     });
 
     it("finishes the check-in when 'Finalizar treino' is confirmed", async () => {
