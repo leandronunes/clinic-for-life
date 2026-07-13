@@ -187,12 +187,12 @@ export function AssiduidadePage() {
             Visualize quando você executou seus treinos.
           </p>
         </div>
-        {canWrite && (
+        {/* {canWrite && (
           <SendFeedbackDialog
             alunoId={alunoId}
             onSent={() => qc.invalidateQueries({ queryKey: ["feedbacks", alunoId] })}
           />
-        )}
+        )} */}
       </div>
 
       <Card className="shadow-soft">
@@ -249,7 +249,7 @@ export function AssiduidadePage() {
         </CardContent>
       </Card>
 
-      <section aria-label="Feedback do personal" className="space-y-3">
+      {/* <section aria-label="Feedback do personal" className="space-y-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <ThumbsUp className="h-4 w-4" /> Feedback do Personal
         </h2>
@@ -270,7 +270,7 @@ export function AssiduidadePage() {
             ))}
           </div>
         )}
-      </section>
+      </section> */}
 
       <DayDetailsDialog
         day={selectedDay}
