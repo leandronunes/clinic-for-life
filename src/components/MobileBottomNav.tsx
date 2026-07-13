@@ -8,6 +8,7 @@ import {
   Images,
   UserCircle,
   ArrowLeftCircle,
+  CalendarCheck,
   ClipboardList,
   Handshake,
   LogOut,
@@ -50,6 +51,7 @@ const MENU: Record<UserRole, NavItem[]> = {
 };
 
 const EXTRA_ALUNO: NavItem[] = [
+  { title: "Assiduidade", url: "/aluno/assiduidade", icon: CalendarCheck },
   { title: "Exames", url: "/aluno/exames", icon: FileText },
   { title: "Avaliação Biomecânica", url: "/aluno/biomecanica", icon: Activity },
   { title: "Anamnese Dinâmica", url: "/aluno/anamnese", icon: ClipboardList },

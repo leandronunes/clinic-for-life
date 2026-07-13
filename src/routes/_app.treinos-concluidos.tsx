@@ -186,6 +186,7 @@ function CheckInReviewDialog({
       setSelectedEmoji(null);
       setEmojiOpen(false);
       onChanged();
+      onClose();
     },
     onError: () => toast.error("Não foi possível enviar o feedback"),
   });

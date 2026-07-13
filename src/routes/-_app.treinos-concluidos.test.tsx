@@ -200,6 +200,7 @@ describe("TreinosConcluidosPage", () => {
         message: "Mandou muito bem!",
       });
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 
