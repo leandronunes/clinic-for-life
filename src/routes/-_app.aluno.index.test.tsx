@@ -990,13 +990,9 @@ describe("TreinoCard", () => {
         { wrapper },
       );
 
-      await screen.findByRole("button", { name: /Iniciar treino/i });
-      expect(
-        screen.getByText((content, element) => {
-          const text = element?.textContent ?? "";
-          return text.includes("Clique em") && text.includes("Iniciar treino");
-        }),
-      ).toBeInTheDocument();
+      const startButton = await screen.findByRole("button", { name: /Iniciar treino/i });
+      const checkInCard = startButton.closest("div[class*='border-dashed']");
+      expect(checkInCard).toHaveTextContent(/Clique em .*Iniciar treino.* para marcar os exercícios concluídos/i);
     });
 
     it("finishes the check-in when 'Finalizar treino' is confirmed", async () => {
