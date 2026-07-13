@@ -57,6 +57,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -651,7 +652,7 @@ export function TreinoCard({
                 </span>
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  Marque os exercícios concluídos durante o treino.
+                  Clique em <strong>Iniciar treino</strong> para marcar os exercícios concluídos.
                 </span>
               )}
               <Button
@@ -850,13 +851,7 @@ function ExerciseRowContent({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           {onToggleExercise && (
-            <Checkbox
-              className="mt-1 shrink-0"
-              checked={checkIn?.completed_exercise_ids.includes(exercise.id) ?? false}
-              disabled={!checkIn || checkIn.status === "completed"}
-              onCheckedChange={(value) => onToggleExercise(exercise.id, value === true)}
-              aria-label={`Marcar "${exercise.name}" como concluído`}
-            />
+            <ExerciseCheckbox exercise={exercise} checkIn={checkIn} onToggle={onToggleExercise} />
           )}
           {dragHandleListeners && (
             <button
@@ -969,6 +964,49 @@ function ExerciseRowContent({
       </div>
       {exercise.notes && <ExerciseNotes notes={exercise.notes} />}
     </div>
+  );
+}
+
+function ExerciseCheckbox({
+  exercise,
+  checkIn,
+  onToggle,
+}: {
+  exercise: Exercise;
+  checkIn?: WorkoutCheckIn | null;
+  onToggle: (exerciseId: string, completed: boolean) => void;
+}) {
+  const completed = checkIn?.completed_exercise_ids.includes(exercise.id) ?? false;
+  const disabled = !checkIn || checkIn.status === "completed";
+
+  let tooltip: string | null = null;
+  if (!checkIn) {
+    tooltip = "Inicie o treino para marcar este exercício como concluído.";
+  } else if (checkIn.status === "completed") {
+    tooltip = "Treino já finalizado.";
+  }
+
+  const checkbox = (
+    <Checkbox
+      className="mt-1 shrink-0"
+      checked={completed}
+      disabled={disabled}
+      onCheckedChange={(value) => onToggle(exercise.id, value === true)}
+      aria-label={`Marcar "${exercise.name}" como concluído`}
+    />
+  );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn("inline-flex", disabled && "cursor-not-allowed")}>{checkbox}</span>
+      </TooltipTrigger>
+      {tooltip && (
+        <TooltipContent side="right">
+          <p>{tooltip}</p>
+        </TooltipContent>
+      )}
+    </Tooltip>
   );
 }
 

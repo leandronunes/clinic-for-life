@@ -6,6 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../contexts/auth-context";
 import { Toaster } from "../components/ui/sonner";
+import { TooltipProvider } from "../components/ui/tooltip";
 import { SplashScreen } from "../components/SplashScreen";
 
 function isPwaStandalone() {
@@ -99,10 +100,12 @@ function RootComponent() {
   const content = (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {showSplash && <SplashScreen onDone={handleSplashDone} />}
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster richColors position="top-right" />
+        <TooltipProvider delayDuration={300}>
+          {showSplash && <SplashScreen onDone={handleSplashDone} />}
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

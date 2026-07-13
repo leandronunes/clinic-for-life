@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TreinoCard, ColarTreinoButton } from "./_app.aluno.index";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Exercise, Workout } from "@/lib/api/workouts";
 import { createExercise, createWorkout, deleteWorkout, updateExercise } from "@/lib/api/workouts";
 import { workoutToClipboard } from "@/hooks/use-workout-clipboard";
@@ -64,7 +65,11 @@ function createQueryClient() {
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={createQueryClient()}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 const mockWorkout: Workout = {
@@ -897,6 +902,7 @@ describe("TreinoCard", () => {
       const checkbox = await screen.findByRole("checkbox", {
         name: /Marcar "Crucifixo" como concluído/i,
       });
+      await waitFor(() => expect(checkbox).toBeEnabled());
       expect(checkbox).not.toBeChecked();
       await user.click(checkbox);
 
