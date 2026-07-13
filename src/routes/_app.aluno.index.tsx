@@ -849,7 +849,7 @@ function ExerciseRowContent({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          {/* {onToggleExercise && (
+          {onToggleExercise && (
             <Checkbox
               className="mt-1 shrink-0"
               checked={checkIn?.completed_exercise_ids.includes(exercise.id) ?? false}
@@ -857,7 +857,7 @@ function ExerciseRowContent({
               onCheckedChange={(value) => onToggleExercise(exercise.id, value === true)}
               aria-label={`Marcar "${exercise.name}" como concluído`}
             />
-          )} */}
+          )}
           {dragHandleListeners && (
             <button
               type="button"
