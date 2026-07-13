@@ -1,11 +1,8 @@
 import { http } from "./http";
 
-export type FeedbackKind = "elogio" | "correcao" | "incentivo";
-
 export interface Feedback {
   id: string;
   workout_check_in_id: string;
-  kind: FeedbackKind;
   message: string;
   author_name: string | null;
   created_at: string;
@@ -13,7 +10,6 @@ export interface Feedback {
 
 export interface CreateFeedbackPayload {
   workout_check_in_id: string;
-  kind: FeedbackKind;
   message: string;
 }
 

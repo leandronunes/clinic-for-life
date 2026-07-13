@@ -590,7 +590,6 @@ export function createFeedback(
   const feedback: Feedback = {
     id: nextId("feedback"),
     workout_check_in_id: checkIn.id,
-    kind: payload.kind,
     message: payload.message,
     author_name: currentUser(token).name,
     created_at: new Date().toISOString(),

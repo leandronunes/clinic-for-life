@@ -8,13 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -23,7 +16,7 @@ import {
   markCheckInViewed,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
-import { createFeedback, type FeedbackKind } from "@/lib/api/feedbacks";
+import { createFeedback } from "@/lib/api/feedbacks";
 import { setReaction } from "@/lib/api/reactions";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
@@ -37,18 +30,6 @@ export const Route = createFileRoute("/_app/treinos-concluidos")({
     }),
   component: TreinosConcluidosPage,
 });
-
-const KIND_LABEL: Record<FeedbackKind, string> = {
-  elogio: "Elogio",
-  correcao: "Correção",
-  incentivo: "Incentivo",
-};
-
-const KIND_BADGE_CLASS: Record<FeedbackKind, string> = {
-  elogio: "bg-success text-success-foreground",
-  correcao: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  incentivo: "",
-};
 
 type ViewState = "not_viewed" | "viewed" | "reacted";
 
@@ -77,8 +58,7 @@ export function TreinosConcluidosPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Treinos Concluídos</h1>
         <p className="text-sm text-muted-foreground">
-          Revise os treinos concluídos pelos seus alunos e envie um elogio, correção, incentivo ou
-          reação.
+          Revise os treinos concluídos pelos seus alunos e envie um feedback ou reação.
         </p>
       </div>
 
@@ -163,7 +143,6 @@ function CheckInReviewDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const [kind, setKind] = useState<FeedbackKind>("elogio");
   const [message, setMessage] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
 
@@ -183,14 +162,12 @@ function CheckInReviewDialog({
       if (!checkIn) throw new Error("Nenhum check-in selecionado");
       return createFeedback(checkIn.student_id, {
         workout_check_in_id: checkIn.id,
-        kind,
         message,
       });
     },
     onSuccess: () => {
       toast.success("Feedback enviado");
       setMessage("");
-      setKind("elogio");
       onChanged();
     },
     onError: () => toast.error("Não foi possível enviar o feedback"),
@@ -264,10 +241,7 @@ function CheckInReviewDialog({
                 {checkIn.feedbacks.map((feedback) => (
                   <Card key={feedback.id} className="shadow-soft">
                     <CardContent className="space-y-2 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Badge className={cn("text-[10px]", KIND_BADGE_CLASS[feedback.kind])}>
-                          {KIND_LABEL[feedback.kind]}
-                        </Badge>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         <span className="text-xs text-muted-foreground">
                           {new Date(feedback.created_at).toLocaleDateString("pt-BR")}
                         </span>
@@ -294,19 +268,6 @@ function CheckInReviewDialog({
             </div>
 
             <div className="space-y-4 border-t pt-4">
-              <div className="grid gap-2">
-                <Label htmlFor="feedback-kind">Tipo</Label>
-                <Select value={kind} onValueChange={(v) => setKind(v as FeedbackKind)}>
-                  <SelectTrigger id="feedback-kind">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="elogio">Elogio</SelectItem>
-                    <SelectItem value="correcao">Correção</SelectItem>
-                    <SelectItem value="incentivo">Incentivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="grid gap-2">
                 <Label htmlFor="feedback-message">Mensagem</Label>
                 <Textarea

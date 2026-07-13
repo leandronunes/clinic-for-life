@@ -174,7 +174,6 @@ describe("TreinosConcluidosPage", () => {
     mockCreateFeedback.mockResolvedValue({
       id: "f1",
       workout_check_in_id: "ci1",
-      kind: "elogio",
       message: "Mandou muito bem!",
       author_name: "Rafael Monteiro",
       created_at: "2026-07-13T09:00:00Z",
@@ -191,7 +190,6 @@ describe("TreinosConcluidosPage", () => {
     await waitFor(() => {
       expect(mockCreateFeedback).toHaveBeenCalledWith("s1", {
         workout_check_in_id: "ci1",
-        kind: "elogio",
         message: "Mandou muito bem!",
       });
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");

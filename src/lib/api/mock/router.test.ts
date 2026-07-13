@@ -341,12 +341,10 @@ describe("resolveMockRequest()", () => {
       path: "/api/v1/students/student-1/feedbacks",
       body: {
         workout_check_in_id: finished.id,
-        kind: "elogio",
         message: "Muito bem no treino de hoje!",
       },
       token: login.token,
     });
-    expect(created.kind).toBe("elogio");
     expect(created.message).toBe("Muito bem no treino de hoje!");
     expect(created.author_name).toBe(login.user.name);
     expect(created.workout_check_in_id).toBe(finished.id);
@@ -377,7 +375,7 @@ describe("resolveMockRequest()", () => {
       resolveMockRequest({
         method: "POST",
         path: "/api/v1/students/student-1/feedbacks",
-        body: { workout_check_in_id: started.id, kind: "elogio", message: "Muito bem!" },
+        body: { workout_check_in_id: started.id, message: "Muito bem!" },
         token: login.token,
       }),
     ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);

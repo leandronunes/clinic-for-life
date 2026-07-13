@@ -32,7 +32,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
-import type { Feedback, FeedbackKind } from "@/lib/api/feedbacks";
+import type { Feedback } from "@/lib/api/feedbacks";
 import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
 
@@ -45,18 +45,6 @@ export const Route = createFileRoute("/_app/aluno/assiduidade")({
     }),
   component: AssiduidadePage,
 });
-
-const KIND_LABEL: Record<FeedbackKind, string> = {
-  elogio: "Elogio",
-  correcao: "Correção",
-  incentivo: "Incentivo",
-};
-
-const KIND_BADGE_CLASS: Record<FeedbackKind, string> = {
-  elogio: "bg-success text-success-foreground",
-  correcao: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  incentivo: "",
-};
 
 type PeriodView = "dia" | "semana" | "mes";
 
@@ -541,10 +529,7 @@ function FeedbackCard({ feedback }: { feedback: Feedback }) {
   return (
     <Card className="shadow-soft">
       <CardContent className="space-y-2 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge className={cn("text-[10px]", KIND_BADGE_CLASS[feedback.kind])}>
-            {KIND_LABEL[feedback.kind]}
-          </Badge>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <span className="text-xs text-muted-foreground">
             {new Date(feedback.created_at).toLocaleDateString("pt-BR")}
           </span>

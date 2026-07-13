@@ -4,16 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
-import { enumString, errorStringBody, idString, like } from "@/lib/pact/matchers";
+import { errorStringBody, idString, like } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
 import { fetchFeedbacks, createFeedback } from "./feedbacks";
-
-const KINDS = ["elogio", "correcao", "incentivo"];
 
 const feedbackTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("2411"),
   workout_check_in_id: idString("2412"),
-  kind: enumString(KINDS, "elogio"),
   message: like("Mandou muito bem no treino de hoje!"),
   author_name: like("Rafael Monteiro"),
   created_at: like("2026-07-12T10:00:00Z"),
@@ -49,7 +46,6 @@ describe("feedbacks API contract", () => {
     const pact = createPact();
     const payload = {
       workout_check_in_id: "2412",
-      kind: "elogio" as const,
       message: "Mandou muito bem no treino de hoje!",
     };
     pact
@@ -79,7 +75,6 @@ describe("feedbacks API contract", () => {
     const pact = createPact();
     const payload = {
       workout_check_in_id: "2413",
-      kind: "elogio" as const,
       message: "Mandou muito bem no treino de hoje!",
     };
     pact
@@ -110,7 +105,6 @@ describe("feedbacks API contract", () => {
     const pact = createPact();
     const payload = {
       workout_check_in_id: "2412",
-      kind: "elogio" as const,
       message: "Mandou muito bem no treino de hoje!",
     };
     pact

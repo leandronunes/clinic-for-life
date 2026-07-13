@@ -128,7 +128,6 @@ describe("AssiduidadePage", () => {
           {
             id: "f1",
             workout_check_in_id: "ci1",
-            kind: "elogio",
             message: "Mandou muito bem!",
             author_name: "Rafael Monteiro",
             created_at: "2026-07-10T11:00:00Z",

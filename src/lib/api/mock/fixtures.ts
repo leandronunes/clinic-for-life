@@ -328,7 +328,6 @@ export const FEEDBACKS_BY_STUDENT: Record<string, Feedback[]> = {
     {
       id: "feedback-s1-1",
       workout_check_in_id: "check-in-s1-a-2",
-      kind: "elogio",
       message: "Mandou muito bem no treino de hoje, continue assim!",
       author_name: "Rafael Monteiro",
       created_at: "2026-01-03T15:00:00.000Z",
@@ -336,7 +335,6 @@ export const FEEDBACKS_BY_STUDENT: Record<string, Feedback[]> = {
     {
       id: "feedback-s1-2",
       workout_check_in_id: "check-in-s1-b-1",
-      kind: "incentivo",
       message: "Bora fechar a semana com o treino de pernas!",
       author_name: "Rafael Monteiro",
       created_at: "2026-01-08T09:40:00.000Z",
