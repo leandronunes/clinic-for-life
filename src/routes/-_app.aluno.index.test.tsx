@@ -880,7 +880,7 @@ describe("TreinoCard", () => {
       expect(screen.queryByRole("button", { name: /Iniciar treino/i })).not.toBeInTheDocument();
     });
 
-    it("toggles an exercise checkbox, calling the mutation with the exercise id", async () => {
+    it("toggles an exercise by clicking its icon, calling the mutation with the exercise id", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
       mockToggleExerciseCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
@@ -899,19 +899,18 @@ describe("TreinoCard", () => {
         { wrapper },
       );
 
-      const checkbox = await screen.findByRole("checkbox", {
+      const toggle = await screen.findByRole("button", {
         name: /Marcar "Crucifixo" como concluído/i,
       });
-      await waitFor(() => expect(checkbox).toBeEnabled());
-      expect(checkbox).not.toBeChecked();
-      await user.click(checkbox);
+      await waitFor(() => expect(toggle).toBeEnabled());
+      await user.click(toggle);
 
       await waitFor(() =>
         expect(mockToggleExerciseCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1", "e2", true),
       );
     });
 
-    it("marks the checkbox checked for an exercise already completed in this check-in", async () => {
+    it("marks the toggle icon pressed for an exercise already completed in this check-in", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
       render(
         <TreinoCard
@@ -925,13 +924,13 @@ describe("TreinoCard", () => {
       );
 
       await screen.findByRole("button", { name: /Finalizar treino/i });
-      const checkbox = screen.getByRole("checkbox", {
-        name: /Marcar "Supino reto" como concluído/i,
+      const toggle = screen.getByRole("button", {
+        name: /Desmarcar "Supino reto"/i,
       });
-      expect(checkbox).toBeChecked();
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
     });
 
-    it("disables checkboxes once the check-in is completed", async () => {
+    it("disables toggle icons once the check-in is completed", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue({ ...inProgressCheckIn, status: "completed" });
       render(
         <TreinoCard
@@ -944,13 +943,13 @@ describe("TreinoCard", () => {
         { wrapper },
       );
 
-      const checkbox = await screen.findByRole("checkbox", {
+      const toggle = await screen.findByRole("button", {
         name: /Marcar "Crucifixo" como concluído/i,
       });
-      expect(checkbox).toBeDisabled();
+      expect(toggle).toBeDisabled();
     });
 
-    it("shows a tooltip explaining that the workout must be started before checking an exercise", async () => {
+    it("shows a tooltip explaining that the workout must be started before toggling an exercise", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue(null);
       const user = userEvent.setup();
       render(
@@ -964,12 +963,12 @@ describe("TreinoCard", () => {
         { wrapper },
       );
 
-      const checkbox = await screen.findByRole("checkbox", {
+      const toggle = await screen.findByRole("button", {
         name: /Marcar "Crucifixo" como concluído/i,
       });
-      expect(checkbox).toBeDisabled();
+      expect(toggle).toBeDisabled();
 
-      await user.hover(checkbox);
+      await user.hover(toggle);
       await waitFor(() =>
         expect(
           screen.getAllByText(/Inicie o treino para marcar este exercício como concluído/i).length,
