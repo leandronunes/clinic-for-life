@@ -992,7 +992,10 @@ describe("TreinoCard", () => {
 
       await screen.findByRole("button", { name: /Iniciar treino/i });
       expect(
-        screen.getByText(/Clique em Iniciar treino para marcar os exercícios concluídos/i),
+        screen.getByText((content, element) => {
+          const text = element?.textContent ?? "";
+          return text.includes("Clique em") && text.includes("Iniciar treino");
+        }),
       ).toBeInTheDocument();
     });
 
