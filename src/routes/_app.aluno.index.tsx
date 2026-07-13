@@ -2001,6 +2001,7 @@ interface ExecutionCardActiveState {
   currentSet: number;
   phaseLabel: string;
   clockValue: string;
+  restProgress: number; // 0..1 (rest elapsed / total)
 }
 
 /** One exercise's stats + timer + notes — rendered once per carousel slide in
@@ -2023,9 +2024,13 @@ function ExerciseExecutionCard({
   const currentSet = active?.currentSet ?? 1;
   const phaseLabel = active?.phaseLabel ?? "Pronto para começar";
   const clockValue = active?.clockValue ?? formatClock(0);
+  const restProgress = active?.restProgress ?? 0;
+
+  const KindIcon = KIND_META[kind].icon;
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-0">
+      {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2">
         {!isCardio ? (
           <>
@@ -2070,24 +2075,84 @@ function ExerciseExecutionCard({
         )}
       </div>
 
+      {/* Big timer hero — takes remaining vertical space on mobile */}
       <div
         className={cn(
-          "rounded-lg border p-4 text-center transition-colors",
-          phase === "resting" &&
-            "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-          phase === "rest-done" && "animate-pulse border-success/60 bg-success/10 text-success",
+          "relative flex flex-1 flex-col items-center justify-center rounded-2xl border-2 p-6 text-center transition-colors",
+          phase === "idle" && "border-border bg-muted/30",
           phase === "executing" && "border-primary/60 bg-primary/5",
+          phase === "paused" && "border-muted-foreground/40 bg-muted/40",
+          phase === "resting" &&
+            "border-amber-500/60 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+          phase === "rest-done" && "animate-pulse border-success bg-success/15 text-success",
         )}
         aria-live="polite"
       >
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">{phaseLabel}</div>
-        <div className="mt-1 font-mono text-5xl font-bold tabular-nums">{clockValue}</div>
+        <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          <KindIcon className="h-4 w-4" aria-hidden />
+          {phaseLabel}
+        </div>
+
+        {phase === "resting" ? (
+          <RestRing progress={restProgress} value={clockValue} />
+        ) : (
+          <div
+            className={cn(
+              "font-mono text-6xl font-bold tabular-nums leading-none sm:text-7xl",
+              phase === "executing" && "text-primary",
+              phase === "rest-done" && "text-success",
+            )}
+          >
+            {clockValue}
+          </div>
+        )}
+
         {!isCardio && restSecs > 0 && phase === "idle" && (
-          <p className="mt-1 text-xs text-muted-foreground">Descanso configurado: {restSecs}s</p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Descanso configurado: <span className="font-medium">{restSecs}s</span>
+          </p>
+        )}
+        {phase === "rest-done" && (
+          <p className="mt-3 text-sm font-medium">Bora pra próxima série!</p>
         )}
       </div>
 
       {exercise.notes && <ExerciseNotes notes={exercise.notes} />}
+    </div>
+  );
+}
+
+/** Circular countdown ring for the rest phase. */
+function RestRing({ progress, value }: { progress: number; value: string }) {
+  const size = 180;
+  const stroke = 10;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - Math.min(1, Math.max(0, progress)));
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          className="fill-none stroke-amber-500/20"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          className="fill-none stroke-amber-500 transition-[stroke-dashoffset] duration-500 ease-linear"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="font-mono text-4xl font-bold tabular-nums sm:text-5xl">{value}</span>
+      </div>
     </div>
   );
 }
@@ -2127,10 +2192,6 @@ function ExecucaoTreinoDialog({
   const [elapsed, setElapsed] = useState(0);
   const [remaining, setRemaining] = useState(0);
 
-  // Realinha o índice visualizado quando o modal reabre — prioriza o
-  // exercício em andamento, senão o primeiro pendente. Só na abertura (não a
-  // cada render com o modal já aberto), por isso os valores mais recentes
-  // são lidos via ref em vez de entrar nas deps do efeito.
   const startedIdxRef = useRef(startedIdx);
   startedIdxRef.current = startedIdx;
   const firstPendingIdxRef = useRef(firstPendingIdx);
@@ -2139,9 +2200,6 @@ function ExecucaoTreinoDialog({
     if (open) setIdx(startedIdxRef.current ?? firstPendingIdxRef.current);
   }, [open]);
 
-  // Navegação entre os cards de exercício — swipe no mobile (nativo do
-  // Embla) e as setas no header. `idx` é a fonte da verdade: sincroniza nos
-  // dois sentidos com o carrossel.
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   useEffect(() => {
     if (!carouselApi) return;
@@ -2161,7 +2219,6 @@ function ExecucaoTreinoDialog({
   const restSecs = current?.rest_seconds ?? 0;
   const isViewingStarted = startedIdx !== null && idx === startedIdx;
 
-  // Cronômetros: executing conta pra cima, resting decrementa até zero.
   useEffect(() => {
     if (phase === "executing") {
       const t = window.setInterval(() => setElapsed((v) => v + 1), 1000);
@@ -2184,7 +2241,6 @@ function ExecucaoTreinoDialog({
     return undefined;
   }, [phase]);
 
-  // Se o check-in for concluído fora do modal, fecha automaticamente.
   useEffect(() => {
     if (open && checkIn.status === "completed") onOpenChange(false);
   }, [open, checkIn.status, onOpenChange]);
@@ -2238,178 +2294,235 @@ function ExecucaoTreinoDialog({
           ? "00:00"
           : formatClock(0);
 
+  const restProgress = restSecs > 0 ? (restSecs - remaining) / restSecs : 0;
+
+  // ---- Contextual primary CTA (large button at the bottom) ---------------
+  type PrimaryAction = { label: string; icon: typeof Play; onClick: () => void; tone?: "success" };
+  let primary: PrimaryAction | null = null;
+
+  if (!isViewingStarted) {
+    primary = {
+      label: isCardio ? "Iniciar cardio" : `Iniciar série ${currentSet}`,
+      icon: Play,
+      onClick: () => {
+        setStartedIdx(idx);
+        setCurrentSet(1);
+        setElapsed(0);
+        setPhase("executing");
+      },
+    };
+  } else if (phase === "idle") {
+    primary = {
+      label: isCardio ? "Iniciar cardio" : `Iniciar série ${currentSet}`,
+      icon: Play,
+      onClick: () => {
+        setElapsed(0);
+        setPhase("executing");
+      },
+    };
+  } else if (phase === "paused") {
+    primary = { label: "Retomar", icon: Play, onClick: () => setPhase("executing") };
+  } else if (phase === "executing") {
+    if (!isCardio && restSecs > 0 && !isLastSet) {
+      primary = {
+        label: `Iniciar descanso (${restSecs}s)`,
+        icon: Clock,
+        onClick: () => {
+          setRemaining(restSecs);
+          setPhase("resting");
+        },
+      };
+    } else if (!isCardio && !isLastSet) {
+      primary = {
+        label: "Próxima série",
+        icon: ChevronRight,
+        onClick: () => {
+          setCurrentSet((s) => s + 1);
+          setElapsed(0);
+          setPhase("idle");
+        },
+      };
+    }
+  } else if (phase === "rest-done" && !isLastSet) {
+    primary = {
+      label: `Iniciar série ${currentSet + 1}`,
+      icon: Play,
+      tone: "success",
+      onClick: () => {
+        setCurrentSet((s) => s + 1);
+        setElapsed(0);
+        setPhase("executing");
+      },
+    };
+  }
+
+  const canDisableStart = !isViewingStarted && startedIdx !== null;
+  const startedName = startedIdx !== null ? exercises[startedIdx]?.name : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92dvh] max-w-lg flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          // Mobile: fullscreen edge-to-edge
+          "left-0 top-0 flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 p-0",
+          // Desktop (sm+): centered dialog
+          "sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border",
+        )}
+      >
+        {/* Sticky header */}
+        <DialogHeader className="shrink-0 space-y-0 border-b bg-card/95 px-4 pb-3 pt-4 backdrop-blur sm:border-0 sm:bg-transparent sm:p-0">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0"
+              className="h-9 w-9 shrink-0"
               aria-label="Exercício anterior"
               disabled={idx === 0}
               onClick={() => setIdx((i) => Math.max(0, i - 1))}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </Button>
-            <DialogTitle className="min-w-0 flex-1 break-words text-center">
-              {current.name}
-            </DialogTitle>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="truncate text-center text-lg font-semibold sm:text-xl">
+                {current.name}
+              </DialogTitle>
+              <DialogDescription className="mt-0.5 text-center text-xs">
+                {idx + 1}/{exercises.length} · {KIND_META[kind].label}
+                {current.muscle_group ? ` · ${current.muscle_group}` : ""}
+              </DialogDescription>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0"
+              className="h-9 w-9 shrink-0"
               aria-label="Próximo exercício"
               disabled={idx === exercises.length - 1}
               onClick={() => setIdx((i) => Math.min(exercises.length - 1, i + 1))}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
-          <DialogDescription className="text-center">
-            Exercício {idx + 1} de {exercises.length} · {KIND_META[kind].label}
-            {current.muscle_group ? ` · ${current.muscle_group}` : ""}
-          </DialogDescription>
+
+          {/* Slim progress bar of exercise position */}
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${((idx + 1) / exercises.length) * 100}%` }}
+            />
+          </div>
         </DialogHeader>
 
-        <Carousel setApi={setCarouselApi} opts={{ startIndex: idx }} className="min-h-0 flex-1">
-          <CarouselContent className="h-full">
-            {exercises.map((ex, i) => (
-              <CarouselItem
-                key={ex.id}
-                aria-label={ex.name}
-                className="h-full overflow-y-auto pr-1"
-              >
-                <ExerciseExecutionCard
-                  exercise={ex}
-                  active={i === startedIdx ? { phase, currentSet, phaseLabel, clockValue } : null}
-                />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-
-        <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0">
-          <div className="flex w-full flex-wrap gap-2">
-            {isViewingStarted ? (
-              <>
-                {(phase === "idle" || phase === "paused") && (
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      if (phase === "idle") setElapsed(0);
-                      setPhase("executing");
-                    }}
-                  >
-                    <Play className="mr-1 h-4 w-4" />
-                    {phase === "paused"
-                      ? "Retomar"
-                      : isCardio
-                        ? "Iniciar cardio"
-                        : `Iniciar série ${currentSet}`}
-                  </Button>
-                )}
-
-                {phase === "executing" && (
-                  <Button className="flex-1" variant="secondary" onClick={() => setPhase("paused")}>
-                    <Pause className="mr-1 h-4 w-4" /> Parar
-                  </Button>
-                )}
-
-                {(phase === "executing" || phase === "paused") && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Zerar cronômetro"
-                    onClick={() => setElapsed(0)}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                )}
-
-                {phase === "executing" && !isCardio && restSecs > 0 && !isLastSet && (
-                  <Button
-                    className="flex-1"
-                    variant="secondary"
-                    onClick={() => {
-                      setRemaining(restSecs);
-                      setPhase("resting");
-                    }}
-                  >
-                    <Clock className="mr-1 h-4 w-4" /> Iniciar descanso ({restSecs}s)
-                  </Button>
-                )}
-
-                {phase === "executing" &&
-                  !isCardio &&
-                  (restSecs === 0 || isLastSet) &&
-                  !isLastSet && (
-                    <Button
-                      className="flex-1"
-                      variant="secondary"
-                      onClick={() => {
-                        setCurrentSet((s) => s + 1);
-                        setElapsed(0);
-                        setPhase("idle");
-                      }}
-                    >
-                      Próxima série
-                    </Button>
-                  )}
-
-                {phase === "resting" && (
-                  <Button
-                    className="flex-1"
-                    variant="ghost"
-                    onClick={() => {
-                      setPhase("rest-done");
-                      setRemaining(0);
-                    }}
-                  >
-                    Pular descanso
-                  </Button>
-                )}
-
-                {phase === "rest-done" && !isLastSet && (
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      setCurrentSet((s) => s + 1);
-                      setElapsed(0);
-                      setPhase("executing");
-                    }}
-                  >
-                    <Play className="mr-1 h-4 w-4" /> Iniciar série {currentSet + 1}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <div className="flex-1 space-y-1">
-                <Button
-                  className="w-full"
-                  disabled={startedIdx !== null}
-                  onClick={() => {
-                    setStartedIdx(idx);
-                    setCurrentSet(1);
-                    setElapsed(0);
-                    setPhase("executing");
-                  }}
+        {/* Scrollable body: swipeable exercise cards */}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <Carousel
+            setApi={setCarouselApi}
+            opts={{ startIndex: idx }}
+            className="h-full"
+          >
+            <CarouselContent className="-ml-0 h-full">
+              {exercises.map((ex, i) => (
+                <CarouselItem
+                  key={ex.id}
+                  aria-label={ex.name}
+                  className="h-full overflow-y-auto pl-0 pt-4"
                 >
-                  <Play className="mr-1 h-4 w-4" />
-                  {isCardio ? "Iniciar cardio" : "Iniciar série 1"}
-                </Button>
-                {startedIdx !== null && (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Conclua "{exercises[startedIdx].name}" para iniciar este exercício.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+                  <ExerciseExecutionCard
+                    exercise={ex}
+                    active={
+                      i === startedIdx
+                        ? { phase, currentSet, phaseLabel, clockValue, restProgress }
+                        : null
+                    }
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
 
-          <Button variant="outline" className="w-full" onClick={handleConcluir}>
-            <CheckCircle2 className="mr-1 h-4 w-4" />
+        {/* Sticky footer action bar */}
+        <DialogFooter
+          className={cn(
+            "shrink-0 flex-col gap-2 border-t bg-card/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:space-x-0 sm:border-0 sm:bg-transparent sm:p-0",
+          )}
+        >
+          {/* Primary CTA */}
+          {primary ? (
+            <Button
+              className={cn(
+                "h-14 w-full text-base font-semibold shadow-sm",
+                primary.tone === "success" &&
+                  "bg-success text-success-foreground hover:bg-success/90",
+              )}
+              disabled={canDisableStart && phase === "idle" && !isViewingStarted}
+              onClick={primary.onClick}
+            >
+              <primary.icon className="mr-2 h-5 w-5" />
+              {primary.label}
+            </Button>
+          ) : phase === "resting" ? (
+            <div className="flex h-14 w-full items-center justify-center rounded-md border-2 border-dashed border-amber-500/50 bg-amber-500/5 text-sm font-medium text-amber-700 dark:text-amber-300">
+              Aproveite o descanso…
+            </div>
+          ) : null}
+
+          {canDisableStart && !isViewingStarted && startedName && (
+            <p className="text-center text-xs text-muted-foreground">
+              Conclua &quot;{startedName}&quot; para iniciar este exercício.
+            </p>
+          )}
+
+          {/* Secondary controls row */}
+          {isViewingStarted && (phase === "executing" || phase === "paused") && (
+            <div className="flex w-full items-center gap-2">
+              {phase === "executing" ? (
+                <Button
+                  variant="secondary"
+                  className="h-11 flex-1"
+                  onClick={() => setPhase("paused")}
+                >
+                  <Pause className="mr-1.5 h-4 w-4" /> Parar
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="h-11 flex-1"
+                  onClick={() => setPhase("executing")}
+                >
+                  <Play className="mr-1.5 h-4 w-4" /> Retomar
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 shrink-0"
+                aria-label="Zerar cronômetro"
+                onClick={() => setElapsed(0)}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {isViewingStarted && phase === "resting" && (
+            <Button
+              variant="ghost"
+              className="h-11 w-full text-muted-foreground"
+              onClick={() => {
+                setPhase("rest-done");
+                setRemaining(0);
+              }}
+            >
+              Pular descanso
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            className="h-10 w-full text-sm text-muted-foreground hover:text-foreground"
+            onClick={handleConcluir}
+          >
+            <CheckCircle2 className="mr-1.5 h-4 w-4" />
             {idx + 1 < exercises.length
               ? "Concluir exercício e ir para o próximo"
               : "Concluir exercício e fechar"}
