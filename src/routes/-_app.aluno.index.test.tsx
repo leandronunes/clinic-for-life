@@ -111,6 +111,18 @@ describe("TreinoCard", () => {
     mockDeleteWorkout.mockResolvedValue(null);
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
     mockFetchCurrentCheckIn.mockResolvedValue(null);
+    // ExecucaoTreinoDialog's carousel (Embla) reads matchMedia on mount — jsdom
+    // doesn't implement it.
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
@@ -1016,6 +1028,138 @@ describe("TreinoCard", () => {
       await user.click(within(dialog).getByRole("button", { name: "Finalizar" }));
 
       await waitFor(() => expect(mockFinishCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
+    });
+
+    it("toggles the set clock between running and paused, and resets it", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+      // Crucifixo (e2) is the active slide — e1 is already completed, and
+      // every exercise renders its own (mostly idle) slide in the carousel,
+      // so timer assertions must be scoped to the active one.
+      const activeSlide = within(dialog).getByRole("group", { name: "Crucifixo" });
+
+      await user.click(within(dialog).getByRole("button", { name: /Iniciar série/i }));
+      expect(within(activeSlide).getByText("Executando")).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(within(activeSlide).getByText("00:03")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Parar" }));
+      expect(within(activeSlide).getByText("Pausado")).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Retomar" })).toBeInTheDocument();
+
+      // the clock stays frozen while paused
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(within(activeSlide).getByText("00:03")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Zerar cronômetro" }));
+      expect(within(activeSlide).getByText("00:00")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Retomar" }));
+      expect(within(activeSlide).getByText("Executando")).toBeInTheDocument();
+
+      vi.useRealTimers();
+    });
+
+    it("navigates between the other exercise cards with the header arrows", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+
+      // e1 (Supino reto) is already completed, so the dialog opens on e2
+      // (Crucifixo) — the first pending exercise.
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 2 de 2/)).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Próximo exercício" })).toBeDisabled();
+
+      await user.click(within(dialog).getByRole("button", { name: "Exercício anterior" }));
+      expect(within(dialog).getByText("Supino reto")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 1 de 2/)).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Exercício anterior" })).toBeDisabled();
+
+      await user.click(within(dialog).getByRole("button", { name: "Próximo exercício" }));
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 2 de 2/)).toBeInTheDocument();
+    });
+
+    it("keeps the started exercise's clock running while browsing other cards, and blocks starting a second one", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        completed_exercise_ids: [],
+      });
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+
+      // Opens on Supino reto (e1) — nothing completed yet.
+      expect(within(dialog).getByText("Supino reto")).toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", { name: /Iniciar série 1/i }));
+      const supinoSlide = within(dialog).getByRole("group", { name: "Supino reto" });
+      expect(within(supinoSlide).getByText("Executando")).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(within(supinoSlide).getByText("00:03")).toBeInTheDocument();
+
+      // Navigate away — the running clock must not stop or reset.
+      await user.click(within(dialog).getByRole("button", { name: "Próximo exercício" }));
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+
+      // "Iniciar série" lives in the footer (shared across slides, acts on
+      // whichever exercise is currently viewed), not inside the slide itself.
+      expect(within(dialog).getByRole("button", { name: /Iniciar série 1/i })).toBeDisabled();
+      expect(within(dialog).getByText(/Conclua "Supino reto"/)).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(2000);
+
+      await user.click(within(dialog).getByRole("button", { name: "Exercício anterior" }));
+      expect(within(dialog).getByText("Supino reto")).toBeInTheDocument();
+      expect(within(supinoSlide).getByText("Executando")).toBeInTheDocument();
+      expect(within(supinoSlide).getByText("00:05")).toBeInTheDocument();
+
+      // Completing the started exercise frees up the other one.
+      await user.click(within(dialog).getByRole("button", { name: /Concluir exercício/i }));
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: /Iniciar série 1/i })).not.toBeDisabled();
+
+      vi.useRealTimers();
     });
   });
 
