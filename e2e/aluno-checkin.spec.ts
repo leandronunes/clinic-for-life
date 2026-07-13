@@ -40,7 +40,7 @@ test.describe("Check-in de treino (aluno)", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    await page.getByRole("checkbox", { name: /Marcar "Agachamento livre"/ }).click();
+    await page.getByRole("button", { name: /Marcar "Agachamento livre"/ }).click();
     await expect(page.getByText("1/2 concluídos")).toBeVisible();
 
     await page.getByRole("button", { name: "Finalizar treino" }).click();
