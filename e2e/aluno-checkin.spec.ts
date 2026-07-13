@@ -15,6 +15,12 @@ test.describe("Check-in de treino (aluno)", () => {
     await expect(page.getByText("Agachamento livre")).toBeVisible();
 
     await page.getByRole("button", { name: "Iniciar treino" }).click();
+    // Iniciar o check-in abre automaticamente o modal de execução guiada do
+    // primeiro exercício — espera o modal aparecer e fecha, pra marcar os
+    // exercícios pela lista mesmo.
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Finalizar treino" })).toBeVisible();
 
     await page.getByRole("checkbox", { name: /Marcar "Agachamento livre"/ }).click();
@@ -30,6 +36,9 @@ test.describe("Check-in de treino (aluno)", () => {
   test("finaliza o treino manualmente com conclusão parcial", async ({ page }) => {
     await page.getByRole("button", { name: "Treino B" }).click();
     await page.getByRole("button", { name: "Iniciar treino" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).not.toBeVisible();
 
     await page.getByRole("checkbox", { name: /Marcar "Agachamento livre"/ }).click();
     await expect(page.getByText("1/2 concluídos")).toBeVisible();
