@@ -111,6 +111,18 @@ describe("TreinoCard", () => {
     mockDeleteWorkout.mockResolvedValue(null);
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
     mockFetchCurrentCheckIn.mockResolvedValue(null);
+    // ExecucaoTreinoDialog's carousel (Embla) reads matchMedia on mount — jsdom
+    // doesn't implement it.
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
   });
 
   it("renders exercises sorted by position regardless of array order", () => {
@@ -1036,28 +1048,65 @@ describe("TreinoCard", () => {
 
       await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
       const dialog = await screen.findByRole("dialog");
+      // Crucifixo (e2) is the active slide — e1 is already completed, and
+      // every exercise renders its own (mostly idle) slide in the carousel,
+      // so timer assertions must be scoped to the active one.
+      const activeSlide = within(dialog).getByRole("group", { name: "Crucifixo" });
 
       await user.click(within(dialog).getByRole("button", { name: /Iniciar série/i }));
-      expect(within(dialog).getByText("Executando")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("Executando")).toBeInTheDocument();
 
       await vi.advanceTimersByTimeAsync(3000);
-      expect(within(dialog).getByText("00:03")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("00:03")).toBeInTheDocument();
 
       await user.click(within(dialog).getByRole("button", { name: "Parar" }));
-      expect(within(dialog).getByText("Pausado")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("Pausado")).toBeInTheDocument();
       expect(within(dialog).getByRole("button", { name: "Retomar" })).toBeInTheDocument();
 
       // the clock stays frozen while paused
       await vi.advanceTimersByTimeAsync(3000);
-      expect(within(dialog).getByText("00:03")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("00:03")).toBeInTheDocument();
 
       await user.click(within(dialog).getByRole("button", { name: "Zerar cronômetro" }));
-      expect(within(dialog).getByText("00:00")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("00:00")).toBeInTheDocument();
 
       await user.click(within(dialog).getByRole("button", { name: "Retomar" }));
-      expect(within(dialog).getByText("Executando")).toBeInTheDocument();
+      expect(within(activeSlide).getByText("Executando")).toBeInTheDocument();
 
       vi.useRealTimers();
+    });
+
+    it("navigates between the other exercise cards with the header arrows", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+
+      // e1 (Supino reto) is already completed, so the dialog opens on e2
+      // (Crucifixo) — the first pending exercise.
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 2 de 2/)).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Próximo exercício" })).toBeDisabled();
+
+      await user.click(within(dialog).getByRole("button", { name: "Exercício anterior" }));
+      expect(within(dialog).getByText("Supino reto")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 1 de 2/)).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Exercício anterior" })).toBeDisabled();
+
+      await user.click(within(dialog).getByRole("button", { name: "Próximo exercício" }));
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+      expect(within(dialog).getByText(/Exercício 2 de 2/)).toBeInTheDocument();
     });
   });
 

@@ -26,6 +26,8 @@ import {
   StickyNote,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   useWorkoutClipboard,
@@ -60,6 +62,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import {
   Select,
   SelectContent,
@@ -1963,6 +1971,102 @@ function StatBox({ label, value }: { label: string; value: string }) {
   );
 }
 
+interface ExecutionCardActiveState {
+  phase: ExecPhase;
+  currentSet: number;
+  phaseLabel: string;
+  clockValue: string;
+}
+
+/** One exercise's stats + timer + notes — rendered once per carousel slide in
+ * ExecucaoTreinoDialog. Only the slide matching the dialog's `idx` receives a
+ * live `active` state; every other (swiped-away) slide shows an idle
+ * placeholder, since only one exercise's timer runs at a time. */
+function ExerciseExecutionCard({
+  exercise,
+  active,
+}: {
+  exercise: Exercise;
+  active: ExecutionCardActiveState | null;
+}) {
+  const kind = getKind(exercise);
+  const isCardio = kind === "cardio";
+  const totalSets = Math.max(1, exercise.sets ?? 1);
+  const restSecs = exercise.rest_seconds ?? 0;
+
+  const phase = active?.phase ?? "idle";
+  const currentSet = active?.currentSet ?? 1;
+  const phaseLabel = active?.phaseLabel ?? "Pronto para começar";
+  const clockValue = active?.clockValue ?? formatClock(0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2">
+        {!isCardio ? (
+          <>
+            <StatBox label="Série" value={`${currentSet}/${totalSets}`} />
+            <StatBox label="Repetições" value={exercise.reps ?? "—"} />
+            <StatBox
+              label={kind === "strength" ? "Carga" : "Séries"}
+              value={
+                kind === "strength"
+                  ? exercise.load_kg
+                    ? `${exercise.load_kg} kg`
+                    : "—"
+                  : `${totalSets}`
+              }
+            />
+          </>
+        ) : (
+          <>
+            <StatBox
+              label="Duração"
+              value={exercise.duration_seconds ? formatDuration(exercise.duration_seconds) : "—"}
+            />
+            <StatBox
+              label="Distância"
+              value={
+                exercise.distance_value
+                  ? `${exercise.distance_value} ${exercise.distance_unit ?? "m"}`
+                  : "—"
+              }
+            />
+            <StatBox
+              label="Zona / FC"
+              value={
+                exercise.hr_zone
+                  ? `Z${exercise.hr_zone}`
+                  : exercise.heart_rate_bpm
+                    ? `${exercise.heart_rate_bpm} bpm`
+                    : "—"
+              }
+            />
+          </>
+        )}
+      </div>
+
+      <div
+        className={cn(
+          "rounded-lg border p-4 text-center transition-colors",
+          phase === "resting" &&
+            "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+          phase === "rest-done" && "animate-pulse border-success/60 bg-success/10 text-success",
+          phase === "executing" && "border-primary/60 bg-primary/5",
+        )}
+        aria-live="polite"
+      >
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{phaseLabel}</div>
+        <div className="mt-1 font-mono text-5xl font-bold tabular-nums">{clockValue}</div>
+        {!isCardio && restSecs > 0 && phase === "idle" && (
+          <p className="mt-1 text-xs text-muted-foreground">Descanso configurado: {restSecs}s</p>
+        )}
+      </div>
+
+      {exercise.notes && <ExerciseNotes notes={exercise.notes} />}
+    </div>
+  );
+}
+
 function ExecucaoTreinoDialog({
   open,
   onOpenChange,
@@ -1992,6 +2096,22 @@ function ExecucaoTreinoDialog({
   useEffect(() => {
     if (open) setIdx(firstPendingIdx);
   }, [open, firstPendingIdx]);
+
+  // Navegação entre os cards de exercício — swipe no mobile (nativo do
+  // Embla) e as setas no header. `idx` é a fonte da verdade: sincroniza nos
+  // dois sentidos com o carrossel.
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  useEffect(() => {
+    if (!carouselApi) return;
+    const onSelect = () => setIdx(carouselApi.selectedScrollSnap());
+    carouselApi.on("select", onSelect);
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
+  }, [carouselApi]);
+  useEffect(() => {
+    carouselApi?.scrollTo(idx);
+  }, [carouselApi, idx]);
 
   const current = exercises[idx];
   const kind = current ? getKind(current) : "strength";
@@ -2086,81 +2206,53 @@ function ExecucaoTreinoDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92dvh] max-w-lg flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="break-words">{current.name}</DialogTitle>
-          <DialogDescription>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              aria-label="Exercício anterior"
+              disabled={idx === 0}
+              onClick={() => setIdx((i) => Math.max(0, i - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <DialogTitle className="min-w-0 flex-1 break-words text-center">
+              {current.name}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              aria-label="Próximo exercício"
+              disabled={idx === exercises.length - 1}
+              onClick={() => setIdx((i) => Math.min(exercises.length - 1, i + 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <DialogDescription className="text-center">
             Exercício {idx + 1} de {exercises.length} · {KIND_META[kind].label}
             {current.muscle_group ? ` · ${current.muscle_group}` : ""}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-          <div className="grid grid-cols-3 gap-2">
-            {!isCardio ? (
-              <>
-                <StatBox label="Série" value={`${currentSet}/${totalSets}`} />
-                <StatBox label="Repetições" value={current.reps ?? "—"} />
-                <StatBox
-                  label={kind === "strength" ? "Carga" : "Séries"}
-                  value={
-                    kind === "strength"
-                      ? current.load_kg
-                        ? `${current.load_kg} kg`
-                        : "—"
-                      : `${totalSets}`
-                  }
+        <Carousel setApi={setCarouselApi} opts={{ startIndex: idx }} className="min-h-0 flex-1">
+          <CarouselContent className="h-full">
+            {exercises.map((ex, i) => (
+              <CarouselItem
+                key={ex.id}
+                aria-label={ex.name}
+                className="h-full overflow-y-auto pr-1"
+              >
+                <ExerciseExecutionCard
+                  exercise={ex}
+                  active={i === idx ? { phase, currentSet, phaseLabel, clockValue } : null}
                 />
-              </>
-            ) : (
-              <>
-                <StatBox
-                  label="Duração"
-                  value={current.duration_seconds ? formatDuration(current.duration_seconds) : "—"}
-                />
-                <StatBox
-                  label="Distância"
-                  value={
-                    current.distance_value
-                      ? `${current.distance_value} ${current.distance_unit ?? "m"}`
-                      : "—"
-                  }
-                />
-                <StatBox
-                  label="Zona / FC"
-                  value={
-                    current.hr_zone
-                      ? `Z${current.hr_zone}`
-                      : current.heart_rate_bpm
-                        ? `${current.heart_rate_bpm} bpm`
-                        : "—"
-                  }
-                />
-              </>
-            )}
-          </div>
-
-          <div
-            className={cn(
-              "rounded-lg border p-4 text-center transition-colors",
-              phase === "resting" &&
-                "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-              phase === "rest-done" && "animate-pulse border-success/60 bg-success/10 text-success",
-              phase === "executing" && "border-primary/60 bg-primary/5",
-            )}
-            aria-live="polite"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              {phaseLabel}
-            </div>
-            <div className="mt-1 font-mono text-5xl font-bold tabular-nums">{clockValue}</div>
-            {!isCardio && restSecs > 0 && phase === "idle" && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Descanso configurado: {restSecs}s
-              </p>
-            )}
-          </div>
-
-          {current.notes && <ExerciseNotes notes={current.notes} />}
-        </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0">
           <div className="flex w-full flex-wrap gap-2">
