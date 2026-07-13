@@ -2387,7 +2387,7 @@ function ExecucaoTreinoDialog({
                 {current.name}
               </DialogTitle>
               <DialogDescription className="mt-0.5 text-center text-xs">
-                {idx + 1}/{exercises.length} · {KIND_META[kind].label}
+                Exercício {idx + 1} de {exercises.length} · {KIND_META[kind].label}
                 {current.muscle_group ? ` · ${current.muscle_group}` : ""}
               </DialogDescription>
             </div>
