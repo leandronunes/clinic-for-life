@@ -850,11 +850,7 @@ function ExerciseRowContent({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           {onToggleExercise ? (
-            <ExerciseToggleIcon
-              exercise={exercise}
-              checkIn={checkIn}
-              onToggle={onToggleExercise}
-            />
+            <ExerciseToggleIcon exercise={exercise} checkIn={checkIn} onToggle={onToggleExercise} />
           ) : (
             <div
               className={cn(
@@ -993,14 +989,16 @@ function ExerciseToggleIcon({
     tooltip = "Treino já finalizado.";
   }
 
-  const label = completed ? `Desmarcar "${exercise.name}"` : `Marcar "${exercise.name}" como concluído`;
+  const label = completed
+    ? `Desmarcar "${exercise.name}"`
+    : `Marcar "${exercise.name}" como concluído`;
 
   const className = cn(
     "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    completed
-      ? "bg-success/20 text-success ring-2 ring-success"
-      : meta.badgeClass,
-    !disabled && !completed && "cursor-pointer hover:bg-primary/10 hover:ring-2 hover:ring-primary/40",
+    completed ? "bg-success/20 text-success ring-2 ring-success" : meta.badgeClass,
+    !disabled &&
+      !completed &&
+      "cursor-pointer hover:bg-primary/10 hover:ring-2 hover:ring-primary/40",
     disabled && "cursor-not-allowed opacity-60",
   );
 
