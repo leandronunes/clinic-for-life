@@ -950,6 +950,52 @@ describe("TreinoCard", () => {
       expect(checkbox).toBeDisabled();
     });
 
+    it("shows a tooltip explaining that the workout must be started before checking an exercise", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(null);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      const checkbox = await screen.findByRole("checkbox", {
+        name: /Marcar "Crucifixo" como concluído/i,
+      });
+      expect(checkbox).toBeDisabled();
+
+      await user.hover(checkbox);
+      await waitFor(() =>
+        expect(
+          screen.getByText(/Inicie o treino para marcar este exercício como concluído/i),
+        ).toBeInTheDocument(),
+      );
+    });
+
+    it("shows the instruction to start the workout in the check-in card", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(null);
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Iniciar treino/i });
+      expect(
+        screen.getByText(/Clique em Iniciar treino para marcar os exercícios concluídos/i),
+      ).toBeInTheDocument();
+    });
+
     it("finishes the check-in when 'Finalizar treino' is confirmed", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
       mockFinishCheckIn.mockResolvedValue({ ...inProgressCheckIn, status: "completed" });
