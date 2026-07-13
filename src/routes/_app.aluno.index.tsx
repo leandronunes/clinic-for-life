@@ -110,7 +110,6 @@ import {
 import { ExercicioVideoInput } from "@/components/ExercicioVideoInput";
 import { isUploadedVideo } from "@/lib/video-url";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   fetchCurrentCheckIn,
   startCheckIn,
@@ -850,8 +849,22 @@ function ExerciseRowContent({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          {onToggleExercise && (
-            <ExerciseCheckbox exercise={exercise} checkIn={checkIn} onToggle={onToggleExercise} />
+          {onToggleExercise ? (
+            <ExerciseToggleIcon
+              exercise={exercise}
+              checkIn={checkIn}
+              onToggle={onToggleExercise}
+            />
+          ) : (
+            <div
+              className={cn(
+                "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold",
+                meta.badgeClass,
+              )}
+              aria-label={meta.label}
+            >
+              <KindIcon className="h-4 w-4" />
+            </div>
           )}
           {dragHandleListeners && (
             <button
@@ -864,15 +877,6 @@ function ExerciseRowContent({
               <GripVertical className="h-4 w-4" />
             </button>
           )}
-          <div
-            className={cn(
-              "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold",
-              meta.badgeClass,
-            )}
-            aria-label={meta.label}
-          >
-            <KindIcon className="h-4 w-4" />
-          </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{exercise.name}</span>
@@ -967,7 +971,7 @@ function ExerciseRowContent({
   );
 }
 
-function ExerciseCheckbox({
+function ExerciseToggleIcon({
   exercise,
   checkIn,
   onToggle,
@@ -976,6 +980,9 @@ function ExerciseCheckbox({
   checkIn?: WorkoutCheckIn | null;
   onToggle: (exerciseId: string, completed: boolean) => void;
 }) {
+  const kind = getKind(exercise);
+  const meta = KIND_META[kind];
+  const KindIcon = meta.icon;
   const completed = checkIn?.completed_exercise_ids.includes(exercise.id) ?? false;
   const disabled = !checkIn || checkIn.status === "completed";
 
@@ -986,20 +993,40 @@ function ExerciseCheckbox({
     tooltip = "Treino já finalizado.";
   }
 
-  const checkbox = (
-    <Checkbox
-      className="mt-1 shrink-0"
-      checked={completed}
+  const label = completed ? `Desmarcar "${exercise.name}"` : `Marcar "${exercise.name}" como concluído`;
+
+  const className = cn(
+    "grid h-9 w-9 shrink-0 place-items-center rounded-md text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    completed
+      ? "bg-success/20 text-success ring-2 ring-success"
+      : meta.badgeClass,
+    !disabled && !completed && "cursor-pointer hover:bg-primary/10 hover:ring-2 hover:ring-primary/40",
+    disabled && "cursor-not-allowed opacity-60",
+  );
+
+  const icon = completed ? (
+    <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+  ) : (
+    <KindIcon className="h-4 w-4" aria-hidden="true" />
+  );
+
+  const content = (
+    <button
+      type="button"
+      className={className}
+      onClick={() => onToggle(exercise.id, !completed)}
+      aria-pressed={completed ? "true" : "false"}
+      aria-label={label}
       disabled={disabled}
-      onCheckedChange={(value) => onToggle(exercise.id, value === true)}
-      aria-label={`Marcar "${exercise.name}" como concluído`}
-    />
+    >
+      {icon}
+    </button>
   );
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn("inline-flex", disabled && "cursor-not-allowed")}>{checkbox}</span>
+        <span className={cn("inline-flex", disabled && "cursor-not-allowed")}>{content}</span>
       </TooltipTrigger>
       {tooltip && (
         <TooltipContent side="right">
