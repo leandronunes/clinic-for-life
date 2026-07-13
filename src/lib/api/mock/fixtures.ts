@@ -11,6 +11,7 @@ import type { EvolutionPhoto } from "../evolution-photos";
 import type { BackendUser } from "../auth";
 import type { WorkoutCheckIn } from "../check-ins";
 import type { Feedback } from "../feedbacks";
+import type { WorkoutReaction } from "../reactions";
 
 /** Seed trainers. `students_count` is recomputed by the store, not read from here. */
 export const TRAINERS: Trainer[] = [
@@ -261,42 +262,97 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
   ],
 };
 
-/** Check-ins keyed by workout id. Only `workout-s1-a` ships with sample data:
- * a completed session with 2 of its 3 exercises done, so the Assiduidade
- * page and Dashboard attendance widget show a non-empty, partial-completion
- * state by default in offline/demo mode. */
+/** Check-ins keyed by workout id. Only `student-1` ships with sample data, across
+ * `workout-s1-a`/`workout-s1-b`, covering the 3 states the personal's "Treinos
+ * Concluídos" review list distinguishes: not viewed, viewed without a reaction
+ * (but with a feedback message), and viewed with a reaction (and a message). */
 export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
   "workout-s1-a": [
     {
       id: "check-in-s1-a-1",
       workout_id: "workout-s1-a",
       workout_title: "Treino A",
+      student_id: "student-1",
+      student_name: "Júlia Ferreira",
       status: "completed",
       exercises_completed: 2,
       exercises_total: 3,
       completed_exercise_ids: ["exercise-s1-a-1", "exercise-s1-a-2"],
       started_at: "2026-01-10T13:00:00.000Z",
       completed_at: "2026-01-10T13:45:00.000Z",
+      viewed_at: null,
+      feedbacks: [],
+      reactions: [],
+    },
+    {
+      id: "check-in-s1-a-2",
+      workout_id: "workout-s1-a",
+      workout_title: "Treino A",
+      student_id: "student-1",
+      student_name: "Júlia Ferreira",
+      status: "completed",
+      exercises_completed: 3,
+      exercises_total: 3,
+      completed_exercise_ids: ["exercise-s1-a-1", "exercise-s1-a-2", "exercise-s1-a-3"],
+      started_at: "2026-01-03T13:00:00.000Z",
+      completed_at: "2026-01-03T13:40:00.000Z",
+      viewed_at: "2026-01-03T15:00:00.000Z",
+      feedbacks: [],
+      reactions: [],
+    },
+  ],
+  "workout-s1-b": [
+    {
+      id: "check-in-s1-b-1",
+      workout_id: "workout-s1-b",
+      workout_title: "Treino B",
+      student_id: "student-1",
+      student_name: "Júlia Ferreira",
+      status: "completed",
+      exercises_completed: 2,
+      exercises_total: 2,
+      completed_exercise_ids: ["exercise-s1-b-1", "exercise-s1-b-2"],
+      started_at: "2026-01-08T09:00:00.000Z",
+      completed_at: "2026-01-08T09:35:00.000Z",
+      viewed_at: "2026-01-08T09:40:00.000Z",
+      feedbacks: [],
+      reactions: [],
     },
   ],
 };
 
-/** Feedback notes keyed by student id. Only `student-1` ships with sample data. */
+/** Feedback notes keyed by student id, each tied to a completed check-in.
+ * Only `student-1` ships with sample data. */
 export const FEEDBACKS_BY_STUDENT: Record<string, Feedback[]> = {
   "student-1": [
     {
       id: "feedback-s1-1",
+      workout_check_in_id: "check-in-s1-a-2",
       kind: "elogio",
       message: "Mandou muito bem no treino de hoje, continue assim!",
       author_name: "Rafael Monteiro",
-      created_at: "2026-01-10T14:00:00.000Z",
+      created_at: "2026-01-03T15:00:00.000Z",
     },
     {
       id: "feedback-s1-2",
+      workout_check_in_id: "check-in-s1-b-1",
       kind: "incentivo",
       message: "Bora fechar a semana com o treino de pernas!",
       author_name: "Rafael Monteiro",
-      created_at: "2026-01-08T09:30:00.000Z",
+      created_at: "2026-01-08T09:40:00.000Z",
+    },
+  ],
+};
+
+/** Emoji reactions keyed by check-in id. Only `check-in-s1-a-2` ships with
+ * sample data — the "viewed with reaction" case in the demo. */
+export const REACTIONS_BY_CHECK_IN: Record<string, WorkoutReaction[]> = {
+  "check-in-s1-a-2": [
+    {
+      id: "reaction-s1-a-2-1",
+      emoji: "💪",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-01-03T15:00:00.000Z",
     },
   ],
 };

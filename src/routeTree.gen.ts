@@ -15,6 +15,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
+import { Route as AppTreinosConcluidosRouteImport } from './routes/_app.treinos-concluidos'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -56,6 +57,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppUsuariosRoute = AppUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTreinosConcluidosRoute = AppTreinosConcluidosRouteImport.update({
+  id: '/treinos-concluidos',
+  path: '/treinos-concluidos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
+  '/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/usuarios': typeof AppUsuariosRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
+  '/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/usuarios': typeof AppUsuariosRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
+  '/_app/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/_app/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
+    | '/treinos-concluidos'
     | '/usuarios'
     | '/aluno/anamnese'
     | '/aluno/assiduidade'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
+    | '/treinos-concluidos'
     | '/usuarios'
     | '/aluno/anamnese'
     | '/aluno/assiduidade'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/parceiros'
     | '/_app/perfil'
+    | '/_app/treinos-concluidos'
     | '/_app/usuarios'
     | '/_app/aluno/anamnese'
     | '/_app/aluno/assiduidade'
@@ -300,6 +312,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AppUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/treinos-concluidos': {
+      id: '/_app/treinos-concluidos'
+      path: '/treinos-concluidos'
+      fullPath: '/treinos-concluidos'
+      preLoaderRoute: typeof AppTreinosConcluidosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/perfil': {
@@ -400,6 +419,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
+  AppTreinosConcluidosRoute: typeof AppTreinosConcluidosRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
   AppAlunoAnamneseRoute: typeof AppAlunoAnamneseRoute
   AppAlunoAssiduidadeRoute: typeof AppAlunoAssiduidadeRoute
@@ -417,6 +437,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
+  AppTreinosConcluidosRoute: AppTreinosConcluidosRoute,
   AppUsuariosRoute: AppUsuariosRoute,
   AppAlunoAnamneseRoute: AppAlunoAnamneseRoute,
   AppAlunoAssiduidadeRoute: AppAlunoAssiduidadeRoute,

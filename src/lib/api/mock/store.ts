@@ -25,6 +25,7 @@ import type { BackendUser, LoginResponse } from "../auth";
 import type { BioImportResult } from "../bioimpedance-import";
 import type { WorkoutCheckIn } from "../check-ins";
 import type { Feedback, CreateFeedbackPayload } from "../feedbacks";
+import type { WorkoutReaction } from "../reactions";
 import type { AttendanceSummary } from "../dashboard";
 import {
   TRAINERS,
@@ -39,6 +40,7 @@ import {
   EVOLUTION_PHOTOS_BY_STUDENT,
   CHECK_INS_BY_WORKOUT,
   FEEDBACKS_BY_STUDENT,
+  REACTIONS_BY_CHECK_IN,
   MOCK_USERS,
 } from "./fixtures";
 
@@ -411,6 +413,7 @@ export function deleteExercise(studentId: string, workoutId: string, exerciseId:
 /* -------------------- Check-ins -------------------- */
 
 const checkInsByWorkout: Record<string, WorkoutCheckIn[]> = clone(CHECK_INS_BY_WORKOUT);
+const reactionsByCheckIn: Record<string, WorkoutReaction[]> = clone(REACTIONS_BY_CHECK_IN);
 
 function checkInsFor(workoutId: string): WorkoutCheckIn[] {
   return (checkInsByWorkout[workoutId] ??= []);
@@ -419,6 +422,25 @@ function checkInsFor(workoutId: string): WorkoutCheckIn[] {
 function alreadyFinishedCheckIn(): never {
   const err: ApiError = { status: 422, message: "Check-in já finalizado" };
   throw err;
+}
+
+function notCompletedCheckIn(message: string): never {
+  const err: ApiError = { status: 422, message };
+  throw err;
+}
+
+/** Merges in the always-current feedbacks/reactions before returning a
+ * check-in to a caller — those two lists change independently over time
+ * (createFeedback/setReaction), so the stored check-in never carries them
+ * directly. */
+function hydrateCheckIn(checkIn: WorkoutCheckIn): WorkoutCheckIn {
+  return {
+    ...checkIn,
+    feedbacks: (feedbacksByStudent[checkIn.student_id] ?? []).filter(
+      (f) => f.workout_check_in_id === checkIn.id,
+    ),
+    reactions: reactionsByCheckIn[checkIn.id] ?? [],
+  };
 }
 
 function getCheckIn(studentId: string, workoutId: string, checkInId: string): WorkoutCheckIn {
@@ -430,7 +452,8 @@ function getCheckIn(studentId: string, workoutId: string, checkInId: string): Wo
 
 export function getCurrentCheckIn(studentId: string, workoutId: string): WorkoutCheckIn | null {
   const workout = getWorkout(studentId, workoutId);
-  return checkInsFor(workout.id).find((c) => c.status === "in_progress") ?? null;
+  const found = checkInsFor(workout.id).find((c) => c.status === "in_progress");
+  return found ? hydrateCheckIn(found) : null;
 }
 
 export function startCheckIn(studentId: string, workoutId: string): WorkoutCheckIn {
@@ -447,19 +470,25 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     };
     throw err;
   }
+  const student = getStudent(studentId);
   const checkIn: WorkoutCheckIn = {
     id: nextId("check-in"),
     workout_id: workout.id,
     workout_title: workout.title,
+    student_id: student.id,
+    student_name: student.name,
     status: "in_progress",
     exercises_completed: 0,
     exercises_total: workout.exercises.length,
     completed_exercise_ids: [],
     started_at: new Date().toISOString(),
     completed_at: null,
+    viewed_at: null,
+    feedbacks: [],
+    reactions: [],
   };
   checkInsByWorkout[workout.id] = [checkIn, ...list];
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function finishCheckIn(
@@ -471,7 +500,7 @@ export function finishCheckIn(
   if (checkIn.status === "completed") alreadyFinishedCheckIn();
   checkIn.status = "completed";
   checkIn.completed_at = new Date().toISOString();
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function toggleExerciseCheckIn(
@@ -503,14 +532,38 @@ export function toggleExerciseCheckIn(
     checkIn.completed_at = new Date().toISOString();
   }
 
-  return checkIn;
+  return hydrateCheckIn(checkIn);
 }
 
 export function listCheckIns(studentId: string): WorkoutCheckIn[] {
   const workoutIds = workoutsFor(studentId).map((w) => w.id);
   return workoutIds
     .flatMap((id) => checkInsFor(id))
-    .sort((a, b) => b.started_at.localeCompare(a.started_at));
+    .sort((a, b) => b.started_at.localeCompare(a.started_at))
+    .map(hydrateCheckIn);
+}
+
+export function markCheckInViewed(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): WorkoutCheckIn {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  checkIn.viewed_at ??= new Date().toISOString();
+  return hydrateCheckIn(checkIn);
+}
+
+/** Portfolio-wide list for the personal/admin review page — every completed
+ * check-in across every student that ships with check-in fixtures, most
+ * recently completed first. Offline mode doesn't model per-trainer student
+ * ownership beyond the seed data, so (unlike the real API) this doesn't
+ * filter by the current user's trainer_id. */
+export function listCompletedCheckIns(): WorkoutCheckIn[] {
+  return Object.values(checkInsByWorkout)
+    .flat()
+    .filter((c) => c.status === "completed")
+    .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))
+    .map(hydrateCheckIn);
 }
 
 /* -------------------- Feedbacks -------------------- */
@@ -526,8 +579,17 @@ export function createFeedback(
   payload: CreateFeedbackPayload,
   token: string | null,
 ): Feedback {
+  const checkIn = Object.values(checkInsByWorkout)
+    .flat()
+    .find((c) => c.id === payload.workout_check_in_id && c.student_id === studentId);
+  if (!checkIn) notFound("Check-in não encontrado");
+  if (checkIn.status !== "completed") {
+    notCompletedCheckIn("Só é possível dar feedback em um treino concluído");
+  }
+
   const feedback: Feedback = {
     id: nextId("feedback"),
+    workout_check_in_id: checkIn.id,
     kind: payload.kind,
     message: payload.message,
     author_name: currentUser(token).name,
@@ -536,6 +598,38 @@ export function createFeedback(
   const list = (feedbacksByStudent[studentId] ??= []);
   feedbacksByStudent[studentId] = [feedback, ...list];
   return feedback;
+}
+
+/* -------------------- Workout reactions -------------------- */
+
+export function setReaction(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  emoji: string,
+  token: string | null,
+): WorkoutReaction {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  if (checkIn.status !== "completed") {
+    notCompletedCheckIn("Só é possível reagir a um treino concluído");
+  }
+
+  const authorName = currentUser(token).name;
+  const list = (reactionsByCheckIn[checkIn.id] ??= []);
+  const existing = list.find((r) => r.author_name === authorName);
+  if (existing) {
+    existing.emoji = emoji;
+    return existing;
+  }
+
+  const reaction: WorkoutReaction = {
+    id: nextId("reaction"),
+    emoji,
+    author_name: authorName,
+    created_at: new Date().toISOString(),
+  };
+  reactionsByCheckIn[checkIn.id] = [reaction, ...list];
+  return reaction;
 }
 
 /* -------------------- Dashboard -------------------- */

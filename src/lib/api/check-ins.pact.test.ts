@@ -13,6 +13,8 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   fetchCheckInHistory,
+  fetchCompletedCheckIns,
+  markCheckInViewed,
 } from "./check-ins";
 
 const STATUSES = ["in_progress", "completed"];
@@ -21,12 +23,17 @@ const checkInTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("2331"),
   workout_id: idString("2311"),
   workout_title: like("Treino A"),
+  student_id: idString("2301"),
+  student_name: like("Julia Ferreira"),
   status: enumString(STATUSES, "in_progress"),
   exercises_completed: integer(0),
   exercises_total: integer(1),
   completed_exercise_ids: like([]),
   started_at: like("2026-07-12T10:00:00Z"),
   completed_at: nullValue(),
+  viewed_at: nullValue(),
+  feedbacks: like([]),
+  reactions: like([]),
   ...overrides,
 });
 
@@ -197,6 +204,72 @@ describe("check-ins API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const history = await fetchCheckInHistory("2301");
         expect(history.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  it("marks a check-in as viewed", async () => {
+    const pact = createPact();
+    pact
+      .given("student 2301 has a completed check-in 2352 on workout 2342 to mark as viewed")
+      .uponReceiving("a request to mark a check-in as viewed")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/2301/workouts/2342/check_ins/2352/view",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: checkInTemplate({
+            id: idString("2352"),
+            workout_id: idString("2342"),
+            status: enumString(STATUSES, "completed"),
+            completed_at: like("2026-07-12T10:30:00Z"),
+            viewed_at: like("2026-07-13T09:00:00Z"),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const checkIn = await markCheckInViewed("2301", "2342", "2352");
+        expect(checkIn.viewed_at).toEqual(expect.any(String));
+      });
+    });
+  });
+
+  it("lists completed check-ins across the personal's portfolio", async () => {
+    const pact = createPact();
+    pact
+      .given("a personal has a completed check-in 2621 for student 2601 in their portfolio")
+      .uponReceiving("a request for the personal's completed check-ins")
+      .withRequest({
+        method: "GET",
+        path: "/api/v1/completed_check_ins",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: [
+            checkInTemplate({
+              id: idString("2621"),
+              workout_id: idString("2611"),
+              student_id: idString("2601"),
+              status: enumString(STATUSES, "completed"),
+              completed_at: like("2026-07-12T10:30:00Z"),
+            }),
+          ],
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const checkIns = await fetchCompletedCheckIns();
+        expect(checkIns.length).toBeGreaterThan(0);
       });
     });
   });

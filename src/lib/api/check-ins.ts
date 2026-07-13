@@ -1,4 +1,6 @@
 import { http } from "./http";
+import type { Feedback } from "./feedbacks";
+import type { WorkoutReaction } from "./reactions";
 
 export type CheckInStatus = "in_progress" | "completed";
 
@@ -6,12 +8,17 @@ export interface WorkoutCheckIn {
   id: string;
   workout_id: string;
   workout_title: string;
+  student_id: string;
+  student_name: string;
   status: CheckInStatus;
   exercises_completed: number;
   exercises_total: number;
   completed_exercise_ids: string[];
   started_at: string;
   completed_at: string | null;
+  viewed_at: string | null;
+  feedbacks: Feedback[];
+  reactions: WorkoutReaction[];
 }
 
 export function fetchCurrentCheckIn(
@@ -52,4 +59,18 @@ export function toggleExerciseCheckIn(
 
 export function fetchCheckInHistory(studentId: string): Promise<WorkoutCheckIn[]> {
   return http.get<WorkoutCheckIn[]>(`/api/v1/students/${studentId}/check_ins`);
+}
+
+export function fetchCompletedCheckIns(): Promise<WorkoutCheckIn[]> {
+  return http.get<WorkoutCheckIn[]>("/api/v1/completed_check_ins");
+}
+
+export function markCheckInViewed(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): Promise<WorkoutCheckIn> {
+  return http.post<WorkoutCheckIn>(
+    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/view`,
+  );
 }

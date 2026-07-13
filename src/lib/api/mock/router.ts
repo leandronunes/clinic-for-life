@@ -209,6 +209,9 @@ async function routeMockRequest<T>({
   if (m === "GET" && path === "/api/v1/dashboard/attendance") {
     return store.getAttendanceSummary((params?.range as RangeFilter | undefined) ?? "month") as T;
   }
+  if (m === "GET" && path === "/api/v1/completed_check_ins") {
+    return store.listCompletedCheckIns() as T;
+  }
 
   // -------- Bioimpedance import (multipart) --------
   if (m === "POST" && path === "/api/v1/bioimpedance/import" && body instanceof FormData) {
@@ -285,6 +288,14 @@ async function routeMockRequest<T>({
     path,
   );
   if (match && m === "POST") return store.finishCheckIn(match[1], match[2], match[3]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/view$/.exec(path);
+  if (match && m === "POST") return store.markCheckInViewed(match[1], match[2], match[3]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/reaction$/.exec(
+    path,
+  );
+  if (match && m === "POST") {
+    return store.setReaction(match[1], match[2], match[3], String(b.emoji ?? ""), token) as T;
+  }
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/current$/.exec(path);
   if (match && m === "GET") return store.getCurrentCheckIn(match[1], match[2]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins$/.exec(path);

@@ -12,6 +12,7 @@ const mockPost = vi.mocked(http.post);
 
 const feedback: Feedback = {
   id: "f1",
+  workout_check_in_id: "ci1",
   kind: "elogio",
   message: "Mandou muito bem no treino de hoje!",
   author_name: "Rafael Monteiro",
@@ -34,10 +35,12 @@ describe("feedbacks API", () => {
     it("posts to feedbacks with the payload", async () => {
       mockPost.mockResolvedValue(feedback);
       const result = await createFeedback("s1", {
+        workout_check_in_id: "ci1",
         kind: "elogio",
         message: "Mandou muito bem no treino de hoje!",
       });
       expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/feedbacks", {
+        workout_check_in_id: "ci1",
         kind: "elogio",
         message: "Mandou muito bem no treino de hoje!",
       });

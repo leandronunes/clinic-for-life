@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import type { WorkoutCheckIn } from "@/lib/api/check-ins";
 import { AssiduidadePage } from "./_app.aluno.assiduidade";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -20,36 +21,6 @@ const mockUseAuth = vi.mocked(useAuth);
 vi.mock("@/lib/api/check-ins", () => ({ fetchCheckInHistory: vi.fn() }));
 import { fetchCheckInHistory } from "@/lib/api/check-ins";
 const mockFetchHistory = vi.mocked(fetchCheckInHistory);
-
-vi.mock("@/lib/api/feedbacks", () => ({ fetchFeedbacks: vi.fn(), createFeedback: vi.fn() }));
-import { fetchFeedbacks, createFeedback } from "@/lib/api/feedbacks";
-const mockFetchFeedbacks = vi.mocked(fetchFeedbacks);
-const mockCreateFeedback = vi.mocked(createFeedback);
-
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-import { toast } from "sonner";
-
-vi.mock("@/components/ui/select", () => ({
-  Select: ({
-    value,
-    onValueChange,
-    children,
-  }: {
-    value: string;
-    onValueChange: (v: string) => void;
-    children: ReactNode;
-  }) => (
-    <select value={value} onChange={(e) => onValueChange(e.target.value)}>
-      {children}
-    </select>
-  ),
-  SelectTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-  SelectValue: () => null,
-  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-  SelectItem: ({ value, children }: { value: string; children: ReactNode }) => (
-    <option value={value}>{children}</option>
-  ),
-}));
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -80,86 +51,109 @@ function buildAuth(
   };
 }
 
+function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
+  return {
+    id: "ci1",
+    workout_id: "w1",
+    workout_title: "Treino A",
+    student_id: "s1",
+    student_name: "Júlia Ferreira",
+    status: "completed",
+    exercises_completed: 3,
+    exercises_total: 3,
+    completed_exercise_ids: ["e1", "e2", "e3"],
+    started_at: "2026-07-10T10:00:00Z",
+    completed_at: "2026-07-10T10:45:00Z",
+    viewed_at: null,
+    feedbacks: [],
+    reactions: [],
+    ...overrides,
+  };
+}
+
 describe("AssiduidadePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchHistory.mockResolvedValue([]);
-    mockFetchFeedbacks.mockResolvedValue([]);
     mockUseAuth.mockReturnValue(buildAuth());
   });
 
-  it("shows the empty states when there is no history or feedback", async () => {
+  it("shows the empty state when there is no check-in history", async () => {
     render(<AssiduidadePage />, { wrapper });
 
     await screen.findByText("Nenhum check-in registrado ainda.");
-    expect(screen.getByText("Nenhum recado recebido ainda.")).toBeInTheDocument();
   });
 
-  it("lists check-in history and feedback notes", async () => {
-    mockFetchHistory.mockResolvedValue([
-      {
-        id: "ci1",
-        workout_id: "w1",
-        workout_title: "Treino A",
-        status: "completed",
-        exercises_completed: 3,
-        exercises_total: 3,
-        completed_exercise_ids: ["e1", "e2", "e3"],
-        started_at: "2026-07-10T10:00:00Z",
-        completed_at: "2026-07-10T10:45:00Z",
-      },
-    ]);
-    mockFetchFeedbacks.mockResolvedValue([
-      {
-        id: "f1",
-        kind: "elogio",
-        message: "Mandou muito bem!",
-        author_name: "Rafael Monteiro",
-        created_at: "2026-07-10T11:00:00Z",
-      },
-    ]);
+  it("lists check-in history", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
 
     render(<AssiduidadePage />, { wrapper });
 
     await screen.findByText("Treino A");
     expect(screen.getByText("Concluído")).toBeInTheDocument();
-    expect(screen.getByText("Mandou muito bem!")).toBeInTheDocument();
-    expect(screen.getByText("Rafael Monteiro", { exact: false })).toBeInTheDocument();
   });
 
-  it("does not show 'Enviar feedback' for a plain student", async () => {
-    mockUseAuth.mockReturnValue(buildAuth({ canWrite: false }));
+  it("no longer offers a general 'Enviar feedback' action", async () => {
+    mockUseAuth.mockReturnValue(buildAuth({ canWrite: true }));
     render(<AssiduidadePage />, { wrapper });
 
-    await screen.findByText("Nenhum recado recebido ainda.");
+    await screen.findByText("Nenhum check-in registrado ainda.");
     expect(screen.queryByRole("button", { name: /Enviar feedback/i })).not.toBeInTheDocument();
   });
 
-  it("lets a personal/admin send feedback", async () => {
-    mockUseAuth.mockReturnValue(
-      buildAuth({ canWrite: true, isImpersonating: true, effectiveAlunoId: "s1" }),
-    );
-    mockCreateFeedback.mockResolvedValue({
-      id: "f2",
-      kind: "incentivo",
-      message: "Continue firme!",
-      author_name: "Rafael Monteiro",
-      created_at: "2026-07-11T10:00:00Z",
-    });
+  it("shows a reaction emoji next to a check-in that received one", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        reactions: [
+          {
+            id: "r1",
+            emoji: "💪",
+            author_name: "Rafael Monteiro",
+            created_at: "2026-07-10T11:00:00Z",
+          },
+        ],
+      }),
+    ]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    expect(screen.getByLabelText("Reação do personal")).toHaveTextContent("💪");
+  });
+
+  it("shows feedback and reactions inside the day's check-in detail", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        feedbacks: [
+          {
+            id: "f1",
+            workout_check_in_id: "ci1",
+            kind: "elogio",
+            message: "Mandou muito bem!",
+            author_name: "Rafael Monteiro",
+            created_at: "2026-07-10T11:00:00Z",
+          },
+        ],
+        reactions: [
+          {
+            id: "r1",
+            emoji: "💪",
+            author_name: "Rafael Monteiro",
+            created_at: "2026-07-10T11:00:00Z",
+          },
+        ],
+      }),
+    ]);
     const user = userEvent.setup();
 
     render(<AssiduidadePage />, { wrapper });
 
-    await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
-    await user.type(screen.getByLabelText("Mensagem"), "Continue firme!");
-    await user.click(screen.getByRole("button", { name: /^Enviar$/ }));
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
 
-    await waitFor(() => {
-      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", {
-        kind: "elogio",
-        message: "Continue firme!",
-      });
-      expect(toast.success).toHaveBeenCalledWith("Recado enviado");
-    });
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Mandou muito bem!")).toBeInTheDocument();
+    expect(within(dialog).getByText("Rafael Monteiro", { exact: false })).toBeInTheDocument();
   });
 });

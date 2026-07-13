@@ -7,6 +7,7 @@ import type { LoginResponse } from "../auth";
 import type { ApiError } from "../http";
 import type { WorkoutCheckIn } from "../check-ins";
 import type { Feedback } from "../feedbacks";
+import type { WorkoutReaction } from "../reactions";
 import type { AttendanceSummary } from "../dashboard";
 
 describe("resolveMockRequest()", () => {
@@ -323,16 +324,32 @@ describe("resolveMockRequest()", () => {
       body: { email: "personal@forlife.app", password: "Personal@2026" },
       token: null,
     });
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+    const finished = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/finish`,
+      token: null,
+    });
 
     const created = await resolveMockRequest<Feedback>({
       method: "POST",
       path: "/api/v1/students/student-1/feedbacks",
-      body: { kind: "elogio", message: "Muito bem no treino de hoje!" },
+      body: {
+        workout_check_in_id: finished.id,
+        kind: "elogio",
+        message: "Muito bem no treino de hoje!",
+      },
       token: login.token,
     });
     expect(created.kind).toBe("elogio");
     expect(created.message).toBe("Muito bem no treino de hoje!");
     expect(created.author_name).toBe(login.user.name);
+    expect(created.workout_check_in_id).toBe(finished.id);
 
     const list = await resolveMockRequest<Feedback[]>({
       method: "GET",
@@ -340,6 +357,129 @@ describe("resolveMockRequest()", () => {
       token: null,
     });
     expect(list.some((f) => f.id === created.id)).toBe(true);
+  });
+
+  it("rejects feedback for a check-in that is still in progress", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
+      token: null,
+    });
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+
+    await expect(
+      resolveMockRequest({
+        method: "POST",
+        path: "/api/v1/students/student-1/feedbacks",
+        body: { workout_check_in_id: started.id, kind: "elogio", message: "Muito bem!" },
+        token: login.token,
+      }),
+    ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);
+  });
+
+  it("marks a check-in as viewed, idempotently", async () => {
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+    const finished = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/finish`,
+      token: null,
+    });
+    expect(finished.viewed_at).toBeNull();
+
+    const viewed = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/view`,
+      token: null,
+    });
+    expect(viewed.viewed_at).not.toBeNull();
+
+    const viewedAgain = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/view`,
+      token: null,
+    });
+    expect(viewedAgain.viewed_at).toBe(viewed.viewed_at);
+  });
+
+  it("reacts to a completed check-in and reflects it in the completed check-ins list", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
+      token: null,
+    });
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+    const finished = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/finish`,
+      token: null,
+    });
+
+    const reaction = await resolveMockRequest<WorkoutReaction>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/reaction`,
+      body: { emoji: "🔥" },
+      token: login.token,
+    });
+    expect(reaction.emoji).toBe("🔥");
+
+    const completed = await resolveMockRequest<WorkoutCheckIn[]>({
+      method: "GET",
+      path: "/api/v1/completed_check_ins",
+      token: null,
+    });
+    const match = completed.find((c) => c.id === finished.id);
+    expect(match?.reactions).toEqual([reaction]);
+  });
+
+  it("rejects reacting to a check-in that is still in progress", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
+      token: null,
+    });
+    const { workoutId } = await createWorkoutWithExercises(1);
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+
+    await expect(
+      resolveMockRequest({
+        method: "POST",
+        path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/reaction`,
+        body: { emoji: "🔥" },
+        token: login.token,
+      }),
+    ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);
+  });
+
+  it("lists completed check-ins across students", async () => {
+    const completed = await resolveMockRequest<WorkoutCheckIn[]>({
+      method: "GET",
+      path: "/api/v1/completed_check_ins",
+      token: null,
+    });
+    expect(completed.every((c) => c.status === "completed")).toBe(true);
+    expect(completed.some((c) => c.id === "check-in-s1-a-1")).toBe(true);
   });
 
   it("returns the dashboard attendance summary", async () => {

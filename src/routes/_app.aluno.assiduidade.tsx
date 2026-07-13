@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   CalendarCheck,
@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Dumbbell,
   Loader2,
-  MessageSquarePlus,
   ThumbsUp,
 } from "lucide-react";
 import {
@@ -29,35 +28,13 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
-import {
-  fetchFeedbacks,
-  createFeedback,
-  type Feedback,
-  type FeedbackKind,
-} from "@/lib/api/feedbacks";
+import type { Feedback, FeedbackKind } from "@/lib/api/feedbacks";
 import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/aluno/assiduidade")({
   head: () =>
@@ -123,9 +100,8 @@ function shiftAnchor(view: PeriodView, anchor: Date, dir: 1 | -1): Date {
 }
 
 export function AssiduidadePage() {
-  const { user, effectiveAlunoId, canWrite } = useAuth();
+  const { user, effectiveAlunoId } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
-  const qc = useQueryClient();
 
   const [view, setView] = useState<PeriodView>("dia");
   const [anchor, setAnchorState] = useState<Date | null>(null);
@@ -134,12 +110,6 @@ export function AssiduidadePage() {
   const { data: historico = [], isLoading: loadingHistorico } = useQuery({
     queryKey: ["check-in", "history", alunoId],
     queryFn: () => fetchCheckInHistory(alunoId),
-    enabled: !!alunoId,
-  });
-
-  const { data: feedbacks = [], isLoading: loadingFeedbacks } = useQuery({
-    queryKey: ["feedbacks", alunoId],
-    queryFn: () => fetchFeedbacks(alunoId),
     enabled: !!alunoId,
   });
 
@@ -187,12 +157,6 @@ export function AssiduidadePage() {
             Visualize quando você executou seus treinos.
           </p>
         </div>
-        {/* {canWrite && (
-          <SendFeedbackDialog
-            alunoId={alunoId}
-            onSent={() => qc.invalidateQueries({ queryKey: ["feedbacks", alunoId] })}
-          />
-        )} */}
       </div>
 
       <Card className="shadow-soft">
@@ -248,29 +212,6 @@ export function AssiduidadePage() {
           )}
         </CardContent>
       </Card>
-
-      {/* <section aria-label="Feedback do personal" className="space-y-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <ThumbsUp className="h-4 w-4" /> Feedback do Personal
-        </h2>
-        {loadingFeedbacks ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-          </div>
-        ) : feedbacks.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              Nenhum recado recebido ainda.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {feedbacks.map((feedback) => (
-              <FeedbackCard key={feedback.id} feedback={feedback} />
-            ))}
-          </div>
-        )}
-      </section> */}
 
       <DayDetailsDialog
         day={selectedDay}
@@ -461,12 +402,19 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
           </p>
         </div>
       </div>
-      <Badge
-        variant={checkIn.status === "completed" ? "default" : "secondary"}
-        className={checkIn.status === "completed" ? "bg-success text-success-foreground" : ""}
-      >
-        {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
-      </Badge>
+      <div className="flex items-center gap-2">
+        {checkIn.reactions.length > 0 && (
+          <span className="text-lg" aria-label="Reação do personal">
+            {checkIn.reactions[0].emoji}
+          </span>
+        )}
+        <Badge
+          variant={checkIn.status === "completed" ? "default" : "secondary"}
+          className={checkIn.status === "completed" ? "bg-success text-success-foreground" : ""}
+        >
+          {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
+        </Badge>
+      </div>
     </div>
   );
 }
@@ -562,6 +510,29 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           />
         </div>
       </div>
+      {(checkIn.feedbacks.length > 0 || checkIn.reactions.length > 0) && (
+        <div className="space-y-2 border-t pt-3">
+          <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <ThumbsUp className="h-3.5 w-3.5" /> Feedback do Personal
+          </h3>
+          {checkIn.reactions.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {checkIn.reactions.map((reaction) => (
+                <span
+                  key={reaction.id}
+                  className="rounded-full bg-muted px-2 py-1 text-base"
+                  title={reaction.author_name ?? undefined}
+                >
+                  {reaction.emoji}
+                </span>
+              ))}
+            </div>
+          )}
+          {checkIn.feedbacks.map((feedback) => (
+            <FeedbackCard key={feedback.id} feedback={feedback} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -584,79 +555,5 @@ function FeedbackCard({ feedback }: { feedback: Feedback }) {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function SendFeedbackDialog({ alunoId, onSent }: { alunoId: string; onSent: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FeedbackKind>("elogio");
-  const [message, setMessage] = useState("");
-
-  const sendMut = useMutation({
-    mutationFn: () => createFeedback(alunoId, { kind, message }),
-    onSuccess: () => {
-      toast.success("Recado enviado");
-      setMessage("");
-      setKind("elogio");
-      setOpen(false);
-      onSent();
-    },
-    onError: () => toast.error("Não foi possível enviar o recado"),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <MessageSquarePlus className="mr-2 h-4 w-4" /> Enviar feedback
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enviar feedback ao aluno</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="feedback-kind">Tipo</Label>
-            <Select value={kind} onValueChange={(v) => setKind(v as FeedbackKind)}>
-              <SelectTrigger id="feedback-kind">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="elogio">Elogio</SelectItem>
-                <SelectItem value="correcao">Correção</SelectItem>
-                <SelectItem value="incentivo">Incentivo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="feedback-message">Mensagem</Label>
-            <Textarea
-              id="feedback-message"
-              rows={4}
-              maxLength={500}
-              placeholder="Escreva um recado para o aluno…"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={() => sendMut.mutate()}
-            disabled={!message.trim() || sendMut.isPending}
-          >
-            {sendMut.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando…
-              </>
-            ) : (
-              "Enviar"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

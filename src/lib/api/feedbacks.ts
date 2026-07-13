@@ -4,6 +4,7 @@ export type FeedbackKind = "elogio" | "correcao" | "incentivo";
 
 export interface Feedback {
   id: string;
+  workout_check_in_id: string;
   kind: FeedbackKind;
   message: string;
   author_name: string | null;
@@ -11,6 +12,7 @@ export interface Feedback {
 }
 
 export interface CreateFeedbackPayload {
+  workout_check_in_id: string;
   kind: FeedbackKind;
   message: string;
 }

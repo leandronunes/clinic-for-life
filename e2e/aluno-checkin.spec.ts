@@ -46,7 +46,7 @@ test.describe("Check-in de treino (aluno)", () => {
 });
 
 test.describe("Assiduidade", () => {
-  test("personal vê o histórico do aluno e envia um feedback", async ({ page }) => {
+  test("personal vê o histórico do aluno sem a ação de recado avulso", async ({ page }) => {
     await loginAs(page, "personal");
     await page.goto("/alunos/student-1");
     await expect(page).toHaveURL("/aluno");
@@ -57,25 +57,57 @@ test.describe("Assiduidade", () => {
     // Check-in semeado nas fixtures (workout-s1-a, 2/3 exercícios).
     await expect(page.getByText("Treino A")).toBeVisible();
     await expect(page.getByText("2/3 exercícios")).toBeVisible();
-
-    await page.getByRole("button", { name: "Enviar feedback" }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Mensagem").fill("Bora fechar a semana com tudo!");
-    await dialog.getByRole("button", { name: "Enviar", exact: true }).click();
-
-    await expect(page.getByText("Recado enviado")).toBeVisible();
-    await expect(page.getByText("Bora fechar a semana com tudo!")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Enviar feedback" })).not.toBeVisible();
   });
 
-  test("aluno vê os recados recebidos mas não pode enviar feedback", async ({ page }) => {
+  test("aluno vê feedback e reação do personal dentro do detalhe do check-in", async ({ page }) => {
     await loginAs(page, "aluno");
     await page.getByRole("link", { name: "Assiduidade" }).click();
     await expect(page).toHaveURL("/aluno/assiduidade");
 
-    // Feedback semeado nas fixtures.
+    // check-in-s1-a-2 (Treino A, 03/01/2026, viewed + reação + feedback) não é
+    // o check-in mais recente (esse é o de 10/01, sem reação/feedback), então
+    // a visão "Dia" por padrão não mostra esse dia — precisa ir pra "Mês".
+    await page.getByRole("tab", { name: "Mês" }).click();
+    await page.getByRole("button", { name: /03\/01\/2026/ }).click();
+
+    const dialog = page.getByRole("dialog");
     await expect(
-      page.getByText("Mandou muito bem no treino de hoje, continue assim!"),
+      dialog.getByText("Mandou muito bem no treino de hoje, continue assim!"),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Enviar feedback" })).not.toBeVisible();
+    await expect(dialog.getByText("Rafael Monteiro", { exact: false })).toBeVisible();
+  });
+});
+
+test.describe("Treinos Concluídos (personal)", () => {
+  test("personal revisa um treino concluído, reage com emoji e envia feedback", async ({
+    page,
+  }) => {
+    await loginAs(page, "personal");
+    await page.getByRole("link", { name: "Treinos Concluídos" }).click();
+    await expect(page).toHaveURL("/treinos-concluidos");
+
+    // check-in-s1-a-1 é o único não visto nas fixtures — cartão com "Novo".
+    const newCard = page.getByRole("button", { name: /Novo/ });
+    await expect(newCard).toBeVisible();
+    await newCard.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Escolher emoji" }).click();
+    await page.getByLabel("Type to search for an emoji").fill("flexed biceps");
+    await page.locator('[data-unified="1f4aa"]').first().click();
+    await expect(page.getByText("Reação enviada")).toBeVisible();
+
+    await dialog.getByLabel("Mensagem").fill("Bora fechar a semana com tudo!");
+    await dialog.getByRole("button", { name: "Enviar feedback" }).click();
+    await expect(page.getByText("Feedback enviado")).toBeVisible();
+    await expect(dialog.getByText("Bora fechar a semana com tudo!")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    // O cartão não é mais "Novo" e agora mostra o emoji da reação.
+    await expect(page.getByRole("button", { name: /Novo/ })).toHaveCount(0);
   });
 });

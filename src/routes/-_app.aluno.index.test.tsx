@@ -810,12 +810,17 @@ describe("TreinoCard", () => {
       id: "ci1",
       workout_id: "w1",
       workout_title: "Treino A — Push",
+      student_id: "s1",
+      student_name: "Julia Ferreira",
       status: "in_progress",
       exercises_completed: 1,
       exercises_total: 2,
       completed_exercise_ids: ["e1"],
       started_at: "2026-07-12T10:00:00Z",
       completed_at: null,
+      viewed_at: null,
+      feedbacks: [],
+      reactions: [],
     };
 
     it("shows 'Iniciar treino' when there is no check-in in progress", async () => {

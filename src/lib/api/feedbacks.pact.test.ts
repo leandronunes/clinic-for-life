@@ -12,6 +12,7 @@ const KINDS = ["elogio", "correcao", "incentivo"];
 
 const feedbackTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("2411"),
+  workout_check_in_id: idString("2412"),
   kind: enumString(KINDS, "elogio"),
   message: like("Mandou muito bem no treino de hoje!"),
   author_name: like("Rafael Monteiro"),
@@ -44,9 +45,13 @@ describe("feedbacks API contract", () => {
     });
   });
 
-  it("sends feedback to a student", async () => {
+  it("sends feedback for a completed check-in", async () => {
     const pact = createPact();
-    const payload = { kind: "elogio" as const, message: "Mandou muito bem no treino de hoje!" };
+    const payload = {
+      workout_check_in_id: "2412",
+      kind: "elogio" as const,
+      message: "Mandou muito bem no treino de hoje!",
+    };
     pact
       .given("a personal is authenticated to send feedback to student 2401")
       .uponReceiving("a request to send feedback")
@@ -70,9 +75,44 @@ describe("feedbacks API contract", () => {
     });
   });
 
+  it("rejects feedback for a check-in that is still in progress", async () => {
+    const pact = createPact();
+    const payload = {
+      workout_check_in_id: "2413",
+      kind: "elogio" as const,
+      message: "Mandou muito bem no treino de hoje!",
+    };
+    pact
+      .given(
+        "a personal is authenticated to send feedback for student 2401's in-progress check-in 2413",
+      )
+      .uponReceiving("a request to send feedback for an in-progress check-in")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/2401/feedbacks",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: payload,
+      })
+      .willRespondWith({
+        status: 422,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: errorStringBody("Só é possível dar feedback em um treino concluído"),
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        await expect(createFeedback("2401", payload)).rejects.toMatchObject({ status: 422 });
+      });
+    });
+  });
+
   it("rejects a feedback creation from a student role", async () => {
     const pact = createPact();
-    const payload = { kind: "elogio" as const, message: "Mandou muito bem no treino de hoje!" };
+    const payload = {
+      workout_check_in_id: "2412",
+      kind: "elogio" as const,
+      message: "Mandou muito bem no treino de hoje!",
+    };
     pact
       .given("a student is authenticated and attempts to send feedback to student 2401")
       .uponReceiving("a request to send feedback from a student role")
