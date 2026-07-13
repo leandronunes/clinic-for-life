@@ -2454,7 +2454,7 @@ function ExecucaoTreinoDialog({
                 primary.tone === "success" &&
                   "bg-success text-success-foreground hover:bg-success/90",
               )}
-              disabled={canDisableStart && phase === "idle" && !isViewingStarted}
+              disabled={canDisableStart}
               onClick={primary.onClick}
             >
               <primary.icon className="mr-2 h-5 w-5" />
