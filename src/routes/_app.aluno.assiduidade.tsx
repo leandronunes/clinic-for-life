@@ -32,7 +32,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
-import type { Feedback } from "@/lib/api/feedbacks";
 import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
 
@@ -146,6 +145,8 @@ export function AssiduidadePage() {
           </p>
         </div>
       </div>
+
+      {!loadingHistorico && <TodayFeedbackBanner byDay={byDay} />}
 
       <Card className="shadow-soft">
         <CardContent className="space-y-4 p-4 sm:p-6">
@@ -391,10 +392,16 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {checkIn.reactions.length > 0 && (
-          <span className="text-lg" aria-label="Reação do personal">
-            {checkIn.reactions[0].emoji}
-          </span>
+        {checkIn.feedbacks.some((f) => f.emoji) && (
+          <div className="flex gap-0.5" aria-label="Reação do personal">
+            {checkIn.feedbacks
+              .filter((f) => f.emoji)
+              .map((f) => (
+                <span key={f.id} className="text-lg">
+                  {f.emoji}
+                </span>
+              ))}
+          </div>
         )}
         <Badge
           variant={checkIn.status === "completed" ? "default" : "secondary"}
@@ -498,45 +505,74 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           />
         </div>
       </div>
-      {(checkIn.feedbacks.length > 0 || checkIn.reactions.length > 0) && (
+      {checkIn.feedbacks.length > 0 && (
         <div className="space-y-2 border-t pt-3">
           <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <ThumbsUp className="h-3.5 w-3.5" /> Feedback do Personal
           </h3>
-          {checkIn.reactions.length > 0 && (
+          {checkIn.feedbacks.some((f) => f.emoji) && (
             <div className="flex flex-wrap gap-1">
-              {checkIn.reactions.map((reaction) => (
-                <span
-                  key={reaction.id}
-                  className="rounded-full bg-muted px-2 py-1 text-base"
-                  title={reaction.author_name ?? undefined}
-                >
-                  {reaction.emoji}
-                </span>
-              ))}
+              {checkIn.feedbacks
+                .filter((f) => f.emoji)
+                .map((f) => (
+                  <span
+                    key={f.id}
+                    className="rounded-full bg-muted px-2 py-1 text-base"
+                    title={f.author_name ?? undefined}
+                  >
+                    {f.emoji}
+                  </span>
+                ))}
             </div>
           )}
-          {checkIn.feedbacks.map((feedback) => (
-            <FeedbackCard key={feedback.id} feedback={feedback} />
-          ))}
         </div>
       )}
     </div>
   );
 }
 
-function FeedbackCard({ feedback }: { feedback: Feedback }) {
+function TodayFeedbackBanner({ byDay }: { byDay: Map<string, WorkoutCheckIn[]> }) {
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const todayCheckIns = byDay.get(todayKey) ?? [];
+  const todayFeedbacks = todayCheckIns.flatMap((ci) => ci.feedbacks);
+
+  if (todayFeedbacks.length === 0) return null;
+
   return (
-    <Card className="shadow-soft">
-      <CardContent className="space-y-2 p-4">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className="text-xs text-muted-foreground">
-            {new Date(feedback.created_at).toLocaleDateString("pt-BR")}
-          </span>
+    <Card className="border-primary/30 bg-primary/5 shadow-soft">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <ThumbsUp className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm font-semibold">Feedback do personal de hoje</span>
         </div>
-        <p className="text-sm">{feedback.message}</p>
-        {feedback.author_name && (
-          <p className="text-xs text-muted-foreground">— {feedback.author_name}</p>
+        {todayFeedbacks.some((f) => f.emoji) && (
+          <div className="flex flex-wrap gap-2">
+            {todayFeedbacks
+              .filter((f) => f.emoji)
+              .map((f) => (
+                <span
+                  key={f.id}
+                  className="rounded-full bg-background px-2 py-1 text-xl shadow-sm"
+                  title={f.author_name ?? undefined}
+                >
+                  {f.emoji}
+                </span>
+              ))}
+          </div>
+        )}
+        {todayFeedbacks.some((f) => f.message) && (
+          <ul className="space-y-2">
+            {todayFeedbacks
+              .filter((f) => f.message)
+              .map((f) => (
+                <li key={f.id} className="rounded-lg bg-background p-3 text-sm shadow-sm">
+                  <p>{f.message}</p>
+                  {f.author_name && (
+                    <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
+                  )}
+                </li>
+              ))}
+          </ul>
         )}
       </CardContent>
     </Card>

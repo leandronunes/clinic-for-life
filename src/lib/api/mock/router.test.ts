@@ -6,8 +6,7 @@ import type { Workout } from "../workouts";
 import type { LoginResponse } from "../auth";
 import type { ApiError } from "../http";
 import type { WorkoutCheckIn } from "../check-ins";
-import type { Feedback } from "../feedbacks";
-import type { WorkoutReaction } from "../reactions";
+import type { CheckInFeedback } from "../check-in-feedbacks";
 import type { AttendanceSummary } from "../dashboard";
 
 describe("resolveMockRequest()", () => {
@@ -317,7 +316,7 @@ describe("resolveMockRequest()", () => {
     expect(history.some((c) => c.id === "check-in-s1-a-1")).toBe(true);
   });
 
-  it("sends feedback to a student and lists it afterwards", async () => {
+  it("sends feedback (text) to a check-in and reflects it in check-in history", async () => {
     const login = await resolveMockRequest<LoginResponse>({
       method: "POST",
       path: "/api/v1/auth/login",
@@ -336,25 +335,23 @@ describe("resolveMockRequest()", () => {
       token: null,
     });
 
-    const created = await resolveMockRequest<Feedback>({
+    const created = await resolveMockRequest<CheckInFeedback>({
       method: "POST",
-      path: "/api/v1/students/student-1/feedbacks",
-      body: {
-        workout_check_in_id: finished.id,
-        message: "Muito bem no treino de hoje!",
-      },
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/feedbacks`,
+      body: { message: "Muito bem no treino de hoje!" },
       token: login.token,
     });
     expect(created.message).toBe("Muito bem no treino de hoje!");
     expect(created.author_name).toBe(login.user.name);
     expect(created.workout_check_in_id).toBe(finished.id);
 
-    const list = await resolveMockRequest<Feedback[]>({
+    const history = await resolveMockRequest<WorkoutCheckIn[]>({
       method: "GET",
-      path: "/api/v1/students/student-1/feedbacks",
+      path: "/api/v1/students/student-1/check_ins",
       token: null,
     });
-    expect(list.some((f) => f.id === created.id)).toBe(true);
+    const match = history.find((c) => c.id === finished.id);
+    expect(match?.feedbacks.some((f) => f.id === created.id)).toBe(true);
   });
 
   it("rejects feedback for a check-in that is still in progress", async () => {
@@ -374,43 +371,14 @@ describe("resolveMockRequest()", () => {
     await expect(
       resolveMockRequest({
         method: "POST",
-        path: "/api/v1/students/student-1/feedbacks",
-        body: { workout_check_in_id: started.id, message: "Muito bem!" },
+        path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/feedbacks`,
+        body: { message: "Muito bem!" },
         token: login.token,
       }),
     ).rejects.toMatchObject({ status: 422 } satisfies Partial<ApiError>);
   });
 
-  it("marks a check-in as viewed, idempotently", async () => {
-    const { workoutId } = await createWorkoutWithExercises(1);
-    const started = await resolveMockRequest<WorkoutCheckIn>({
-      method: "POST",
-      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
-      token: null,
-    });
-    const finished = await resolveMockRequest<WorkoutCheckIn>({
-      method: "POST",
-      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/finish`,
-      token: null,
-    });
-    expect(finished.viewed_at).toBeNull();
-
-    const viewed = await resolveMockRequest<WorkoutCheckIn>({
-      method: "POST",
-      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/view`,
-      token: null,
-    });
-    expect(viewed.viewed_at).not.toBeNull();
-
-    const viewedAgain = await resolveMockRequest<WorkoutCheckIn>({
-      method: "POST",
-      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/view`,
-      token: null,
-    });
-    expect(viewedAgain.viewed_at).toBe(viewed.viewed_at);
-  });
-
-  it("reacts to a completed check-in and reflects it in the completed check-ins list", async () => {
+  it("sends an emoji reaction and reflects it in the completed check-ins list", async () => {
     const login = await resolveMockRequest<LoginResponse>({
       method: "POST",
       path: "/api/v1/auth/login",
@@ -429,9 +397,9 @@ describe("resolveMockRequest()", () => {
       token: null,
     });
 
-    const reaction = await resolveMockRequest<WorkoutReaction>({
+    const reaction = await resolveMockRequest<CheckInFeedback>({
       method: "POST",
-      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/reaction`,
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${finished.id}/feedbacks`,
       body: { emoji: "🔥" },
       token: login.token,
     });
@@ -443,10 +411,10 @@ describe("resolveMockRequest()", () => {
       token: null,
     });
     const match = completed.find((c) => c.id === finished.id);
-    expect(match?.reactions).toEqual([reaction]);
+    expect(match?.feedbacks.some((f) => f.emoji === "🔥")).toBe(true);
   });
 
-  it("rejects reacting to a check-in that is still in progress", async () => {
+  it("rejects emoji feedback for a check-in that is still in progress", async () => {
     const login = await resolveMockRequest<LoginResponse>({
       method: "POST",
       path: "/api/v1/auth/login",
@@ -463,7 +431,7 @@ describe("resolveMockRequest()", () => {
     await expect(
       resolveMockRequest({
         method: "POST",
-        path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/reaction`,
+        path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins/${started.id}/feedbacks`,
         body: { emoji: "🔥" },
         token: login.token,
       }),

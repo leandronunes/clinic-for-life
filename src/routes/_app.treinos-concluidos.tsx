@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarCheck, ClipboardCheck, Dumbbell, Eye, Loader2, Smile } from "lucide-react";
+import {
+  CalendarCheck,
+  ClipboardCheck,
+  Dumbbell,
+  Eye,
+  Loader2,
+  Pencil,
+  Smile,
+  Trash2,
+} from "lucide-react";
 import EmojiPicker, { EmojiStyle, type EmojiClickData } from "emoji-picker-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +25,12 @@ import {
   markCheckInViewed,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
-import { createFeedback } from "@/lib/api/feedbacks";
-import { setReaction } from "@/lib/api/reactions";
+import {
+  createCheckInFeedback,
+  updateCheckInFeedback,
+  deleteCheckInFeedback,
+  type CheckInFeedback,
+} from "@/lib/api/check-in-feedbacks";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
@@ -35,7 +48,7 @@ type ViewState = "not_viewed" | "viewed" | "reacted";
 
 function viewState(checkIn: WorkoutCheckIn): ViewState {
   if (!checkIn.viewed_at) return "not_viewed";
-  if (checkIn.reactions.length > 0) return "reacted";
+  if (checkIn.feedbacks.length > 0) return "reacted";
   return "viewed";
 }
 
@@ -116,8 +129,8 @@ function CheckInCard({ checkIn, onClick }: { checkIn: WorkoutCheckIn; onClick: (
           <Eye className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Visualizado" />
         )}
         {state === "reacted" && (
-          <span className="text-lg" aria-label="Reação enviada">
-            {checkIn.reactions[0].emoji}
+          <span className="text-lg" aria-label="Feedback enviado">
+            {checkIn.feedbacks.find((f) => f.emoji)?.emoji ?? "💬"}
           </span>
         )}
       </div>
@@ -144,7 +157,12 @@ function CheckInReviewDialog({
   onChanged: () => void;
 }) {
   const [message, setMessage] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editEmoji, setEditEmoji] = useState<string | null>(null);
+  const [editMessage, setEditMessage] = useState("");
+  const [editEmojiOpen, setEditEmojiOpen] = useState(false);
 
   useEffect(() => {
     if (!checkIn || checkIn.viewed_at) return;
@@ -158,35 +176,60 @@ function CheckInReviewDialog({
   }, [checkIn, onChanged]);
 
   const feedbackMut = useMutation({
-    mutationFn: () => {
+    mutationFn: (payload: { emoji?: string; message?: string }) => {
       if (!checkIn) throw new Error("Nenhum check-in selecionado");
-      return createFeedback(checkIn.student_id, {
-        workout_check_in_id: checkIn.id,
-        message,
-      });
+      return createCheckInFeedback(checkIn.student_id, checkIn.workout_id, checkIn.id, payload);
     },
     onSuccess: () => {
       toast.success("Feedback enviado");
       setMessage("");
+      setSelectedEmoji(null);
+      setEmojiOpen(false);
       onChanged();
     },
     onError: () => toast.error("Não foi possível enviar o feedback"),
   });
 
-  const reactionMut = useMutation({
-    mutationFn: (emoji: string) => {
+  const updateMut = useMutation({
+    mutationFn: (vars: { feedbackId: string; emoji: string | null; message: string }) => {
       if (!checkIn) throw new Error("Nenhum check-in selecionado");
-      return setReaction(checkIn.student_id, checkIn.workout_id, checkIn.id, emoji);
+      return updateCheckInFeedback(
+        checkIn.student_id,
+        checkIn.workout_id,
+        checkIn.id,
+        vars.feedbackId,
+        {
+          ...(vars.emoji !== null ? { emoji: vars.emoji } : { emoji: null }),
+          message: vars.message.trim() || undefined,
+        },
+      );
     },
     onSuccess: () => {
-      toast.success("Reação enviada");
-      setEmojiOpen(false);
+      toast.success("Feedback atualizado");
+      setEditingId(null);
       onChanged();
     },
-    onError: () => toast.error("Não foi possível enviar a reação"),
+    onError: () => toast.error("Não foi possível atualizar o feedback"),
   });
 
-  const handleEmojiClick = (data: EmojiClickData) => reactionMut.mutate(data.emoji);
+  const deleteMut = useMutation({
+    mutationFn: (feedbackId: string) => {
+      if (!checkIn) throw new Error("Nenhum check-in selecionado");
+      return deleteCheckInFeedback(checkIn.student_id, checkIn.workout_id, checkIn.id, feedbackId);
+    },
+    onSuccess: () => {
+      toast.success("Feedback removido");
+      onChanged();
+    },
+    onError: () => toast.error("Não foi possível remover o feedback"),
+  });
+
+  function startEdit(fb: CheckInFeedback) {
+    setEditingId(fb.id);
+    setEditEmoji(fb.emoji);
+    setEditMessage(fb.message ?? "");
+    setEditEmojiOpen(false);
+  }
 
   const pct =
     checkIn && checkIn.exercises_total
@@ -222,54 +265,154 @@ function CheckInReviewDialog({
               </div>
             </div>
 
-            {(checkIn.feedbacks.length > 0 || checkIn.reactions.length > 0) && (
+            {checkIn.feedbacks.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-muted-foreground">Histórico</h3>
-                {checkIn.reactions.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {checkIn.reactions.map((reaction) => (
-                      <span
-                        key={reaction.id}
-                        className="rounded-full bg-muted px-2 py-1 text-base"
-                        title={reaction.author_name ?? undefined}
-                      >
-                        {reaction.emoji}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {checkIn.feedbacks.map((feedback) => (
-                  <Card key={feedback.id} className="shadow-soft">
-                    <CardContent className="space-y-2 p-4">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(feedback.created_at).toLocaleDateString("pt-BR")}
-                        </span>
+                <div className="space-y-2">
+                  {checkIn.feedbacks.map((fb) =>
+                    editingId === fb.id ? (
+                      <div key={fb.id} className="space-y-2 rounded-lg border p-3">
+                        <div className="flex items-center gap-2">
+                          <Popover open={editEmojiOpen} onOpenChange={setEditEmojiOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="outline" size="sm">
+                                <Smile className="mr-2 h-4 w-4" />
+                                {editEmoji ?? "Emoji"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <EmojiPicker
+                                onEmojiClick={(data: EmojiClickData) => {
+                                  setEditEmoji(data.emoji);
+                                  setEditEmojiOpen(false);
+                                }}
+                                emojiStyle={EmojiStyle.NATIVE}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {editEmoji && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-1 text-muted-foreground"
+                              onClick={() => setEditEmoji(null)}
+                            >
+                              ✕
+                            </Button>
+                          )}
+                        </div>
+                        <Textarea
+                          rows={3}
+                          maxLength={500}
+                          value={editMessage}
+                          onChange={(e) => setEditMessage(e.target.value)}
+                          placeholder="Mensagem…"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() =>
+                              updateMut.mutate({
+                                feedbackId: fb.id,
+                                emoji: editEmoji,
+                                message: editMessage,
+                              })
+                            }
+                            disabled={(!editMessage.trim() && !editEmoji) || updateMut.isPending}
+                          >
+                            {updateMut.isPending ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              "Salvar"
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-sm">{feedback.message}</p>
-                    </CardContent>
-                  </Card>
-                ))}
+                    ) : (
+                      <div key={fb.id} className="flex items-start gap-2 rounded-lg border p-3">
+                        <div className="flex-1 space-y-1">
+                          {fb.emoji && <span className="text-lg leading-none">{fb.emoji}</span>}
+                          {fb.message && <p className="text-sm">{fb.message}</p>}
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label="Editar feedback"
+                            onClick={() => startEdit(fb)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            aria-label="Remover feedback"
+                            disabled={deleteMut.isPending}
+                            onClick={() => deleteMut.mutate(fb.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Reagir com emoji</Label>
-              <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" size="sm">
-                    <Smile className="mr-2 h-4 w-4" /> Escolher emoji
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle={EmojiStyle.NATIVE} />
-                </PopoverContent>
-              </Popover>
-            </div>
-
             <div className="space-y-4 border-t pt-4">
               <div className="grid gap-2">
-                <Label htmlFor="feedback-message">Mensagem</Label>
+                <Label>Emoji (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">
+                        <Smile className="mr-2 h-4 w-4" /> Escolher emoji
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <EmojiPicker
+                        onEmojiClick={(data: EmojiClickData) => {
+                          setSelectedEmoji(data.emoji);
+                          setEmojiOpen(false);
+                        }}
+                        emojiStyle={EmojiStyle.NATIVE}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {selectedEmoji && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-2xl leading-none">{selectedEmoji}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1 text-muted-foreground"
+                        onClick={() => setSelectedEmoji(null)}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="feedback-message">Mensagem (opcional)</Label>
                 <Textarea
                   id="feedback-message"
                   rows={4}
@@ -281,8 +424,13 @@ function CheckInReviewDialog({
               </div>
               <Button
                 type="button"
-                onClick={() => feedbackMut.mutate()}
-                disabled={!message.trim() || feedbackMut.isPending}
+                onClick={() =>
+                  feedbackMut.mutate({
+                    ...(selectedEmoji ? { emoji: selectedEmoji } : {}),
+                    ...(message.trim() ? { message: message.trim() } : {}),
+                  })
+                }
+                disabled={(!message.trim() && !selectedEmoji) || feedbackMut.isPending}
               >
                 {feedbackMut.isPending ? (
                   <>

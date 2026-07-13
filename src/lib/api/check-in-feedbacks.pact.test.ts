@@ -1,82 +1,74 @@
-/**
- * Lean coverage (see docs/pact.md): happy path + applicable auth/validation
- * errors for every endpoint in this domain.
- */
 import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
-import { errorStringBody, idString, like } from "@/lib/pact/matchers";
+import { errorStringBody, idString, like, nullValue } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
-import { fetchFeedbacks, createFeedback } from "./feedbacks";
+import { createCheckInFeedback } from "./check-in-feedbacks";
 
 const feedbackTemplate = (overrides: Record<string, unknown> = {}) => ({
-  id: idString("2411"),
+  id: idString("1"),
   workout_check_in_id: idString("2412"),
-  message: like("Mandou muito bem no treino de hoje!"),
+  emoji: nullValue(),
+  message: like("Mandou muito bem!"),
   author_name: like("Rafael Monteiro"),
-  created_at: like("2026-07-12T10:00:00Z"),
+  created_at: like("2026-07-13T10:00:00Z"),
   ...overrides,
 });
 
-describe("feedbacks API contract", () => {
-  it("lists feedback notes for a student", async () => {
+describe("check-in-feedbacks API contract", () => {
+  it("sends a text feedback for a completed check-in", async () => {
     const pact = createPact();
-    pact
-      .given("student 2401 has a feedback note 2411")
-      .uponReceiving("a request for a student's feedback notes")
-      .withRequest({
-        method: "GET",
-        path: "/api/v1/students/2401/feedbacks",
-        headers: { Authorization: bearerToken() },
-      })
-      .willRespondWith({
-        status: 200,
-        headers: { "Content-Type": like("application/json; charset=utf-8") },
-        body: { data: [feedbackTemplate()] },
-      });
-
-    await pact.executeTest(async (mockServer) => {
-      await withMockServerEnv(mockServer.url, async () => {
-        const feedbacks = await fetchFeedbacks("2401");
-        expect(feedbacks.length).toBeGreaterThan(0);
-      });
-    });
-  });
-
-  it("sends feedback for a completed check-in", async () => {
-    const pact = createPact();
-    const payload = {
-      workout_check_in_id: "2412",
-      message: "Mandou muito bem no treino de hoje!",
-    };
+    const payload = { message: "Mandou muito bem no treino de hoje!" };
     pact
       .given("a personal is authenticated to send feedback to student 2401")
-      .uponReceiving("a request to send feedback")
+      .uponReceiving("a request to send text feedback")
       .withRequest({
         method: "POST",
-        path: "/api/v1/students/2401/feedbacks",
+        path: "/api/v1/students/2401/workouts/2402/check_ins/2412/feedbacks",
         headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
         body: payload,
       })
       .willRespondWith({
         status: 201,
         headers: { "Content-Type": like("application/json; charset=utf-8") },
-        body: { data: feedbackTemplate() },
+        body: { data: feedbackTemplate({ message: like("Mandou muito bem no treino de hoje!") }) },
       });
 
     await pact.executeTest(async (mockServer) => {
       await withMockServerEnv(mockServer.url, async () => {
-        const feedback = await createFeedback("2401", payload);
-        expect(feedback.id).toEqual(expect.any(String));
+        const fb = await createCheckInFeedback("2401", "2402", "2412", payload);
+        expect(fb.id).toEqual(expect.any(String));
       });
     });
   });
 
-  it("rejects feedback for a check-in that is still in progress", async () => {
+  it("sends an emoji reaction for a completed check-in", async () => {
     const pact = createPact();
-    const payload = {
-      workout_check_in_id: "2413",
-      message: "Mandou muito bem no treino de hoje!",
-    };
+    const payload = { emoji: "💪" };
+    pact
+      .given("a personal is authenticated to send feedback to student 2401")
+      .uponReceiving("a request to send an emoji reaction")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/2401/workouts/2402/check_ins/2412/feedbacks",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: payload,
+      })
+      .willRespondWith({
+        status: 201,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: { data: feedbackTemplate({ emoji: like("💪"), message: nullValue() }) },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const fb = await createCheckInFeedback("2401", "2402", "2412", payload);
+        expect(fb.emoji).toEqual("💪");
+      });
+    });
+  });
+
+  it("rejects feedback for a check-in still in progress", async () => {
+    const pact = createPact();
     pact
       .given(
         "a personal is authenticated to send feedback for student 2401's in-progress check-in 2413",
@@ -84,9 +76,9 @@ describe("feedbacks API contract", () => {
       .uponReceiving("a request to send feedback for an in-progress check-in")
       .withRequest({
         method: "POST",
-        path: "/api/v1/students/2401/feedbacks",
+        path: "/api/v1/students/2401/workouts/2403/check_ins/2413/feedbacks",
         headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
-        body: payload,
+        body: { message: "Bom treino!" },
       })
       .willRespondWith({
         status: 422,
@@ -96,25 +88,23 @@ describe("feedbacks API contract", () => {
 
     await pact.executeTest(async (mockServer) => {
       await withMockServerEnv(mockServer.url, async () => {
-        await expect(createFeedback("2401", payload)).rejects.toMatchObject({ status: 422 });
+        await expect(
+          createCheckInFeedback("2401", "2403", "2413", { message: "Bom treino!" }),
+        ).rejects.toMatchObject({ status: 422 });
       });
     });
   });
 
   it("rejects a feedback creation from a student role", async () => {
     const pact = createPact();
-    const payload = {
-      workout_check_in_id: "2412",
-      message: "Mandou muito bem no treino de hoje!",
-    };
     pact
       .given("a student is authenticated and attempts to send feedback to student 2401")
       .uponReceiving("a request to send feedback from a student role")
       .withRequest({
         method: "POST",
-        path: "/api/v1/students/2401/feedbacks",
+        path: "/api/v1/students/2401/workouts/2402/check_ins/2412/feedbacks",
         headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
-        body: payload,
+        body: { message: "Bom treino!" },
       })
       .willRespondWith({
         status: 403,
@@ -124,7 +114,9 @@ describe("feedbacks API contract", () => {
 
     await pact.executeTest(async (mockServer) => {
       await withMockServerEnv(mockServer.url, async () => {
-        await expect(createFeedback("2401", payload)).rejects.toMatchObject({ status: 403 });
+        await expect(
+          createCheckInFeedback("2401", "2402", "2412", { message: "Bom treino!" }),
+        ).rejects.toMatchObject({ status: 403 });
       });
     });
   });

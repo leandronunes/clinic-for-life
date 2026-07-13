@@ -22,13 +22,19 @@ import { fetchCompletedCheckIns, markCheckInViewed } from "@/lib/api/check-ins";
 const mockFetchCompleted = vi.mocked(fetchCompletedCheckIns);
 const mockMarkViewed = vi.mocked(markCheckInViewed);
 
-vi.mock("@/lib/api/feedbacks", () => ({ createFeedback: vi.fn() }));
-import { createFeedback } from "@/lib/api/feedbacks";
-const mockCreateFeedback = vi.mocked(createFeedback);
-
-vi.mock("@/lib/api/reactions", () => ({ setReaction: vi.fn() }));
-import { setReaction } from "@/lib/api/reactions";
-const mockSetReaction = vi.mocked(setReaction);
+vi.mock("@/lib/api/check-in-feedbacks", () => ({
+  createCheckInFeedback: vi.fn(),
+  updateCheckInFeedback: vi.fn(),
+  deleteCheckInFeedback: vi.fn(),
+}));
+import {
+  createCheckInFeedback,
+  updateCheckInFeedback,
+  deleteCheckInFeedback,
+} from "@/lib/api/check-in-feedbacks";
+const mockCreateFeedback = vi.mocked(createCheckInFeedback);
+const mockUpdateFeedback = vi.mocked(updateCheckInFeedback);
+const mockDeleteFeedback = vi.mocked(deleteCheckInFeedback);
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { toast } from "sonner";
@@ -84,7 +90,6 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     completed_at: "2026-07-10T10:45:00Z",
     viewed_at: null,
     feedbacks: [],
-    reactions: [],
     ...overrides,
   };
 }
@@ -121,14 +126,16 @@ describe("TreinosConcluidosPage", () => {
     expect(screen.queryByText("Novo")).not.toBeInTheDocument();
   });
 
-  it("marks a viewed check-in with a reaction by showing the emoji", async () => {
+  it("marks a viewed check-in with a feedback by showing the emoji", async () => {
     mockFetchCompleted.mockResolvedValue([
       buildCheckIn({
         viewed_at: "2026-07-11T09:00:00Z",
-        reactions: [
+        feedbacks: [
           {
-            id: "r1",
+            id: "f1",
+            workout_check_in_id: "ci1",
             emoji: "🔥",
+            message: null,
             author_name: "Rafael Monteiro",
             created_at: "2026-07-11T09:00:00Z",
           },
@@ -139,7 +146,7 @@ describe("TreinosConcluidosPage", () => {
     render(<TreinosConcluidosPage />, { wrapper });
 
     const card = await screen.findByText("Júlia Ferreira");
-    expect(within(card.closest("button")!).getByLabelText("Reação enviada")).toHaveTextContent(
+    expect(within(card.closest("button")!).getByLabelText("Feedback enviado")).toHaveTextContent(
       "🔥",
     );
   });
@@ -174,6 +181,7 @@ describe("TreinosConcluidosPage", () => {
     mockCreateFeedback.mockResolvedValue({
       id: "f1",
       workout_check_in_id: "ci1",
+      emoji: null,
       message: "Mandou muito bem!",
       author_name: "Rafael Monteiro",
       created_at: "2026-07-13T09:00:00Z",
@@ -184,12 +192,11 @@ describe("TreinosConcluidosPage", () => {
 
     await user.click(await screen.findByText("Júlia Ferreira"));
     await screen.findByRole("dialog");
-    await user.type(screen.getByLabelText("Mensagem"), "Mandou muito bem!");
+    await user.type(screen.getByLabelText(/Mensagem/i), "Mandou muito bem!");
     await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
 
     await waitFor(() => {
-      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", {
-        workout_check_in_id: "ci1",
+      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", {
         message: "Mandou muito bem!",
       });
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
@@ -198,9 +205,11 @@ describe("TreinosConcluidosPage", () => {
 
   it("sends an emoji reaction for the selected check-in", async () => {
     mockFetchCompleted.mockResolvedValue([buildCheckIn()]);
-    mockSetReaction.mockResolvedValue({
+    mockCreateFeedback.mockResolvedValue({
       id: "r1",
+      workout_check_in_id: "ci1",
       emoji: "💪",
+      message: null,
       author_name: "Rafael Monteiro",
       created_at: "2026-07-13T09:00:00Z",
     });
@@ -212,10 +221,130 @@ describe("TreinosConcluidosPage", () => {
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
     await user.click(screen.getByRole("button", { name: "💪" }));
+    // emoji is selected but NOT yet submitted — "Enviar feedback" button must be clicked
+    expect(mockCreateFeedback).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
 
     await waitFor(() => {
-      expect(mockSetReaction).toHaveBeenCalledWith("s1", "w1", "ci1", "💪");
-      expect(toast.success).toHaveBeenCalledWith("Reação enviada");
+      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", { emoji: "💪" });
+      expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
+    });
+  });
+
+  it("sends emoji and message together in a single feedback", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn()]);
+    mockCreateFeedback.mockResolvedValue({
+      id: "f2",
+      workout_check_in_id: "ci1",
+      emoji: "💪",
+      message: "Excelente execução!",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-07-13T09:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByText("Júlia Ferreira"));
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
+    await user.click(screen.getByRole("button", { name: "💪" }));
+    await user.type(screen.getByLabelText(/Mensagem/i), "Excelente execução!");
+    await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
+
+    await waitFor(() => {
+      expect(mockCreateFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", {
+        emoji: "💪",
+        message: "Excelente execução!",
+      });
+      expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
+    });
+  });
+
+  function buildCheckInWithFeedback() {
+    return buildCheckIn({
+      viewed_at: "2026-07-11T09:00:00Z",
+      feedbacks: [
+        {
+          id: "f-existing",
+          workout_check_in_id: "ci1",
+          emoji: "🔥",
+          message: "Bom trabalho!",
+          author_name: "Rafael Monteiro",
+          created_at: "2026-07-11T09:00:00Z",
+        },
+      ],
+    });
+  }
+
+  it("edits an existing feedback", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckInWithFeedback()]);
+    mockUpdateFeedback.mockResolvedValue({
+      id: "f-existing",
+      workout_check_in_id: "ci1",
+      emoji: "💪",
+      message: "Atualizado!",
+      author_name: "Rafael Monteiro",
+      created_at: "2026-07-11T09:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByText("Júlia Ferreira"));
+    await screen.findByRole("dialog");
+
+    await user.click(screen.getByRole("button", { name: /Editar feedback/i }));
+    // edit form should appear
+    const textarea = screen.getByPlaceholderText("Mensagem…");
+    await user.clear(textarea);
+    await user.type(textarea, "Atualizado!");
+    await user.click(screen.getByRole("button", { name: /Salvar/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateFeedback).toHaveBeenCalledWith(
+        "s1",
+        "w1",
+        "ci1",
+        "f-existing",
+        expect.objectContaining({ message: "Atualizado!" }),
+      );
+      expect(toast.success).toHaveBeenCalledWith("Feedback atualizado");
+    });
+  });
+
+  it("cancels editing without saving", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckInWithFeedback()]);
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByText("Júlia Ferreira"));
+    await screen.findByRole("dialog");
+
+    await user.click(screen.getByRole("button", { name: /Editar feedback/i }));
+    expect(screen.getByPlaceholderText("Mensagem…")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Cancelar/i }));
+
+    expect(screen.queryByPlaceholderText("Mensagem…")).not.toBeInTheDocument();
+    expect(mockUpdateFeedback).not.toHaveBeenCalled();
+  });
+
+  it("deletes an existing feedback", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckInWithFeedback()]);
+    mockDeleteFeedback.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByText("Júlia Ferreira"));
+    await screen.findByRole("dialog");
+
+    await user.click(screen.getByRole("button", { name: /Remover feedback/i }));
+
+    await waitFor(() => {
+      expect(mockDeleteFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", "f-existing");
+      expect(toast.success).toHaveBeenCalledWith("Feedback removido");
     });
   });
 });

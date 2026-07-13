@@ -10,8 +10,7 @@ import type { Exam } from "../exams";
 import type { EvolutionPhoto } from "../evolution-photos";
 import type { BackendUser } from "../auth";
 import type { WorkoutCheckIn } from "../check-ins";
-import type { Feedback } from "../feedbacks";
-import type { WorkoutReaction } from "../reactions";
+import type { CheckInFeedback } from "../check-in-feedbacks";
 
 /** Seed trainers. `students_count` is recomputed by the store, not read from here. */
 export const TRAINERS: Trainer[] = [
@@ -282,7 +281,6 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       completed_at: "2026-01-10T13:45:00.000Z",
       viewed_at: null,
       feedbacks: [],
-      reactions: [],
     },
     {
       id: "check-in-s1-a-2",
@@ -298,7 +296,6 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       completed_at: "2026-01-03T13:40:00.000Z",
       viewed_at: "2026-01-03T15:00:00.000Z",
       feedbacks: [],
-      reactions: [],
     },
   ],
   "workout-s1-b": [
@@ -316,41 +313,39 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       completed_at: "2026-01-08T09:35:00.000Z",
       viewed_at: "2026-01-08T09:40:00.000Z",
       feedbacks: [],
-      reactions: [],
     },
   ],
 };
 
-/** Feedback notes keyed by student id, each tied to a completed check-in.
- * Only `student-1` ships with sample data. */
-export const FEEDBACKS_BY_STUDENT: Record<string, Feedback[]> = {
-  "student-1": [
+/** Unified feedbacks keyed by check-in id (text messages + emoji reactions merged).
+ * Only `check-in-s1-a-2` and `check-in-s1-b-1` ship with sample data. */
+export const FEEDBACKS_BY_CHECK_IN: Record<string, CheckInFeedback[]> = {
+  "check-in-s1-a-2": [
     {
-      id: "feedback-s1-1",
+      id: "feedback-s1-a-2-emoji",
       workout_check_in_id: "check-in-s1-a-2",
+      emoji: "💪",
+      message: null,
+      author_name: "Rafael Monteiro",
+      created_at: "2026-01-03T15:00:00.000Z",
+    },
+    {
+      id: "feedback-s1-a-2-msg",
+      workout_check_in_id: "check-in-s1-a-2",
+      emoji: null,
       message: "Mandou muito bem no treino de hoje, continue assim!",
       author_name: "Rafael Monteiro",
       created_at: "2026-01-03T15:00:00.000Z",
     },
+  ],
+  "check-in-s1-b-1": [
     {
-      id: "feedback-s1-2",
+      id: "feedback-s1-b-1-msg",
       workout_check_in_id: "check-in-s1-b-1",
+      emoji: null,
       message: "Bora fechar a semana com o treino de pernas!",
       author_name: "Rafael Monteiro",
       created_at: "2026-01-08T09:40:00.000Z",
-    },
-  ],
-};
-
-/** Emoji reactions keyed by check-in id. Only `check-in-s1-a-2` ships with
- * sample data — the "viewed with reaction" case in the demo. */
-export const REACTIONS_BY_CHECK_IN: Record<string, WorkoutReaction[]> = {
-  "check-in-s1-a-2": [
-    {
-      id: "reaction-s1-a-2-1",
-      emoji: "💪",
-      author_name: "Rafael Monteiro",
-      created_at: "2026-01-03T15:00:00.000Z",
     },
   ],
 };

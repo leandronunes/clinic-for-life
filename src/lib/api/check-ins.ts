@@ -1,6 +1,5 @@
 import { http } from "./http";
-import type { Feedback } from "./feedbacks";
-import type { WorkoutReaction } from "./reactions";
+import type { CheckInFeedback } from "./check-in-feedbacks";
 
 export type CheckInStatus = "in_progress" | "completed";
 
@@ -17,8 +16,7 @@ export interface WorkoutCheckIn {
   started_at: string;
   completed_at: string | null;
   viewed_at: string | null;
-  feedbacks: Feedback[];
-  reactions: WorkoutReaction[];
+  feedbacks: CheckInFeedback[];
 }
 
 export function fetchCurrentCheckIn(

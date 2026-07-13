@@ -24,8 +24,11 @@ import type { EvolutionPhoto, CreateEvolutionPhotoPayload } from "../evolution-p
 import type { BackendUser, LoginResponse } from "../auth";
 import type { BioImportResult } from "../bioimpedance-import";
 import type { WorkoutCheckIn } from "../check-ins";
-import type { Feedback, CreateFeedbackPayload } from "../feedbacks";
-import type { WorkoutReaction } from "../reactions";
+import type {
+  CheckInFeedback,
+  CreateCheckInFeedbackPayload,
+  UpdateCheckInFeedbackPayload,
+} from "../check-in-feedbacks";
 import type { AttendanceSummary } from "../dashboard";
 import {
   TRAINERS,
@@ -39,8 +42,7 @@ import {
   EXAMS_BY_STUDENT,
   EVOLUTION_PHOTOS_BY_STUDENT,
   CHECK_INS_BY_WORKOUT,
-  FEEDBACKS_BY_STUDENT,
-  REACTIONS_BY_CHECK_IN,
+  FEEDBACKS_BY_CHECK_IN,
   MOCK_USERS,
 } from "./fixtures";
 
@@ -413,7 +415,7 @@ export function deleteExercise(studentId: string, workoutId: string, exerciseId:
 /* -------------------- Check-ins -------------------- */
 
 const checkInsByWorkout: Record<string, WorkoutCheckIn[]> = clone(CHECK_INS_BY_WORKOUT);
-const reactionsByCheckIn: Record<string, WorkoutReaction[]> = clone(REACTIONS_BY_CHECK_IN);
+const feedbacksByCheckIn: Record<string, CheckInFeedback[]> = clone(FEEDBACKS_BY_CHECK_IN);
 
 function checkInsFor(workoutId: string): WorkoutCheckIn[] {
   return (checkInsByWorkout[workoutId] ??= []);
@@ -429,17 +431,13 @@ function notCompletedCheckIn(message: string): never {
   throw err;
 }
 
-/** Merges in the always-current feedbacks/reactions before returning a
- * check-in to a caller — those two lists change independently over time
- * (createFeedback/setReaction), so the stored check-in never carries them
- * directly. */
+/** Merges in the always-current feedbacks before returning a check-in to a
+ * caller — the feedbacks list changes independently over time
+ * (createCheckInFeedback), so the stored check-in never carries them directly. */
 function hydrateCheckIn(checkIn: WorkoutCheckIn): WorkoutCheckIn {
   return {
     ...checkIn,
-    feedbacks: (feedbacksByStudent[checkIn.student_id] ?? []).filter(
-      (f) => f.workout_check_in_id === checkIn.id,
-    ),
-    reactions: reactionsByCheckIn[checkIn.id] ?? [],
+    feedbacks: feedbacksByCheckIn[checkIn.id] ?? [],
   };
 }
 
@@ -485,7 +483,6 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     completed_at: null,
     viewed_at: null,
     feedbacks: [],
-    reactions: [],
   };
   checkInsByWorkout[workout.id] = [checkIn, ...list];
   return hydrateCheckIn(checkIn);
@@ -566,69 +563,74 @@ export function listCompletedCheckIns(): WorkoutCheckIn[] {
     .map(hydrateCheckIn);
 }
 
-/* -------------------- Feedbacks -------------------- */
+/* -------------------- Check-in feedbacks -------------------- */
 
-const feedbacksByStudent: Record<string, Feedback[]> = clone(FEEDBACKS_BY_STUDENT);
-
-export function listFeedbacks(studentId: string): Feedback[] {
-  return (feedbacksByStudent[studentId] ??= []);
-}
-
-export function createFeedback(
-  studentId: string,
-  payload: CreateFeedbackPayload,
-  token: string | null,
-): Feedback {
-  const checkIn = Object.values(checkInsByWorkout)
-    .flat()
-    .find((c) => c.id === payload.workout_check_in_id && c.student_id === studentId);
-  if (!checkIn) notFound("Check-in não encontrado");
-  if (checkIn.status !== "completed") {
-    notCompletedCheckIn("Só é possível dar feedback em um treino concluído");
-  }
-
-  const feedback: Feedback = {
-    id: nextId("feedback"),
-    workout_check_in_id: checkIn.id,
-    message: payload.message,
-    author_name: currentUser(token).name,
-    created_at: new Date().toISOString(),
-  };
-  const list = (feedbacksByStudent[studentId] ??= []);
-  feedbacksByStudent[studentId] = [feedback, ...list];
-  return feedback;
-}
-
-/* -------------------- Workout reactions -------------------- */
-
-export function setReaction(
+export function createCheckInFeedback(
   studentId: string,
   workoutId: string,
   checkInId: string,
-  emoji: string,
+  payload: CreateCheckInFeedbackPayload,
   token: string | null,
-): WorkoutReaction {
+): CheckInFeedback {
   const checkIn = getCheckIn(studentId, workoutId, checkInId);
   if (checkIn.status !== "completed") {
-    notCompletedCheckIn("Só é possível reagir a um treino concluído");
+    notCompletedCheckIn("Só é possível dar feedback em um treino concluído");
+  }
+  if (!payload.emoji && !payload.message) {
+    const err: ApiError = { status: 422, message: "Emoji ou mensagem é obrigatório" };
+    throw err;
   }
 
-  const authorName = currentUser(token).name;
-  const list = (reactionsByCheckIn[checkIn.id] ??= []);
-  const existing = list.find((r) => r.author_name === authorName);
-  if (existing) {
-    existing.emoji = emoji;
-    return existing;
-  }
-
-  const reaction: WorkoutReaction = {
-    id: nextId("reaction"),
-    emoji,
-    author_name: authorName,
+  const feedback: CheckInFeedback = {
+    id: nextId("feedback"),
+    workout_check_in_id: checkIn.id,
+    emoji: payload.emoji ?? null,
+    message: payload.message ?? null,
+    author_name: currentUser(token).name,
     created_at: new Date().toISOString(),
   };
-  reactionsByCheckIn[checkIn.id] = [reaction, ...list];
-  return reaction;
+  const list = (feedbacksByCheckIn[checkIn.id] ??= []);
+  feedbacksByCheckIn[checkIn.id] = [feedback, ...list];
+  return feedback;
+}
+
+export function updateCheckInFeedback(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  feedbackId: string,
+  payload: UpdateCheckInFeedbackPayload,
+): CheckInFeedback {
+  getCheckIn(studentId, workoutId, checkInId);
+  const list = feedbacksByCheckIn[checkInId] ?? [];
+  const idx = list.findIndex((f) => f.id === feedbackId);
+  if (idx === -1) {
+    const err: ApiError = { status: 404, message: "Feedback não encontrado" };
+    throw err;
+  }
+  const updated: CheckInFeedback = {
+    ...list[idx],
+    emoji: payload.emoji !== undefined ? (payload.emoji ?? null) : list[idx].emoji,
+    message: payload.message !== undefined ? (payload.message ?? null) : list[idx].message,
+  };
+  list[idx] = updated;
+  return updated;
+}
+
+export function deleteCheckInFeedback(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  feedbackId: string,
+): void {
+  getCheckIn(studentId, workoutId, checkInId);
+  const list = feedbacksByCheckIn[checkInId] ?? [];
+  const idx = list.findIndex((f) => f.id === feedbackId);
+  if (idx === -1) {
+    const err: ApiError = { status: 404, message: "Feedback não encontrado" };
+    throw err;
+  }
+  list.splice(idx, 1);
 }
 
 /* -------------------- Dashboard -------------------- */

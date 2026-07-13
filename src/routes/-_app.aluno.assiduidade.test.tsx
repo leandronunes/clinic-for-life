@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { format } from "date-fns";
 import type { ReactNode } from "react";
 import type { WorkoutCheckIn } from "@/lib/api/check-ins";
 import { AssiduidadePage } from "./_app.aluno.assiduidade";
@@ -66,7 +67,6 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     completed_at: "2026-07-10T10:45:00Z",
     viewed_at: null,
     feedbacks: [],
-    reactions: [],
     ...overrides,
   };
 }
@@ -104,10 +104,12 @@ describe("AssiduidadePage", () => {
   it("shows a reaction emoji next to a check-in that received one", async () => {
     mockFetchHistory.mockResolvedValue([
       buildCheckIn({
-        reactions: [
+        feedbacks: [
           {
-            id: "r1",
+            id: "f1",
+            workout_check_in_id: "ci1",
             emoji: "💪",
+            message: null,
             author_name: "Rafael Monteiro",
             created_at: "2026-07-10T11:00:00Z",
           },
@@ -128,15 +130,8 @@ describe("AssiduidadePage", () => {
           {
             id: "f1",
             workout_check_in_id: "ci1",
-            message: "Mandou muito bem!",
-            author_name: "Rafael Monteiro",
-            created_at: "2026-07-10T11:00:00Z",
-          },
-        ],
-        reactions: [
-          {
-            id: "r1",
             emoji: "💪",
+            message: null,
             author_name: "Rafael Monteiro",
             created_at: "2026-07-10T11:00:00Z",
           },
@@ -152,7 +147,67 @@ describe("AssiduidadePage", () => {
     await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Mandou muito bem!")).toBeInTheDocument();
-    expect(within(dialog).getByText("Rafael Monteiro", { exact: false })).toBeInTheDocument();
+    expect(within(dialog).getByTitle("Rafael Monteiro")).toHaveTextContent("💪");
+    expect(within(dialog).queryByText("Mandou muito bem!")).not.toBeInTheDocument();
+  });
+
+  it("shows today's emoji reactions in the feedback banner", async () => {
+    const todayIso = new Date().toISOString();
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        started_at: todayIso,
+        completed_at: todayIso,
+        feedbacks: [
+          {
+            id: "f1",
+            workout_check_in_id: "ci1",
+            emoji: "🔥",
+            message: null,
+            author_name: "Rafael Monteiro",
+            created_at: todayIso,
+          },
+        ],
+      }),
+    ]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(await screen.findByText("Feedback do personal de hoje")).toBeInTheDocument();
+    expect(screen.getByTitle("Rafael Monteiro")).toHaveTextContent("🔥");
+  });
+
+  it("shows today's text feedbacks in the feedback banner", async () => {
+    const todayIso = new Date().toISOString();
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        started_at: todayIso,
+        completed_at: todayIso,
+        feedbacks: [
+          {
+            id: "f1",
+            workout_check_in_id: "ci1",
+            emoji: null,
+            message: "Ótimo esforço hoje!",
+            author_name: "Rafael Monteiro",
+            created_at: todayIso,
+          },
+        ],
+      }),
+    ]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(await screen.findByText("Feedback do personal de hoje")).toBeInTheDocument();
+    expect(screen.getByText("Ótimo esforço hoje!")).toBeInTheDocument();
+    expect(screen.getByText("— Rafael Monteiro")).toBeInTheDocument();
+  });
+
+  it("does not show the feedback banner when there are no today's reactions or feedbacks", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    expect(screen.queryByText("Feedback do personal de hoje")).not.toBeInTheDocument();
   });
 });

@@ -820,7 +820,6 @@ describe("TreinoCard", () => {
       completed_at: null,
       viewed_at: null,
       feedbacks: [],
-      reactions: [],
     };
 
     it("shows 'Iniciar treino' when there is no check-in in progress", async () => {

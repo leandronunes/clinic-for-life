@@ -34,7 +34,6 @@ const checkIn: WorkoutCheckIn = {
   completed_at: null,
   viewed_at: null,
   feedbacks: [],
-  reactions: [],
 };
 
 describe("check-ins API", () => {

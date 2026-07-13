@@ -15,7 +15,10 @@ import type { UpdateStructuralPayload } from "../structural-assessment";
 import type { UpdateAnamnesisPayload } from "../anamnesis";
 import type { CreateExamPayload } from "../exams";
 import type { CreateEvolutionPhotoPayload } from "../evolution-photos";
-import type { CreateFeedbackPayload } from "../feedbacks";
+import type {
+  CreateCheckInFeedbackPayload,
+  UpdateCheckInFeedbackPayload,
+} from "../check-in-feedbacks";
 import * as store from "./store";
 
 const wait = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -290,11 +293,36 @@ async function routeMockRequest<T>({
   if (match && m === "POST") return store.finishCheckIn(match[1], match[2], match[3]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/view$/.exec(path);
   if (match && m === "POST") return store.markCheckInViewed(match[1], match[2], match[3]) as T;
-  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/reaction$/.exec(
+  match =
+    /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/feedbacks\/([^/]+)$/.exec(
+      path,
+    );
+  if (match) {
+    const [, studentId, workoutId, checkInId, feedbackId] = match;
+    if (m === "PATCH")
+      return store.updateCheckInFeedback(
+        studentId,
+        workoutId,
+        checkInId,
+        feedbackId,
+        b as unknown as UpdateCheckInFeedbackPayload,
+      ) as T;
+    if (m === "DELETE") {
+      store.deleteCheckInFeedback(studentId, workoutId, checkInId, feedbackId);
+      return undefined as T;
+    }
+  }
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/feedbacks$/.exec(
     path,
   );
   if (match && m === "POST") {
-    return store.setReaction(match[1], match[2], match[3], String(b.emoji ?? ""), token) as T;
+    return store.createCheckInFeedback(
+      match[1],
+      match[2],
+      match[3],
+      b as unknown as CreateCheckInFeedbackPayload,
+      token,
+    ) as T;
   }
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/current$/.exec(path);
   if (match && m === "GET") return store.getCurrentCheckIn(match[1], match[2]) as T;
@@ -303,13 +331,7 @@ async function routeMockRequest<T>({
   match = /^\/api\/v1\/students\/([^/]+)\/check_ins$/.exec(path);
   if (match && m === "GET") return store.listCheckIns(match[1]) as T;
 
-  // -------- Feedbacks (student-scoped) --------
-  match = /^\/api\/v1\/students\/([^/]+)\/feedbacks$/.exec(path);
-  if (match) {
-    if (m === "GET") return store.listFeedbacks(match[1]) as T;
-    if (m === "POST")
-      return store.createFeedback(match[1], b as unknown as CreateFeedbackPayload, token) as T;
-  }
+  // (feedbacks now live under check_ins/:id/feedbacks — see above)
 
   // -------- Biomechanics --------
   match = /^\/api\/v1\/students\/([^/]+)\/biomechanical_assessments\/current$/.exec(path);
