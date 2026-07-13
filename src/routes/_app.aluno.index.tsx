@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Play,
+  Pause,
+  RotateCcw,
   Clock,
   Dumbbell,
   Archive,
@@ -1917,7 +1919,7 @@ export function ColarTreinoButton({
 
 /* ---------------- Execução guiada do treino ---------------- */
 
-type ExecPhase = "idle" | "executing" | "resting" | "rest-done";
+type ExecPhase = "idle" | "executing" | "paused" | "resting" | "rest-done";
 
 function formatClock(secs: number): string {
   const s = Math.max(0, Math.floor(secs));
@@ -2065,14 +2067,16 @@ function ExecucaoTreinoDialog({
       ? "Pronto para começar"
       : phase === "executing"
         ? "Executando"
-        : phase === "resting"
-          ? "Descansando"
-          : "Descanso finalizado — bora!";
+        : phase === "paused"
+          ? "Pausado"
+          : phase === "resting"
+            ? "Descansando"
+            : "Descanso finalizado — bora!";
 
   const clockValue =
     phase === "resting"
       ? formatClock(remaining)
-      : phase === "executing"
+      : phase === "executing" || phase === "paused"
         ? formatClock(elapsed)
         : phase === "rest-done"
           ? "00:00"
@@ -2160,16 +2164,37 @@ function ExecucaoTreinoDialog({
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0">
           <div className="flex w-full flex-wrap gap-2">
-            {phase === "idle" && (
+            {(phase === "idle" || phase === "paused") && (
               <Button
                 className="flex-1"
                 onClick={() => {
-                  setElapsed(0);
+                  if (phase === "idle") setElapsed(0);
                   setPhase("executing");
                 }}
               >
                 <Play className="mr-1 h-4 w-4" />
-                {isCardio ? "Iniciar cardio" : `Iniciar série ${currentSet}`}
+                {phase === "paused"
+                  ? "Retomar"
+                  : isCardio
+                    ? "Iniciar cardio"
+                    : `Iniciar série ${currentSet}`}
+              </Button>
+            )}
+
+            {phase === "executing" && (
+              <Button className="flex-1" variant="secondary" onClick={() => setPhase("paused")}>
+                <Pause className="mr-1 h-4 w-4" /> Parar
+              </Button>
+            )}
+
+            {(phase === "executing" || phase === "paused") && (
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Zerar cronômetro"
+                onClick={() => setElapsed(0)}
+              >
+                <RotateCcw className="h-4 w-4" />
               </Button>
             )}
 

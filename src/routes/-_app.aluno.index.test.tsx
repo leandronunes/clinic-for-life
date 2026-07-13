@@ -1018,6 +1018,47 @@ describe("TreinoCard", () => {
 
       await waitFor(() => expect(mockFinishCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
     });
+
+    it("toggles the set clock between running and paused, and resets it", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+
+      await user.click(within(dialog).getByRole("button", { name: /Iniciar série/i }));
+      expect(within(dialog).getByText("Executando")).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(within(dialog).getByText("00:03")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Parar" }));
+      expect(within(dialog).getByText("Pausado")).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Retomar" })).toBeInTheDocument();
+
+      // the clock stays frozen while paused
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(within(dialog).getByText("00:03")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Zerar cronômetro" }));
+      expect(within(dialog).getByText("00:00")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Retomar" }));
+      expect(within(dialog).getByText("Executando")).toBeInTheDocument();
+
+      vi.useRealTimers();
+    });
   });
 
   describe("editing a strength exercise's numeric fields", () => {
