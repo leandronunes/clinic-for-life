@@ -2414,11 +2414,7 @@ function ExecucaoTreinoDialog({
 
         {/* Scrollable body: swipeable exercise cards */}
         <div className="min-h-0 flex-1 overflow-hidden">
-          <Carousel
-            setApi={setCarouselApi}
-            opts={{ startIndex: idx }}
-            className="h-full"
-          >
+          <Carousel setApi={setCarouselApi} opts={{ startIndex: idx }} className="h-full">
             <CarouselContent className="-ml-0 h-full">
               {exercises.map((ex, i) => (
                 <CarouselItem
