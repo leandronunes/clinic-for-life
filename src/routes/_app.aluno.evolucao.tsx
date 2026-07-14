@@ -20,7 +20,7 @@ import {
   Activity,
   Dumbbell,
   Upload,
-  FileSpreadsheet,
+  FileText,
   Loader2,
   CheckCircle2,
   AlertTriangle,
@@ -53,7 +53,7 @@ import {
   deleteMeasurement,
   type BioimpedanceMeasurement,
 } from "@/lib/api/bioimpedance";
-import { importBioimpedanceCsv, type BioImportResult } from "@/lib/api/bioimpedance-import";
+import { importBioimpedanceFile, type BioImportResult } from "@/lib/api/bioimpedance-import";
 import { fetchStudent } from "@/lib/api/students";
 import { PhotoUploadCard } from "@/components/PhotoUploadCard";
 import { toast } from "sonner";
@@ -415,7 +415,7 @@ function BioUploadCard({
     setResult(null);
     setLoading(true);
     try {
-      const r = await importBioimpedanceCsv(alunoId, f);
+      const r = await importBioimpedanceFile(alunoId, f);
       setResult(r);
       if (r.errors.length === 0)
         toast.success(`${r.imported} registros importados para ${alunoEmail}`);
@@ -434,7 +434,7 @@ function BioUploadCard({
         <CardTitle className="text-base">Upload de Bioimpedância (InBody)</CardTitle>
         <p className="text-xs text-muted-foreground">
           Esta área é visível apenas para administradores e personais. Envie o CSV exportado do
-          InBody para registrar a avaliação deste aluno.
+          InBody, ou o PDF do relatório mynutri/InBody, para registrar a avaliação deste aluno.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -458,7 +458,7 @@ function BioUploadCard({
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.pdf,application/pdf"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleProcess(e.target.files[0])}
           />
@@ -470,15 +470,15 @@ function BioUploadCard({
             )}
           </div>
           <h3 className="mt-3 font-semibold">
-            {loading ? "Processando..." : "Arraste o CSV ou clique para enviar"}
+            {loading ? "Processando..." : "Arraste o CSV ou PDF ou clique para enviar"}
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Colunas:{" "}
+            Colunas do CSV:{" "}
             <code className="break-all">email,peso_kg,massa_muscular_kg,gordura_pct,data</code>
           </p>
           {file && !loading && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
-              <FileSpreadsheet className="h-3.5 w-3.5" /> {file.name}
+              <FileText className="h-3.5 w-3.5" /> {file.name}
             </div>
           )}
         </div>

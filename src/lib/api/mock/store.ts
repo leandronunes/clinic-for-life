@@ -762,11 +762,39 @@ export function deleteBioimpedance(studentId: string, measurementId: string): vo
   );
 }
 
-/** Lightweight, best-effort CSV parser mirroring the real import endpoint's contract. */
-export async function importBioimpedanceCsv(
+function isPdfFile(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+/** Mirrors the real endpoint accepting either a raw InBody CSV export or a
+ * mynutri/InBody PDF report, auto-detected from the file. PDF content can't
+ * be meaningfully parsed offline, so it's a canned single-measurement import
+ * — mirroring the real parser, which only reads the report's current
+ * measurement (its history chart has no exact per-point date). */
+export async function importBioimpedanceFile(
   studentId: string,
   file: File,
 ): Promise<BioImportResult> {
+  if (isPdfFile(file)) {
+    const preview: BioimpedanceMeasurement[] = [
+      {
+        id: nextId("bio"),
+        student_id: studentId,
+        measured_on: new Date().toISOString().slice(0, 10),
+        weight_kg: 70,
+        muscle_mass_kg: 32,
+        fat_percentage: 18,
+        visceral_fat: 8,
+        bmi: 23.5,
+        source: "import",
+        photo_id: null,
+        photo_url: null,
+      },
+    ];
+    bioimpedanceByStudent[studentId] = [...listBioimpedance(studentId), ...preview];
+    return { imported: preview.length, errors: [], preview };
+  }
+
   const text = await file.text();
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const rows = lines.slice(1);
