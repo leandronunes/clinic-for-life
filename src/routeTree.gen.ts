@@ -19,6 +19,7 @@ import { Route as AppTreinosConcluidosRouteImport } from './routes/_app.treinos-
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppAssiduidadeAlunosRouteImport } from './routes/_app.assiduidade-alunos'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
 import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
@@ -79,6 +80,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssiduidadeAlunosRoute = AppAssiduidadeAlunosRouteImport.update({
+  id: '/assiduidade-alunos',
+  path: '/assiduidade-alunos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAlunoIndexRoute = AppAlunoIndexRouteImport.update({
   id: '/aluno/',
   path: '/aluno/',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/assiduidade-alunos'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/assiduidade-alunos'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/_app/assiduidade-alunos'
     | '/_app/dashboard'
     | '/_app/parceiros'
     | '/_app/perfil'
@@ -342,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assiduidade-alunos': {
+      id: '/_app/assiduidade-alunos'
+      path: '/assiduidade-alunos'
+      fullPath: '/assiduidade-alunos'
+      preLoaderRoute: typeof AppAssiduidadeAlunosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/aluno/': {
       id: '/_app/aluno/'
       path: '/aluno'
@@ -416,6 +435,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAssiduidadeAlunosRoute: typeof AppAssiduidadeAlunosRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -434,6 +454,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssiduidadeAlunosRoute: AppAssiduidadeAlunosRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,

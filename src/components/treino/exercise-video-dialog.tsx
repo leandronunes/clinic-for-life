@@ -8,6 +8,7 @@ import {
 import type { Exercise } from "@/lib/api/workouts";
 import { isUploadedVideo } from "@/lib/video-url";
 import { describeExercise } from "@/lib/exercise-kind";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 export function ExerciseVideoDialog({
   exercise,
@@ -26,7 +27,7 @@ export function ExerciseVideoDialog({
         {exercise && (
           <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
             {isUploadedVideo(exercise.video_url) ? (
-              <video src={exercise.video_url} controls playsInline className="h-full w-full" />
+              <VideoPlayer src={exercise.video_url} className="h-full w-full" />
             ) : (
               <iframe
                 src={exercise.video_url}

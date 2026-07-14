@@ -155,6 +155,7 @@ export function createStudent(payload: CreateStudentPayload): Student {
   const trainer = payload.trainer_id
     ? trainers.find((t) => t.id === payload.trainer_id)
     : undefined;
+  const now = new Date().toISOString();
   const student: Student = {
     id: nextId("student"),
     name: payload.name,
@@ -168,7 +169,9 @@ export function createStudent(payload: CreateStudentPayload): Student {
     partner_card_enabled: true,
     health_plan: null,
     emergency_contact: null,
-    created_at: new Date().toISOString(),
+    contracted_workouts_per_cycle: payload.contracted_workouts_per_cycle ?? null,
+    cycle_started_at: payload.contracted_workouts_per_cycle ? now : null,
+    created_at: now,
   };
   students = [...students, student];
   return student;
