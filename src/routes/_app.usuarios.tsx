@@ -591,23 +591,35 @@ function EditAlunoDialog({
 }) {
   const [form, setForm] = useState<Student>(student);
   const mut = useMutation({
-    mutationFn: () =>
-      updateStudent(student.id, {
+    mutationFn: () => {
+      const prevQuota = student.contracted_workouts_per_cycle ?? null;
+      const nextQuota = form.contracted_workouts_per_cycle ?? null;
+      const quotaChanged = prevQuota !== nextQuota;
+      return updateStudent(student.id, {
         name: form.name,
         email: form.email,
         phone: form.phone,
         sex: form.sex,
         birth_date: form.birth_date,
         status: form.status,
+        contracted_workouts_per_cycle: nextQuota,
+        // Ao definir uma nova quota (ou alterar), o ciclo recomeça agora.
+        ...(quotaChanged && nextQuota
+          ? { cycle_started_at: new Date().toISOString() }
+          : quotaChanged && !nextQuota
+            ? { cycle_started_at: null }
+            : {}),
         ...(canChangePersonal
           ? { trainer_id: form.trainer_id, partner_card_enabled: form.partner_card_enabled }
           : {}),
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Aluno atualizado");
       onSaved();
     },
   });
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
