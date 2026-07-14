@@ -96,8 +96,12 @@ test.describe("Treinos Concluídos (personal)", () => {
     await page.getByRole("link", { name: "Treinos Concluídos" }).click();
     await expect(page).toHaveURL("/treinos-concluidos");
 
-    // check-in-s1-a-1 é o único não visto nas fixtures — cartão com "Novo".
-    const newCard = page.getByRole("button", { name: /Novo/ });
+    // check-in-s1-a-1 é o único sem feedback nas fixtures — fica em
+    // "Aguardando feedback", com o selo "Novo" (nunca foi aberto). Localiza
+    // pelo texto do selo (não pelo nome acessível do botão, que agora é
+    // "{aluno} — {treino}", explícito para não colidir com o resumo por aluno).
+    await expect(page.getByText("Aguardando feedback (1)")).toBeVisible();
+    const newCard = page.locator("button").filter({ hasText: "Novo" });
     await expect(newCard).toBeVisible();
     await newCard.click();
 
@@ -116,7 +120,16 @@ test.describe("Treinos Concluídos (personal)", () => {
 
     await page.keyboard.press("Escape");
 
-    // O cartão não é mais "Novo" e agora mostra o emoji da reação.
-    await expect(page.getByRole("button", { name: /Novo/ })).toHaveCount(0);
+    // O check-in agora tem feedback: sai de "Aguardando feedback" e passa
+    // para "Já respondido" (que começa recolhido), mostrando o emoji.
+    await expect(page.getByText("Aguardando feedback (0)")).toBeVisible();
+    await expect(page.locator("button").filter({ hasText: "Novo" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Já respondido/ }).click();
+    // check-in-s1-a-2 já vem com uma reação 💪 nas fixtures — filtra também
+    // pela data (10/01) para pegar só o check-in que acabou de ser respondido.
+    await expect(
+      page.locator("button").filter({ hasText: "💪" }).filter({ hasText: "10/01" }),
+    ).toBeVisible();
   });
 });
