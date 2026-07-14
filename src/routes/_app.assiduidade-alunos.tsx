@@ -1,25 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import {
-  CalendarCheck,
-  Dumbbell,
-  Loader2,
-  RefreshCcw,
-  Search,
-  AlertTriangle,
-} from "lucide-react";
+import { CalendarCheck, Dumbbell, Loader2, RefreshCcw, Search, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -69,7 +57,7 @@ interface Row {
 function AssiduidadeAlunosPage() {
   const { user, hasRole } = useAuth();
   const isPersonal = hasRole("personal");
-  const personalId = isPersonal ? user?.personal_id ?? undefined : undefined;
+  const personalId = isPersonal ? (user?.personal_id ?? undefined) : undefined;
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -78,7 +66,9 @@ function AssiduidadeAlunosPage() {
   const { data: students = [], isLoading: loadingStudents } = useQuery({
     queryKey: ["alunos", personalId ?? "all"],
     queryFn: () =>
-      fetchStudents(personalId ? { trainerId: personalId, status: "active" } : { status: "active" }),
+      fetchStudents(
+        personalId ? { trainerId: personalId, status: "active" } : { status: "active" },
+      ),
   });
   const { data: checkIns = [], isLoading: loadingCheckIns } = useQuery({
     queryKey: ["completed-check-ins"],
@@ -121,7 +111,7 @@ function AssiduidadeAlunosPage() {
   }, [rows, query, statusFilter]);
 
   const loading = loadingStudents || loadingCheckIns;
-  const selected = selectedId ? rows.find((r) => r.student.id === selectedId) ?? null : null;
+  const selected = selectedId ? (rows.find((r) => r.student.id === selectedId) ?? null) : null;
 
   const exceededCount = rows.filter((r) => r.cycle.status === "exceeded").length;
   const nearLimitCount = rows.filter((r) => r.cycle.status === "near_limit").length;
@@ -240,10 +230,7 @@ function AssiduidadeAlunosPage() {
         </CardContent>
       </Card>
 
-      <CycleDetailsDialog
-        row={selected}
-        onClose={() => setSelectedId(null)}
-      />
+      <CycleDetailsDialog row={selected} onClose={() => setSelectedId(null)} />
     </div>
   );
 }
@@ -292,13 +279,7 @@ function StatusBadge({ status }: { status: AttendanceStatus }) {
   return <Badge className={cls}>{ATTENDANCE_STATUS_LABEL[status]}</Badge>;
 }
 
-function CycleDetailsDialog({
-  row,
-  onClose,
-}: {
-  row: Row | null;
-  onClose: () => void;
-}) {
+function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const qc = useQueryClient();
   const renewMut = useMutation({
     mutationFn: (studentId: string) =>

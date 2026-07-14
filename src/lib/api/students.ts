@@ -33,7 +33,6 @@ export interface CreateStudentPayload {
   contracted_workouts_per_cycle?: number | null;
 }
 
-
 export type UpdateStudentPayload = Partial<Omit<Student, "id" | "created_at" | "trainer_name">>;
 
 /** Maps frontend display sex values (F/M/Outro) to backend enum. */

@@ -2,7 +2,11 @@ import { describe, it, expect } from "vitest";
 import { computeAttendanceCycle } from "./attendance-cycle";
 import type { WorkoutCheckIn } from "@/lib/api/check-ins";
 
-function checkIn(id: string, completedAt: string | null, status: "completed" | "in_progress" = "completed"): WorkoutCheckIn {
+function checkIn(
+  id: string,
+  completedAt: string | null,
+  status: "completed" | "in_progress" = "completed",
+): WorkoutCheckIn {
   return {
     id,
     workout_id: "w",
@@ -22,11 +26,7 @@ function checkIn(id: string, completedAt: string | null, status: "completed" | "
 
 describe("computeAttendanceCycle", () => {
   it("returns no_contract when contracted is null", () => {
-    const result = computeAttendanceCycle(
-      [checkIn("a", "2026-01-10T10:00:00.000Z")],
-      null,
-      null,
-    );
+    const result = computeAttendanceCycle([checkIn("a", "2026-01-10T10:00:00.000Z")], null, null);
     expect(result.status).toBe("no_contract");
     expect(result.completedInCycle).toBe(1);
     expect(result.contracted).toBeNull();
@@ -69,10 +69,7 @@ describe("computeAttendanceCycle", () => {
 
   it("handles missing cycleStartedAt (counts everything)", () => {
     const result = computeAttendanceCycle(
-      [
-        checkIn("a", "2020-01-10T10:00:00.000Z"),
-        checkIn("b", "2026-01-10T10:00:00.000Z"),
-      ],
+      [checkIn("a", "2020-01-10T10:00:00.000Z"), checkIn("b", "2026-01-10T10:00:00.000Z")],
       10,
       null,
     );

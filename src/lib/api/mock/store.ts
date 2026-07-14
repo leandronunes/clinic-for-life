@@ -177,7 +177,6 @@ export function createStudent(payload: CreateStudentPayload): Student {
   return student;
 }
 
-
 export function updateStudent(id: string, payload: UpdateStudentPayload): Student {
   const idx = students.findIndex((s) => s.id === id);
   if (idx === -1) notFound("Aluno não encontrado");
