@@ -38,14 +38,17 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   admin: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Usuários", url: "/usuarios", icon: Users },
+    { title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck },
     { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
     { title: "Parceiros", url: "/parceiros", icon: Handshake },
   ],
   personal: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Meus Alunos", url: "/usuarios", icon: Users },
+    { title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck },
     { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
   ],
+
   aluno: [
     { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
     { title: "Assiduidade", url: "/aluno/assiduidade", icon: CalendarCheck },

@@ -454,15 +454,24 @@ function NovoAlunoDialog({
     email: "",
     phone: "",
     trainer_id: lockedPersonalId ?? trainers[0]?.id ?? "",
+    contracted_workouts_per_cycle: "" as string,
   });
   const mut = useMutation({
-    mutationFn: () => createStudent({ ...form, trainer_id: lockedPersonalId ?? form.trainer_id }),
+    mutationFn: () =>
+      createStudent({
+        ...form,
+        trainer_id: lockedPersonalId ?? form.trainer_id,
+        contracted_workouts_per_cycle: form.contracted_workouts_per_cycle
+          ? Number(form.contracted_workouts_per_cycle)
+          : null,
+      }),
     onSuccess: () => {
       toast.success("Aluno cadastrado");
       setOpen(false);
       onCreated();
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -514,6 +523,18 @@ function NovoAlunoDialog({
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
           </Field>
+          <Field label="Treinos contratados por ciclo">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Ex.: 12"
+              value={form.contracted_workouts_per_cycle}
+              onChange={(e) =>
+                setForm({ ...form, contracted_workouts_per_cycle: e.target.value })
+              }
+            />
+          </Field>
+
           {!lockedPersonalId && (
             <Field label="Personal responsável" className="sm:col-span-2">
               <Select
@@ -570,23 +591,35 @@ function EditAlunoDialog({
 }) {
   const [form, setForm] = useState<Student>(student);
   const mut = useMutation({
-    mutationFn: () =>
-      updateStudent(student.id, {
+    mutationFn: () => {
+      const prevQuota = student.contracted_workouts_per_cycle ?? null;
+      const nextQuota = form.contracted_workouts_per_cycle ?? null;
+      const quotaChanged = prevQuota !== nextQuota;
+      return updateStudent(student.id, {
         name: form.name,
         email: form.email,
         phone: form.phone,
         sex: form.sex,
         birth_date: form.birth_date,
         status: form.status,
+        contracted_workouts_per_cycle: nextQuota,
+        // Ao definir uma nova quota (ou alterar), o ciclo recomeça agora.
+        ...(quotaChanged && nextQuota
+          ? { cycle_started_at: new Date().toISOString() }
+          : quotaChanged && !nextQuota
+            ? { cycle_started_at: null }
+            : {}),
         ...(canChangePersonal
           ? { trainer_id: form.trainer_id, partner_card_enabled: form.partner_card_enabled }
           : {}),
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Aluno atualizado");
       onSaved();
     },
   });
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -647,6 +680,21 @@ function EditAlunoDialog({
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Treinos contratados por ciclo">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Ex.: 12"
+              value={form.contracted_workouts_per_cycle ?? ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  contracted_workouts_per_cycle: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+            />
+          </Field>
+
           {canChangePersonal && (
             <Field label="Personal responsável">
               <Select
