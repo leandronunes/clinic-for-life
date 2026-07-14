@@ -523,6 +523,18 @@ function NovoAlunoDialog({
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
           </Field>
+          <Field label="Treinos contratados por ciclo">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Ex.: 12"
+              value={form.contracted_workouts_per_cycle}
+              onChange={(e) =>
+                setForm({ ...form, contracted_workouts_per_cycle: e.target.value })
+              }
+            />
+          </Field>
+
           {!lockedPersonalId && (
             <Field label="Personal responsável" className="sm:col-span-2">
               <Select
