@@ -2136,7 +2136,7 @@ function ExerciseExecutionCard({
   const ringProgress = phase === "resting" ? restProgress : 1;
 
   return (
-    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-0">
+    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-6">
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2">
         {!isCardio ? (
@@ -2488,7 +2488,7 @@ function ExecucaoTreinoDialog({
       >
         {/* Sticky header — extra right padding clears the dialog's built-in
             close (X) button, which sits absolutely at top-4 right-4. */}
-        <DialogHeader className="shrink-0 space-y-0 border-b bg-card/95 py-4 pl-4 pr-12 backdrop-blur sm:border-0 sm:bg-transparent sm:py-0 sm:pl-0 sm:pr-8">
+        <DialogHeader className="shrink-0 space-y-0 border-b bg-card/95 py-4 pl-4 pr-12 backdrop-blur sm:pl-6 sm:pr-14">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -2554,10 +2554,13 @@ function ExecucaoTreinoDialog({
           </Carousel>
         </div>
 
-        {/* Sticky footer action bar */}
+        {/* Sticky footer action bar — DialogFooter defaults to a right-aligned
+            row on sm+ (for typical Cancel/Confirm footers), which must be
+            overridden back to a stacked column since this footer has full-width
+            rows (primary CTA, secondary controls, the "concluir" link). */}
         <DialogFooter
           className={cn(
-            "shrink-0 flex-col gap-2 border-t bg-card/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:space-x-0 sm:border-0 sm:bg-transparent sm:p-0",
+            "shrink-0 flex-col justify-start gap-2 border-t bg-card/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:flex-col sm:justify-start sm:space-x-0 sm:px-6 sm:pb-6 sm:pt-4",
           )}
         >
           {/* Primary CTA */}
