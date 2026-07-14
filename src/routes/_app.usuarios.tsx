@@ -454,15 +454,24 @@ function NovoAlunoDialog({
     email: "",
     phone: "",
     trainer_id: lockedPersonalId ?? trainers[0]?.id ?? "",
+    contracted_workouts_per_cycle: "" as string,
   });
   const mut = useMutation({
-    mutationFn: () => createStudent({ ...form, trainer_id: lockedPersonalId ?? form.trainer_id }),
+    mutationFn: () =>
+      createStudent({
+        ...form,
+        trainer_id: lockedPersonalId ?? form.trainer_id,
+        contracted_workouts_per_cycle: form.contracted_workouts_per_cycle
+          ? Number(form.contracted_workouts_per_cycle)
+          : null,
+      }),
     onSuccess: () => {
       toast.success("Aluno cadastrado");
       setOpen(false);
       onCreated();
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
