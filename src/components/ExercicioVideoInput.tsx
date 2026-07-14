@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { uploadVideoToS3 } from "@/lib/api/uploads";
 import { isUploadedVideo } from "@/lib/video-url";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 type Props = {
   studentId: string;
@@ -283,7 +284,7 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
 
           {!recording && displayUrl && (
             <div className="overflow-hidden rounded-md border bg-black">
-              <video src={displayUrl} controls playsInline className="h-48 w-full object-contain" />
+              <VideoPlayer src={displayUrl} className="h-48 w-full object-contain" />
             </div>
           )}
 

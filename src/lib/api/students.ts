@@ -16,6 +16,10 @@ export interface Student {
   partner_card_enabled: boolean;
   health_plan?: string | null;
   emergency_contact?: string | null;
+  /** Quantidade de treinos contratados por ciclo (opcional). */
+  contracted_workouts_per_cycle?: number | null;
+  /** Data ISO em que o ciclo atual começou. Usada para contar treinos concluídos no ciclo. */
+  cycle_started_at?: string | null;
   created_at: string;
 }
 
@@ -26,6 +30,7 @@ export interface CreateStudentPayload {
   email: string;
   phone: string;
   trainer_id?: string;
+  contracted_workouts_per_cycle?: number | null;
 }
 
 export type UpdateStudentPayload = Partial<Omit<Student, "id" | "created_at" | "trainer_name">>;
