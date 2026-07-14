@@ -112,21 +112,19 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await screen.findByText("Júlia Ferreira");
-    expect(screen.getByText("Novo")).toBeInTheDocument();
+    expect(await screen.findByText("Novo")).toBeInTheDocument();
   });
 
-  it("marks a viewed check-in without a reaction with an eye icon", async () => {
+  it("keeps a viewed check-in without feedback under 'Aguardando feedback', without a 'Novo' badge", async () => {
     mockFetchCompleted.mockResolvedValue([buildCheckIn({ viewed_at: "2026-07-11T09:00:00Z" })]);
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await screen.findByText("Júlia Ferreira");
-    expect(screen.getByLabelText("Visualizado")).toBeInTheDocument();
+    expect(await screen.findByText("Aguardando feedback (1)")).toBeInTheDocument();
     expect(screen.queryByText("Novo")).not.toBeInTheDocument();
   });
 
-  it("marks a viewed check-in with a feedback by showing the emoji", async () => {
+  it("moves a check-in with feedback into the collapsed 'Já respondido' section, showing its emoji", async () => {
     mockFetchCompleted.mockResolvedValue([
       buildCheckIn({
         viewed_at: "2026-07-11T09:00:00Z",
@@ -142,13 +140,19 @@ describe("TreinosConcluidosPage", () => {
         ],
       }),
     ]);
+    const user = userEvent.setup();
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    const card = await screen.findByText("Júlia Ferreira");
-    expect(within(card.closest("button")!).getByLabelText("Feedback enviado")).toHaveTextContent(
-      "🔥",
-    );
+    // "Já respondido" starts collapsed — the card isn't in the DOM until expanded.
+    expect(await screen.findByText("Aguardando feedback (0)")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Júlia Ferreira — Treino A" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Já respondido/i }));
+    const card = await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" });
+    expect(within(card).getByLabelText("Feedback enviado")).toHaveTextContent("🔥");
   });
 
   it("marks a not-yet-viewed check-in as viewed when its detail is opened", async () => {
@@ -157,7 +161,7 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
 
     await waitFor(() => {
       expect(mockMarkViewed).toHaveBeenCalledWith("s1", "w1", "ci1");
@@ -170,7 +174,7 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
 
     expect(mockMarkViewed).not.toHaveBeenCalled();
@@ -190,7 +194,7 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
     await user.type(screen.getByLabelText(/Mensagem/i), "Mandou muito bem!");
     await user.click(screen.getByRole("button", { name: /Enviar feedback/i }));
@@ -220,7 +224,7 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
     await user.click(screen.getByRole("button", { name: "💪" }));
@@ -248,7 +252,7 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: /Escolher emoji/i }));
     await user.click(screen.getByRole("button", { name: "💪" }));
@@ -306,7 +310,10 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    // The check-in already has feedback, so it lives in the collapsed
+    // "Já respondido" section — expand it before it's reachable.
+    await user.click(await screen.findByRole("button", { name: /Já respondido/i }));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
 
     await user.click(screen.getByRole("button", { name: /Editar feedback/i }));
@@ -334,7 +341,10 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    // The check-in already has feedback, so it lives in the collapsed
+    // "Já respondido" section — expand it before it's reachable.
+    await user.click(await screen.findByRole("button", { name: /Já respondido/i }));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
 
     await user.click(screen.getByRole("button", { name: /Editar feedback/i }));
@@ -352,7 +362,10 @@ describe("TreinosConcluidosPage", () => {
 
     render(<TreinosConcluidosPage />, { wrapper });
 
-    await user.click(await screen.findByText("Júlia Ferreira"));
+    // The check-in already has feedback, so it lives in the collapsed
+    // "Já respondido" section — expand it before it's reachable.
+    await user.click(await screen.findByRole("button", { name: /Já respondido/i }));
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
     await screen.findByRole("dialog");
 
     await user.click(screen.getByRole("button", { name: /Remover feedback/i }));
@@ -360,6 +373,102 @@ describe("TreinosConcluidosPage", () => {
     await waitFor(() => {
       expect(mockDeleteFeedback).toHaveBeenCalledWith("s1", "w1", "ci1", "f-existing");
       expect(toast.success).toHaveBeenCalledWith("Feedback removido");
+    });
+  });
+
+  describe("resumo por aluno", () => {
+    const juliaPending = buildCheckIn({
+      id: "ci-julia-1",
+      student_id: "s1",
+      student_name: "Júlia Ferreira",
+      workout_title: "Treino A",
+    });
+    const juliaAnswered = buildCheckIn({
+      id: "ci-julia-2",
+      student_id: "s1",
+      student_name: "Júlia Ferreira",
+      workout_title: "Treino B",
+      viewed_at: "2026-07-11T09:00:00Z",
+      feedbacks: [
+        {
+          id: "f-julia",
+          workout_check_in_id: "ci-julia-2",
+          emoji: "🔥",
+          message: null,
+          author_name: "Rafael Monteiro",
+          created_at: "2026-07-11T09:00:00Z",
+        },
+      ],
+    });
+    const marcosAnswered = buildCheckIn({
+      id: "ci-marcos-1",
+      student_id: "s2",
+      student_name: "Marcos Lima",
+      workout_title: "Treino C",
+      viewed_at: "2026-07-11T09:00:00Z",
+      feedbacks: [
+        {
+          id: "f-marcos",
+          workout_check_in_id: "ci-marcos-1",
+          emoji: "💪",
+          message: null,
+          author_name: "Rafael Monteiro",
+          created_at: "2026-07-11T09:00:00Z",
+        },
+      ],
+    });
+
+    it("shows each student's total completed workouts and pending-feedback count", async () => {
+      mockFetchCompleted.mockResolvedValue([juliaPending, juliaAnswered, marcosAnswered]);
+
+      render(<TreinosConcluidosPage />, { wrapper });
+
+      const juliaChip = await screen.findByRole("button", { name: "Filtrar por Júlia Ferreira" });
+      expect(within(juliaChip).getByText("2 treinos concluídos")).toBeInTheDocument();
+      expect(within(juliaChip).getByText("1 aguardando")).toBeInTheDocument();
+
+      const marcosChip = screen.getByRole("button", { name: "Filtrar por Marcos Lima" });
+      expect(within(marcosChip).getByText("1 treino concluído")).toBeInTheDocument();
+      expect(within(marcosChip).queryByText(/aguardando/)).not.toBeInTheDocument();
+    });
+
+    it("lists students with pending feedback before students with none", async () => {
+      mockFetchCompleted.mockResolvedValue([marcosAnswered, juliaPending, juliaAnswered]);
+
+      render(<TreinosConcluidosPage />, { wrapper });
+
+      await screen.findByRole("button", { name: "Filtrar por Júlia Ferreira" });
+      const chipNames = screen
+        .getAllByRole("button", { name: /^Filtrar por/ })
+        .map((el) => el.getAttribute("aria-label"));
+      expect(chipNames).toEqual(["Filtrar por Júlia Ferreira", "Filtrar por Marcos Lima"]);
+    });
+
+    it("filters the feed to the selected student, and toggles off on a second click", async () => {
+      mockFetchCompleted.mockResolvedValue([juliaPending, marcosAnswered]);
+      const user = userEvent.setup();
+
+      render(<TreinosConcluidosPage />, { wrapper });
+
+      await user.click(await screen.findByRole("button", { name: /Já respondido/i }));
+      await screen.findByRole("button", { name: "Marcos Lima — Treino C" });
+
+      await user.click(screen.getByRole("button", { name: "Filtrar por Júlia Ferreira" }));
+
+      expect(
+        screen.queryByRole("button", { name: "Marcos Lima — Treino C" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Júlia Ferreira — Treino A" })).toBeInTheDocument();
+
+      // Toggling the filter back off: the "Já respondido" section had already
+      // been expanded and that state lives in the page, not in the
+      // conditionally-rendered block, so Marcos's card reappears expanded
+      // without a second click.
+      await user.click(screen.getByRole("button", { name: "Filtrar por Júlia Ferreira" }));
+
+      expect(
+        await screen.findByRole("button", { name: "Marcos Lima — Treino C" }),
+      ).toBeInTheDocument();
     });
   });
 });
