@@ -28,6 +28,11 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
+  RotateCw,
+  Weight,
+  Lightbulb,
+  type LucideIcon,
 } from "lucide-react";
 import {
   useWorkoutClipboard,
@@ -1096,6 +1101,58 @@ function ExerciseNotes({ notes }: { notes: string }) {
   );
 }
 
+/** Same note, restyled for the guided execution dialog — a callout card
+ * instead of ExerciseNotes' plain bordered box. */
+function PersonalTip({ notes }: { notes: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const previewRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+    setOverflows(el.scrollHeight - el.clientHeight > 1);
+  }, [notes]);
+
+  const showToggle = overflows || expanded;
+
+  return (
+    <div className="flex gap-3 rounded-lg border-l-4 border-l-primary bg-primary/5 p-3 text-sm">
+      <Lightbulb className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 text-xs font-semibold text-muted-foreground">Dica do personal</div>
+        <p
+          ref={previewRef}
+          className={cn(
+            "whitespace-pre-wrap break-words text-foreground/90",
+            !expanded && "line-clamp-2",
+          )}
+        >
+          {notes}
+        </p>
+        {showToggle && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            aria-expanded={expanded}
+          >
+            {expanded ? (
+              <>
+                Ver menos <ChevronUp className="h-3 w-3" />
+              </>
+            ) : (
+              <>
+                Ver mais <ChevronDown className="h-3 w-3" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Dialogs (admin/personal) ---------------- */
 
 function NovoTreinoDialog({
@@ -1987,9 +2044,18 @@ function playRestAlert(): void {
   }
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
+function StatBox({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon?: LucideIcon;
+}) {
   return (
     <div className="rounded-md border bg-card p-2 text-center">
+      {Icon && <Icon className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />}
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold">{value}</div>
     </div>
@@ -2003,6 +2069,44 @@ interface ExecutionCardActiveState {
   clockValue: string;
   restProgress: number; // 0..1 (rest elapsed / total)
 }
+
+type TimerTone = "primary" | "success" | "amber";
+
+const PHASE_BADGE: Record<
+  ExecPhase,
+  { icon: LucideIcon; badgeClass: string; tone: TimerTone; cardClass: string }
+> = {
+  idle: {
+    icon: Play,
+    badgeClass: "bg-muted text-muted-foreground",
+    tone: "primary",
+    cardClass: "border-border bg-muted/30",
+  },
+  paused: {
+    icon: Pause,
+    badgeClass: "bg-primary/10 text-primary",
+    tone: "primary",
+    cardClass: "border-primary/30 bg-primary/5",
+  },
+  executing: {
+    icon: Play,
+    badgeClass: "bg-success/10 text-success",
+    tone: "success",
+    cardClass: "border-success/60 bg-success/5",
+  },
+  resting: {
+    icon: Clock,
+    badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    tone: "amber",
+    cardClass: "border-amber-500/60 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  },
+  "rest-done": {
+    icon: CheckCircle2,
+    badgeClass: "bg-success/15 text-success",
+    tone: "success",
+    cardClass: "animate-pulse border-success bg-success/15 text-success",
+  },
+};
 
 /** One exercise's stats + timer + notes — rendered once per carousel slide in
  * ExecucaoTreinoDialog. Only the slide matching the dialog's `idx` receives a
@@ -2025,17 +2129,20 @@ function ExerciseExecutionCard({
   const phaseLabel = active?.phaseLabel ?? "Pronto para começar";
   const clockValue = active?.clockValue ?? formatClock(0);
   const restProgress = active?.restProgress ?? 0;
-
-  const KindIcon = KIND_META[kind].icon;
+  const badge = PHASE_BADGE[phase];
+  const BadgeIcon = badge.icon;
+  // Executing/paused/idle count up with no fixed target, so the ring is a
+  // full static frame for those — only "resting" has a real fraction to show.
+  const ringProgress = phase === "resting" ? restProgress : 1;
 
   return (
-    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-0">
+    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-6">
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2">
         {!isCardio ? (
           <>
-            <StatBox label="Série" value={`${currentSet}/${totalSets}`} />
-            <StatBox label="Repetições" value={exercise.reps ?? "—"} />
+            <StatBox label="Série" value={`${currentSet}/${totalSets}`} icon={TrendingUp} />
+            <StatBox label="Repetições" value={exercise.reps ?? "—"} icon={RotateCw} />
             <StatBox
               label={kind === "strength" ? "Carga" : "Séries"}
               value={
@@ -2045,6 +2152,7 @@ function ExerciseExecutionCard({
                     : "—"
                   : `${totalSets}`
               }
+              icon={Weight}
             />
           </>
         ) : (
@@ -2052,6 +2160,7 @@ function ExerciseExecutionCard({
             <StatBox
               label="Duração"
               value={exercise.duration_seconds ? formatDuration(exercise.duration_seconds) : "—"}
+              icon={Timer}
             />
             <StatBox
               label="Distância"
@@ -2060,6 +2169,7 @@ function ExerciseExecutionCard({
                   ? `${exercise.distance_value} ${exercise.distance_unit ?? "m"}`
                   : "—"
               }
+              icon={RouteIcon}
             />
             <StatBox
               label="Zona / FC"
@@ -2070,6 +2180,7 @@ function ExerciseExecutionCard({
                     ? `${exercise.heart_rate_bpm} bpm`
                     : "—"
               }
+              icon={HeartPulse}
             />
           </>
         )}
@@ -2079,33 +2190,21 @@ function ExerciseExecutionCard({
       <div
         className={cn(
           "relative flex flex-1 flex-col items-center justify-center rounded-2xl border-2 p-6 text-center transition-colors",
-          phase === "idle" && "border-border bg-muted/30",
-          phase === "executing" && "border-primary/60 bg-primary/5",
-          phase === "paused" && "border-muted-foreground/40 bg-muted/40",
-          phase === "resting" &&
-            "border-amber-500/60 bg-amber-500/10 text-amber-800 dark:text-amber-200",
-          phase === "rest-done" && "animate-pulse border-success bg-success/15 text-success",
+          badge.cardClass,
         )}
         aria-live="polite"
       >
-        <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          <KindIcon className="h-4 w-4" aria-hidden />
+        <div
+          className={cn(
+            "mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
+            badge.badgeClass,
+          )}
+        >
+          <BadgeIcon className="h-3.5 w-3.5" aria-hidden />
           {phaseLabel}
         </div>
 
-        {phase === "resting" ? (
-          <RestRing progress={restProgress} value={clockValue} />
-        ) : (
-          <div
-            className={cn(
-              "font-mono text-6xl font-bold tabular-nums leading-none sm:text-7xl",
-              phase === "executing" && "text-primary",
-              phase === "rest-done" && "text-success",
-            )}
-          >
-            {clockValue}
-          </div>
-        )}
+        <TimerRing progress={ringProgress} value={clockValue} tone={badge.tone} />
 
         {!isCardio && restSecs > 0 && phase === "idle" && (
           <p className="mt-4 text-xs text-muted-foreground">
@@ -2113,22 +2212,41 @@ function ExerciseExecutionCard({
           </p>
         )}
         {phase === "rest-done" && (
-          <p className="mt-3 text-sm font-medium">Bora pra próxima série!</p>
+          <p className="mt-3 text-sm font-medium">
+            {currentSet >= totalSets ? "Descanso finalizado!" : "Bora pra próxima série!"}
+          </p>
         )}
       </div>
 
-      {exercise.notes && <ExerciseNotes notes={exercise.notes} />}
+      {exercise.notes && <PersonalTip notes={exercise.notes} />}
     </div>
   );
 }
 
-/** Circular countdown ring for the rest phase. */
-function RestRing({ progress, value }: { progress: number; value: string }) {
+const TIMER_RING_TONE: Record<TimerTone, { track: string; fill: string }> = {
+  primary: { track: "stroke-primary/15", fill: "stroke-primary" },
+  success: { track: "stroke-success/15", fill: "stroke-success" },
+  amber: { track: "stroke-amber-500/20", fill: "stroke-amber-500" },
+};
+
+/** Circular dial around the clock digits — a real countdown fraction during
+ * rest, a full static ring elsewhere (executing/paused count up with no
+ * fixed target, so there's no meaningful fraction to show). */
+function TimerRing({
+  progress,
+  value,
+  tone,
+}: {
+  progress: number;
+  value: string;
+  tone: TimerTone;
+}) {
   const size = 180;
   const stroke = 10;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - Math.min(1, Math.max(0, progress)));
+  const { track, fill } = TIMER_RING_TONE[tone];
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
@@ -2137,7 +2255,7 @@ function RestRing({ progress, value }: { progress: number; value: string }) {
           cy={size / 2}
           r={radius}
           strokeWidth={stroke}
-          className="fill-none stroke-amber-500/20"
+          className={cn("fill-none", track)}
         />
         <circle
           cx={size / 2}
@@ -2145,7 +2263,7 @@ function RestRing({ progress, value }: { progress: number; value: string }) {
           r={radius}
           strokeWidth={stroke}
           strokeLinecap="round"
-          className="fill-none stroke-amber-500 transition-[stroke-dashoffset] duration-500 ease-linear"
+          className={cn("fill-none transition-[stroke-dashoffset] duration-500 ease-linear", fill)}
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
         />
@@ -2323,10 +2441,13 @@ function ExecucaoTreinoDialog({
   } else if (phase === "paused") {
     primary = { label: "Retomar", icon: Play, onClick: () => setPhase("executing") };
   } else if (phase === "executing") {
-    if (!isCardio && restSecs > 0 && !isLastSet) {
+    // Resting is meaningful even after the last set (still a real rest
+    // period) — only "Próxima série" needs a next set to make sense of.
+    if (!isCardio && restSecs > 0) {
       primary = {
         label: `Iniciar descanso (${restSecs}s)`,
         icon: Clock,
+        tone: "success",
         onClick: () => {
           setRemaining(restSecs);
           setPhase("resting");
@@ -2343,17 +2464,24 @@ function ExecucaoTreinoDialog({
         },
       };
     }
-  } else if (phase === "rest-done" && !isLastSet) {
-    primary = {
-      label: `Iniciar série ${currentSet + 1}`,
-      icon: Play,
-      tone: "success",
-      onClick: () => {
-        setCurrentSet((s) => s + 1);
-        setElapsed(0);
-        setPhase("executing");
-      },
-    };
+  } else if (phase === "rest-done") {
+    primary = isLastSet
+      ? {
+          label: "Concluir exercício",
+          icon: CheckCircle2,
+          tone: "success",
+          onClick: handleConcluir,
+        }
+      : {
+          label: `Iniciar série ${currentSet + 1}`,
+          icon: Play,
+          tone: "success",
+          onClick: () => {
+            setCurrentSet((s) => s + 1);
+            setElapsed(0);
+            setPhase("executing");
+          },
+        };
   }
 
   const canDisableStart = !isViewingStarted && startedIdx !== null;
@@ -2369,8 +2497,9 @@ function ExecucaoTreinoDialog({
           "sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border",
         )}
       >
-        {/* Sticky header */}
-        <DialogHeader className="shrink-0 space-y-0 border-b bg-card/95 px-4 pb-3 pt-4 backdrop-blur sm:border-0 sm:bg-transparent sm:p-0">
+        {/* Sticky header — extra right padding clears the dialog's built-in
+            close (X) button, which sits absolutely at top-4 right-4. */}
+        <DialogHeader className="shrink-0 space-y-0 border-b bg-card/95 py-4 pl-4 pr-12 backdrop-blur sm:pl-6 sm:pr-14">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -2436,10 +2565,13 @@ function ExecucaoTreinoDialog({
           </Carousel>
         </div>
 
-        {/* Sticky footer action bar */}
+        {/* Sticky footer action bar — DialogFooter defaults to a right-aligned
+            row on sm+ (for typical Cancel/Confirm footers), which must be
+            overridden back to a stacked column since this footer has full-width
+            rows (primary CTA, secondary controls, the "concluir" link). */}
         <DialogFooter
           className={cn(
-            "shrink-0 flex-col gap-2 border-t bg-card/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:space-x-0 sm:border-0 sm:bg-transparent sm:p-0",
+            "shrink-0 flex-col justify-start gap-2 border-t bg-card/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:flex-col sm:justify-start sm:space-x-0 sm:px-6 sm:pb-6 sm:pt-4",
           )}
         >
           {/* Primary CTA */}
@@ -2468,27 +2600,37 @@ function ExecucaoTreinoDialog({
             </p>
           )}
 
-          {/* Secondary controls row */}
+          {/* Secondary controls row — while executing, "Parar" and the reset
+              icon sit side by side; once paused, "Parar" is gone (it already
+              did its job), so the reset button takes over that same slot at
+              full size instead of being left as a small orphaned icon. */}
           {isViewingStarted && (phase === "executing" || phase === "paused") && (
             <div className="flex w-full items-center gap-2">
               {phase === "executing" && (
-                <Button
-                  variant="secondary"
-                  className="h-11 flex-1"
-                  onClick={() => setPhase("paused")}
-                >
-                  <Pause className="mr-1.5 h-4 w-4" /> Parar
+                <>
+                  <Button
+                    variant="secondary"
+                    className="h-11 flex-1"
+                    onClick={() => setPhase("paused")}
+                  >
+                    <Pause className="mr-1.5 h-4 w-4" /> Parar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 shrink-0"
+                    aria-label="Zerar cronômetro"
+                    onClick={() => setElapsed(0)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+              {phase === "paused" && (
+                <Button variant="outline" className="h-11 flex-1" onClick={() => setElapsed(0)}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 shrink-0"
-                aria-label="Zerar cronômetro"
-                onClick={() => setElapsed(0)}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
             </div>
           )}
 
@@ -2506,7 +2648,7 @@ function ExecucaoTreinoDialog({
           )}
 
           <Button
-            variant="ghost"
+            variant="outline"
             className="h-10 w-full text-sm text-muted-foreground hover:text-foreground"
             onClick={handleConcluir}
           >
