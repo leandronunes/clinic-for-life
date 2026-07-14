@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Link as LinkIcon, Upload, Square, Video, Loader2 } from "lucide-react";
+import { Camera, Link as LinkIcon, Upload, Square, Video, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -165,108 +165,134 @@ export function ExercicioVideoInput({ studentId, value, onChange, onUploadingCha
 
   // The URL to render in the preview: prefer local blob while uploading, else the persisted S3 URL
   const displayUrl = uploading ? previewUrl : isUploadedVideo(value) ? value : null;
+  // Video removal is disabled mid-upload/recording — `value` may still be stale
+  // or empty at that point, and the in-progress UI already takes over below.
+  const hasVideo = !!value && !uploading && !recording;
 
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as "youtube" | "upload")}>
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="youtube" className="gap-2">
-          <LinkIcon className="h-3.5 w-3.5" /> YouTube
-        </TabsTrigger>
-        <TabsTrigger value="upload" className="gap-2">
-          <Video className="h-3.5 w-3.5" /> Gravar / Enviar
-        </TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="youtube" className="mt-2">
-        <Input
-          placeholder="https://www.youtube.com/embed/..."
-          value={isUploadedVideo(value) ? "" : value}
-          onChange={(e) => onChange(e.target.value)}
-          maxLength={200}
-        />
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          Cole o link no formato embed do YouTube.
-        </p>
-      </TabsContent>
-
-      <TabsContent value="upload" className="mt-2 space-y-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="video/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
-            e.target.value = "";
-          }}
-        />
-        <input
-          ref={captureRef}
-          type="file"
-          accept="video/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
-            e.target.value = "";
-          }}
-        />
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-2">
+      {hasVideo && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-dashed px-2 py-1.5 text-xs">
+          <span className="truncate text-muted-foreground">
+            {isUploadedVideo(value) ? "Vídeo anexado" : value}
+          </span>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            disabled={uploading || recording}
-            onClick={() => fileRef.current?.click()}
+            className="h-auto shrink-0 gap-1 px-2 py-1 text-destructive hover:text-destructive"
+            onClick={() => onChange("")}
           >
-            <Upload className="mr-1 h-4 w-4" /> Enviar arquivo
+            <Trash2 className="h-3.5 w-3.5" /> Remover vídeo
           </Button>
-          {!recording ? (
+        </div>
+      )}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "youtube" | "upload")}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="youtube" className="gap-2">
+            <LinkIcon className="h-3.5 w-3.5" /> YouTube
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="gap-2">
+            <Video className="h-3.5 w-3.5" /> Gravar / Enviar
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="youtube" className="mt-2">
+          <Input
+            placeholder="https://www.youtube.com/embed/..."
+            value={isUploadedVideo(value) ? "" : value}
+            onChange={(e) => onChange(e.target.value)}
+            maxLength={200}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Cole o link no formato embed do YouTube.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="upload" className="mt-2 space-y-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={captureRef}
+            type="file"
+            accept="video/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={uploading}
-              onClick={() => (isMobile ? captureRef.current?.click() : startRecording())}
+              disabled={uploading || recording}
+              onClick={() => fileRef.current?.click()}
             >
-              <Camera className="mr-1 h-4 w-4" /> Gravar agora
+              <Upload className="mr-1 h-4 w-4" /> Enviar arquivo
             </Button>
-          ) : (
-            <Button type="button" variant="destructive" size="sm" onClick={stopRecording}>
-              <Square className="mr-1 h-4 w-4" /> Parar gravação
-            </Button>
-          )}
-        </div>
+            {!recording ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => (isMobile ? captureRef.current?.click() : startRecording())}
+              >
+                <Camera className="mr-1 h-4 w-4" /> Gravar agora
+              </Button>
+            ) : (
+              <Button type="button" variant="destructive" size="sm" onClick={stopRecording}>
+                <Square className="mr-1 h-4 w-4" /> Parar gravação
+              </Button>
+            )}
+          </div>
 
-        {uploading && (
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Enviando para o servidor… {progress}%
+          {uploading && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Enviando para o servidor… {progress}%
+              </div>
+              <Progress value={progress} className="h-1.5" />
             </div>
-            <Progress value={progress} className="h-1.5" />
-          </div>
-        )}
+          )}
 
-        {recording && (
-          <div className="overflow-hidden rounded-md border bg-black">
-            <video ref={livePreviewRef} muted playsInline className="h-48 w-full object-contain" />
-          </div>
-        )}
+          {recording && (
+            <div className="overflow-hidden rounded-md border bg-black">
+              <video
+                ref={livePreviewRef}
+                muted
+                playsInline
+                className="h-48 w-full object-contain"
+              />
+            </div>
+          )}
 
-        {!recording && displayUrl && (
-          <div className="overflow-hidden rounded-md border bg-black">
-            <video src={displayUrl} controls playsInline className="h-48 w-full object-contain" />
-          </div>
-        )}
+          {!recording && displayUrl && (
+            <div className="overflow-hidden rounded-md border bg-black">
+              <video src={displayUrl} controls playsInline className="h-48 w-full object-contain" />
+            </div>
+          )}
 
-        <p className="text-[11px] text-muted-foreground">
-          Formatos de vídeo aceitos (máx. 200 MB). No celular, "Gravar agora" abre o app de câmera
-          do aparelho.
-        </p>
-      </TabsContent>
-    </Tabs>
+          <p className="text-[11px] text-muted-foreground">
+            Formatos de vídeo aceitos (máx. 200 MB). No celular, "Gravar agora" abre o app de câmera
+            do aparelho.
+          </p>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

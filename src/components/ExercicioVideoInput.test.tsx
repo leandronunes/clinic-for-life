@@ -92,6 +92,50 @@ beforeEach(() => {
 });
 
 describe("ExercicioVideoInput", () => {
+  describe("Remover vídeo", () => {
+    it("does not show the remove button when there is no video", () => {
+      renderInput("");
+      expect(screen.queryByRole("button", { name: /Remover vídeo/i })).not.toBeInTheDocument();
+    });
+
+    it("shows the remove button for an uploaded (S3) video and clears it on click", async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      renderInput("https://s3.example.com/exercise_123.mp4", onChange);
+
+      const removeButton = screen.getByRole("button", { name: /Remover vídeo/i });
+      await user.click(removeButton);
+
+      expect(onChange).toHaveBeenCalledWith("");
+    });
+
+    it("shows the remove button for a YouTube link and clears it on click", async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      renderInput("https://www.youtube.com/embed/abc", onChange);
+
+      await user.click(screen.getByRole("button", { name: /Remover vídeo/i }));
+
+      expect(onChange).toHaveBeenCalledWith("");
+    });
+
+    it("hides the remove button while an upload is in progress", async () => {
+      mockUpload.mockImplementation(() => new Promise(() => {})); // never resolves
+      const user = userEvent.setup();
+      renderInput();
+      await user.click(screen.getByRole("tab", { name: /Gravar \/ Enviar/i }));
+
+      const file = new File(["video"], "treino.mp4", { type: "video/mp4" });
+      const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      await user.upload(input, file);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Enviando para o servidor/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: /Remover vídeo/i })).not.toBeInTheDocument();
+    });
+  });
+
   describe("YouTube tab", () => {
     it("renders the YouTube URL input by default", () => {
       renderInput();
