@@ -7,7 +7,9 @@ export interface BioImportResult {
   preview: BioimpedanceMeasurement[];
 }
 
-export function importBioimpedanceCsv(studentId: string, file: File): Promise<BioImportResult> {
+/** Accepts either a raw InBody CSV export or a mynutri/InBody PDF report —
+ * the backend auto-detects the format from the file's content. */
+export function importBioimpedanceFile(studentId: string, file: File): Promise<BioImportResult> {
   const form = new FormData();
   form.append("file", file);
   form.append("student_id", studentId);

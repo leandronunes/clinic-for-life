@@ -216,12 +216,12 @@ async function routeMockRequest<T>({
     return store.listCompletedCheckIns() as T;
   }
 
-  // -------- Bioimpedance import (multipart) --------
+  // -------- Bioimpedance import (multipart, CSV or PDF) --------
   if (m === "POST" && path === "/api/v1/bioimpedance/import" && body instanceof FormData) {
     const file = body.get("file");
     const studentId = String(body.get("student_id") ?? "");
-    if (!(file instanceof File)) badRequest("Arquivo CSV ausente");
-    return (await store.importBioimpedanceCsv(studentId, file)) as T;
+    if (!(file instanceof File)) badRequest("Arquivo ausente");
+    return (await store.importBioimpedanceFile(studentId, file)) as T;
   }
 
   // -------- Workouts & exercises (student-scoped) --------

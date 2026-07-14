@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
 import { idString, integer, like } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
-import { importBioimpedanceCsv } from "./bioimpedance-import";
+import { importBioimpedanceFile } from "./bioimpedance-import";
 
 describe("bioimpedance import API contract", () => {
   it("imports a valid InBody CSV export", async () => {
@@ -63,7 +63,7 @@ describe("bioimpedance import API contract", () => {
             type: "text/csv",
           },
         );
-        const result = await importBioimpedanceCsv("1701", file);
+        const result = await importBioimpedanceFile("1701", file);
         expect(result.imported).toEqual(expect.any(Number));
       });
     });
