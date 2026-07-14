@@ -88,6 +88,13 @@ No terminal (`package.json`), você pode rodar os seguintes comandos:
 - `npm run test` - Executa a suíte de testes do Vitest no projeto.
 - `npm run test:coverage` - Executa os testes e gera um relatório detalhado de cobertura de código.
 
+## 🚢 Deploy
+
+Produção não é publicada por push em `main` — é controlada por GitHub
+Releases, com um workflow que valida o CI do commit e só então aciona o
+Deploy Hook do Render. Ver [`docs/deploy.md`](docs/deploy.md) para o fluxo
+completo, como publicar uma release e como fazer rollback.
+
 ## 👥 Principais Módulos da Aplicação
 - **Autenticação:** Sistema de controle de acesso (Login) e perfil de usuário.
 - **Dashboard:** Visão geral e atalhos rápidos do sistema para o personal ou clínica.
