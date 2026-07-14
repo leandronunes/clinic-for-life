@@ -2212,7 +2212,9 @@ function ExerciseExecutionCard({
           </p>
         )}
         {phase === "rest-done" && (
-          <p className="mt-3 text-sm font-medium">Bora pra próxima série!</p>
+          <p className="mt-3 text-sm font-medium">
+            {currentSet >= totalSets ? "Descanso finalizado!" : "Bora pra próxima série!"}
+          </p>
         )}
       </div>
 
@@ -2439,7 +2441,9 @@ function ExecucaoTreinoDialog({
   } else if (phase === "paused") {
     primary = { label: "Retomar", icon: Play, onClick: () => setPhase("executing") };
   } else if (phase === "executing") {
-    if (!isCardio && restSecs > 0 && !isLastSet) {
+    // Resting is meaningful even after the last set (still a real rest
+    // period) — only "Próxima série" needs a next set to make sense of.
+    if (!isCardio && restSecs > 0) {
       primary = {
         label: `Iniciar descanso (${restSecs}s)`,
         icon: Clock,
@@ -2460,17 +2464,24 @@ function ExecucaoTreinoDialog({
         },
       };
     }
-  } else if (phase === "rest-done" && !isLastSet) {
-    primary = {
-      label: `Iniciar série ${currentSet + 1}`,
-      icon: Play,
-      tone: "success",
-      onClick: () => {
-        setCurrentSet((s) => s + 1);
-        setElapsed(0);
-        setPhase("executing");
-      },
-    };
+  } else if (phase === "rest-done") {
+    primary = isLastSet
+      ? {
+          label: "Concluir exercício",
+          icon: CheckCircle2,
+          tone: "success",
+          onClick: handleConcluir,
+        }
+      : {
+          label: `Iniciar série ${currentSet + 1}`,
+          icon: Play,
+          tone: "success",
+          onClick: () => {
+            setCurrentSet((s) => s + 1);
+            setElapsed(0);
+            setPhase("executing");
+          },
+        };
   }
 
   const canDisableStart = !isViewingStarted && startedIdx !== null;
