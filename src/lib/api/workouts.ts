@@ -66,7 +66,7 @@ export interface CreateExercisePayload {
   hr_zone?: HrZone | null;
   heart_rate_bpm?: string;
   video_url?: string;
-  notes?: string;
+  notes?: string | null;
 }
 
 export type UpdateExercisePayload = Partial<CreateExercisePayload>;
