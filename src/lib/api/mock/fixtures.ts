@@ -60,6 +60,8 @@ export const STUDENTS: Student[] = [
     partner_card_enabled: true,
     health_plan: "Unimed",
     emergency_contact: "Marta Ferreira (11) 96666-1111",
+    contracted_workouts_per_cycle: 12,
+    cycle_started_at: "2026-01-01T00:00:00.000Z",
     created_at: "2025-11-03T10:00:00.000Z",
   },
   {
@@ -75,6 +77,8 @@ export const STUDENTS: Student[] = [
     partner_card_enabled: true,
     health_plan: null,
     emergency_contact: null,
+    contracted_workouts_per_cycle: 8,
+    cycle_started_at: "2026-01-01T00:00:00.000Z",
     created_at: "2025-12-01T10:00:00.000Z",
   },
   {
@@ -90,6 +94,8 @@ export const STUDENTS: Student[] = [
     partner_card_enabled: true,
     health_plan: "Bradesco Saúde",
     emergency_contact: null,
+    contracted_workouts_per_cycle: 10,
+    cycle_started_at: "2026-01-01T00:00:00.000Z",
     created_at: "2026-01-10T10:00:00.000Z",
   },
   {
@@ -105,6 +111,8 @@ export const STUDENTS: Student[] = [
     partner_card_enabled: true,
     health_plan: null,
     emergency_contact: null,
+    contracted_workouts_per_cycle: null,
+    cycle_started_at: null,
     created_at: "2026-02-18T10:00:00.000Z",
   },
   {
@@ -120,9 +128,12 @@ export const STUDENTS: Student[] = [
     partner_card_enabled: true,
     health_plan: null,
     emergency_contact: null,
+    contracted_workouts_per_cycle: 12,
+    cycle_started_at: "2026-01-01T00:00:00.000Z",
     created_at: "2025-09-20T10:00:00.000Z",
   },
 ];
+
 
 export const PARTNERS: Partner[] = [
   {
