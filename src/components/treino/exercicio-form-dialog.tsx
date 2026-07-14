@@ -132,8 +132,13 @@ function formFromExercise(ex: Exercise, kind: ExerciseKind): ExercicioFormState 
 }
 
 function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExercisePayload {
-  const notes = form.notes.trim() ? form.notes : undefined;
-  const video_url = form.video_url || undefined;
+  // Explicit null (not undefined) — omitting the key on an update means
+  // "don't touch this column" server-side (see hr_zone below), which would
+  // leave a previously-set description unchanged instead of clearing it.
+  const notes = form.notes.trim() ? form.notes : null;
+  // video_url is a required (non-null) string on the entity, so an empty
+  // string — not null/undefined — is the correct way to represent "cleared".
+  const video_url = form.video_url;
   if (kind === "strength") {
     return {
       kind,
@@ -163,9 +168,6 @@ function buildPayload(form: ExercicioFormState, kind: ExerciseKind): CreateExerc
     duration_seconds: form.duration_seconds || undefined,
     distance_value: form.distance_value,
     distance_unit: form.distance_value ? form.distance_unit : undefined,
-    // Explicit null (not undefined) — omitting the key on an update means
-    // "don't touch this column" server-side, which would leave a
-    // previously-set zone unchanged instead of clearing it.
     hr_zone: form.hr_zone ?? null,
     heart_rate_bpm: form.heart_rate_bpm.trim() || undefined,
     video_url,

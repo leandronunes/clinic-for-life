@@ -426,6 +426,31 @@ describe("workouts API contract", () => {
     });
   });
 
+  it("clears an exercise's notes", async () => {
+    const pact = createPact();
+    pact
+      .given("workout 801 for student 701 has exercise 901 with notes")
+      .uponReceiving("a request to clear an exercise's notes")
+      .withRequest({
+        method: "PATCH",
+        path: "/api/v1/students/701/workouts/801/exercises/901",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: { notes: null },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: { data: exerciseTemplate({ notes: nullValue() }) },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const exercise = await updateExercise("701", "801", "901", { notes: null });
+        expect(exercise.notes).toBeNull();
+      });
+    });
+  });
+
   it("reorders exercises", async () => {
     const pact = createPact();
     pact
