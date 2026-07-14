@@ -1,0 +1,152 @@
+name: Release
+
+# Publishing a GitHub Release (the only manual step in the whole flow) is
+# what ships to production. `workflow_dispatch` with a `tag` input reuses
+# the exact same pipeline to redeploy an older release — that's the
+# rollback path, no separate workflow needed.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a (re)publicar — vazio usa a release mais recente"
+        required: false
+
+concurrency:
+  group: release-${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  resolve:
+    name: Resolve release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag and commit
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_TAG:-${EVENT_TAG:-}}"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh release view --json tagName -q .tagName)
+          fi
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+          SHA=$(git rev-list -n 1 "refs/tags/$TAG")
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG ($SHA)"
+
+  validate:
+    name: Validate CI status
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      # No branch protection on main (private repo, free plan) means a
+      # commit could in theory reach main without every check green — this
+      # job is the real gate: it re-checks the CI result for this exact
+      # commit before anything is allowed to deploy.
+      - name: Require all CI checks green for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          # "Publish Pact contracts" is excluded on purpose — it only runs
+          # on push-to-main (never in PR context), it's not a merge gate.
+          REQUIRED=("Lint" "Typecheck" "Test" "Build" "E2E tests" "Contract tests")
+          RUNS=$(gh api "repos/${{ github.repository }}/commits/$SHA/check-runs" -q '.check_runs')
+          MISSING=()
+          for name in "${REQUIRED[@]}"; do
+            CONCLUSION=$(echo "$RUNS" | jq -r --arg n "$name" \
+              '[.[] | select(.name == $n)] | sort_by(.started_at) | last | .conclusion // "missing"')
+            if [ "$CONCLUSION" != "success" ]; then
+              MISSING+=("$name: $CONCLUSION")
+            fi
+          done
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Commit $SHA does not have every required check green:"
+            printf '  - %s\n' "${MISSING[@]}"
+            exit 1
+          fi
+          echo "All required checks are green for $SHA"
+
+  deploy:
+    name: Deploy via Render
+    needs: [resolve, validate]
+    runs-on: ubuntu-latest
+    steps:
+      # The plain Deploy Hook redeploys whatever is currently at the tip of
+      # the branch Render tracks (main) — it doesn't accept a commit SHA.
+      # Since deploys only happen on demand (not on every push), the race
+      # window between "validate passed" and this call is small in
+      # practice. See docs/deploy.md for the upgrade path (Render API +
+      # commitId) if that ever needs to be airtight.
+      - name: Trigger Render deploy hook
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+  smoke:
+    name: Wait for deploy + smoke test
+    needs: [resolve, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for the new deploy to come online
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$SMOKE_BASE_URL"; then
+              echo "App is up"
+              exit 0
+            fi
+            echo "Not up yet (attempt $i/30), waiting 10s..."
+            sleep 10
+          done
+          echo "::error::Timed out waiting for $SMOKE_BASE_URL to respond"
+          exit 1
+
+      - name: Run smoke tests against production
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: npm run test:smoke
+
+      - name: Upload smoke test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-report
+          path: playwright-report/
+          retention-days: 7

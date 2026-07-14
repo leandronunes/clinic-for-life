@@ -3,8 +3,10 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "e2e/**/*.ts",
+    "smoke/**/*.ts",
     "vite.config.ts",
     "playwright.config.ts",
+    "playwright.smoke.config.ts",
     "eslint.config.js"
   ],
   "compilerOptions": {

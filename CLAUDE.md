@@ -87,6 +87,12 @@ React 19 + TypeScript estrito consumindo a API Rails de `../clinic-for-life-back
 - `npm run test:e2e` — nunca roda dentro de `npm run test` (Playwright, não Vitest; ver `test.exclude` em `vite.config.ts`).
 - `getByText`/`getByLabel` do Playwright fazem substring match case-insensitive por padrão — use `{ exact: true }` ou escopo (`page.getByRole("main")`) para textos curtos que colidem com nav/outros elementos.
 
+## Deploy em produção
+
+- Ver `docs/deploy.md` para o fluxo completo, secrets necessários e rollback.
+- Produção **não** é publicada por push em `main` — só por GitHub Release (`gh release create ...`), que dispara `.github/workflows/release.yml`.
+- Esse workflow confere se o commit da release tem todo o CI verde antes de acionar o Deploy Hook do Render — não há branch protection nativa na `main` (repositório privado no plano free), então esse é o gate real.
+
 ## Controle de versão
 
 Quando estiver executando em um ambiente com Git local e GitHub CLI:
