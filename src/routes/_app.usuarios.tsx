@@ -680,6 +680,21 @@ function EditAlunoDialog({
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Treinos contratados por ciclo">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Ex.: 12"
+              value={form.contracted_workouts_per_cycle ?? ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  contracted_workouts_per_cycle: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+            />
+          </Field>
+
           {canChangePersonal && (
             <Field label="Personal responsável">
               <Select
