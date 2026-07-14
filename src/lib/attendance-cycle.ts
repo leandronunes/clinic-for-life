@@ -32,9 +32,7 @@ export function computeAttendanceCycle(
   const withinCycle = completedCheckIns
     .filter((c) => c.status === "completed" && c.completed_at)
     .filter((c) => Date.parse(c.completed_at as string) >= startMs)
-    .sort(
-      (a, b) => Date.parse(b.completed_at as string) - Date.parse(a.completed_at as string),
-    );
+    .sort((a, b) => Date.parse(b.completed_at as string) - Date.parse(a.completed_at as string));
 
   const completedInCycle = withinCycle.length;
   const lastCompletedAt = withinCycle[0]?.completed_at ?? null;
@@ -52,11 +50,7 @@ export function computeAttendanceCycle(
 
   const percentage = Math.round((completedInCycle / contracted) * 100);
   const status: AttendanceStatus =
-    completedInCycle > contracted
-      ? "exceeded"
-      : percentage >= 80
-        ? "near_limit"
-        : "on_track";
+    completedInCycle > contracted ? "exceeded" : percentage >= 80 ? "near_limit" : "on_track";
 
   return {
     completedInCycle,

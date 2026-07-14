@@ -134,7 +134,6 @@ export const STUDENTS: Student[] = [
   },
 ];
 
-
 export const PARTNERS: Partner[] = [
   {
     id: "partner-1",

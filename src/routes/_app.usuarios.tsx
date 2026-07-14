@@ -472,7 +472,6 @@ function NovoAlunoDialog({
     },
   });
 
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -529,9 +528,7 @@ function NovoAlunoDialog({
               min={1}
               placeholder="Ex.: 12"
               value={form.contracted_workouts_per_cycle}
-              onChange={(e) =>
-                setForm({ ...form, contracted_workouts_per_cycle: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, contracted_workouts_per_cycle: e.target.value })}
             />
           </Field>
 
@@ -619,7 +616,6 @@ function EditAlunoDialog({
       onSaved();
     },
   });
-
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
