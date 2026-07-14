@@ -2589,27 +2589,37 @@ function ExecucaoTreinoDialog({
             </p>
           )}
 
-          {/* Secondary controls row */}
+          {/* Secondary controls row — while executing, "Parar" and the reset
+              icon sit side by side; once paused, "Parar" is gone (it already
+              did its job), so the reset button takes over that same slot at
+              full size instead of being left as a small orphaned icon. */}
           {isViewingStarted && (phase === "executing" || phase === "paused") && (
             <div className="flex w-full items-center gap-2">
               {phase === "executing" && (
-                <Button
-                  variant="secondary"
-                  className="h-11 flex-1"
-                  onClick={() => setPhase("paused")}
-                >
-                  <Pause className="mr-1.5 h-4 w-4" /> Parar
+                <>
+                  <Button
+                    variant="secondary"
+                    className="h-11 flex-1"
+                    onClick={() => setPhase("paused")}
+                  >
+                    <Pause className="mr-1.5 h-4 w-4" /> Parar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 shrink-0"
+                    aria-label="Zerar cronômetro"
+                    onClick={() => setElapsed(0)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+              {phase === "paused" && (
+                <Button variant="outline" className="h-11 flex-1" onClick={() => setElapsed(0)}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 shrink-0"
-                aria-label="Zerar cronômetro"
-                onClick={() => setElapsed(0)}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
             </div>
           )}
 
@@ -2627,7 +2637,7 @@ function ExecucaoTreinoDialog({
           )}
 
           <Button
-            variant="ghost"
+            variant="outline"
             className="h-10 w-full text-sm text-muted-foreground hover:text-foreground"
             onClick={handleConcluir}
           >
