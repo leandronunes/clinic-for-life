@@ -24,6 +24,7 @@ import type { EvolutionPhoto, CreateEvolutionPhotoPayload } from "../evolution-p
 import type { BackendUser, LoginResponse } from "../auth";
 import type { BioImportResult } from "../bioimpedance-import";
 import type { WorkoutCheckIn } from "../check-ins";
+import type { AttendanceCycleRecord } from "../attendance-cycles";
 import type {
   CheckInFeedback,
   CreateCheckInFeedbackPayload,
@@ -193,6 +194,58 @@ export function updateStudent(id: string, payload: UpdateStudentPayload): Studen
 
 export function deleteStudent(id: string): void {
   students = students.filter((s) => s.id !== id);
+}
+
+/* -------------------- Attendance cycles -------------------- */
+
+let attendanceCyclesByStudent: Record<string, AttendanceCycleRecord[]> = {};
+
+/** Closed cycles for a student, most recently ended first. */
+export function listAttendanceCycles(studentId: string): AttendanceCycleRecord[] {
+  return attendanceCyclesByStudent[studentId] ?? [];
+}
+
+/** Archives the student's current cycle and starts a new one from now — mirrors the
+ * backend's POST /students/:id/renew_cycle (see StudentsController#renew_cycle). */
+export function renewAttendanceCycle(studentId: string): Student {
+  const idx = students.findIndex((s) => s.id === studentId);
+  if (idx === -1) notFound("Aluno não encontrado");
+  const student = students[idx];
+  const contracted = student.contracted_workouts_per_cycle;
+  if (!contracted) {
+    const err: ApiError = {
+      status: 422,
+      message: "Aluno não possui treinos contratados por ciclo definidos",
+    };
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+  const startedAt = student.cycle_started_at ?? student.created_at;
+  const completed = listCompletedCheckIns().filter(
+    (c) =>
+      c.student_id === studentId &&
+      c.completed_at &&
+      c.completed_at >= startedAt &&
+      c.completed_at <= now,
+  ).length;
+  const record: AttendanceCycleRecord = {
+    id: nextId("cycle"),
+    student_id: studentId,
+    contracted_workouts_per_cycle: contracted,
+    completed_workouts: completed,
+    percentage: Math.round((completed / contracted) * 100),
+    status: completed > contracted ? "exceeded" : "completed",
+    started_at: startedAt,
+    ended_at: now,
+  };
+  attendanceCyclesByStudent = {
+    ...attendanceCyclesByStudent,
+    [studentId]: [record, ...(attendanceCyclesByStudent[studentId] ?? [])],
+  };
+
+  students = students.map((s, i) => (i === idx ? { ...s, cycle_started_at: now } : s));
+  return students[idx];
 }
 
 /* -------------------- Partners -------------------- */

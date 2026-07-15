@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
+  History,
   Loader2,
   ThumbsUp,
 } from "lucide-react";
@@ -32,6 +33,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import {
+  fetchAttendanceCycleHistory,
+  type AttendanceCycleRecord,
+} from "@/lib/api/attendance-cycles";
 import { useAuth } from "@/contexts/use-auth";
 import { pageHead } from "@/lib/seo";
 
@@ -202,12 +207,66 @@ export function AssiduidadePage() {
         </CardContent>
       </Card>
 
+      <CycleHistoryCard alunoId={alunoId} />
+
       <DayDetailsDialog
         day={selectedDay}
         checkIns={selectedDay ? dayCheckIns(selectedDay) : []}
         onClose={() => setSelectedDay(null)}
       />
     </div>
+  );
+}
+
+function CycleHistoryCard({ alunoId }: { alunoId: string }) {
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ["attendance-cycles", alunoId],
+    queryFn: () => fetchAttendanceCycleHistory(alunoId),
+    enabled: !!alunoId,
+  });
+
+  if (isLoading || history.length === 0) return null;
+
+  return (
+    <Card className="shadow-soft">
+      <CardContent className="space-y-3 p-4 sm:p-6">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm font-semibold">Histórico de ciclos</span>
+        </div>
+        <ul className="divide-y rounded-lg border">
+          {history.map((cycle) => (
+            <CycleHistoryRow key={cycle.id} cycle={cycle} />
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CycleHistoryRow({ cycle }: { cycle: AttendanceCycleRecord }) {
+  return (
+    <li className="flex items-center justify-between gap-3 p-3">
+      <div>
+        <div className="text-sm font-medium">
+          {new Date(cycle.started_at).toLocaleDateString("pt-BR")} —{" "}
+          {new Date(cycle.ended_at).toLocaleDateString("pt-BR")}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {cycle.completed_workouts} / {cycle.contracted_workouts_per_cycle} treinos (
+          {cycle.percentage}%)
+        </div>
+      </div>
+      <Badge
+        className={
+          cycle.status === "exceeded"
+            ? "bg-destructive text-destructive-foreground"
+            : "bg-success text-success-foreground"
+        }
+      >
+        {cycle.status === "exceeded" ? "Estourou" : "Cumpriu"}
+      </Badge>
+    </li>
   );
 }
 
