@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
+  ChevronDown,
   ClipboardCheck,
   Dumbbell,
-  Eye,
   Loader2,
   Pencil,
   Smile,
@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import {
   fetchCompletedCheckIns,
@@ -44,12 +45,45 @@ export const Route = createFileRoute("/_app/treinos-concluidos")({
   component: TreinosConcluidosPage,
 });
 
-type ViewState = "not_viewed" | "viewed" | "reacted";
+// O que importa para o personal é se o treino já recebeu feedback — se foi
+// só "visualizado" sem resposta, ainda conta como pendente. "Novo" (nunca
+// aberto) é só um selo secundário dentro do grupo pendente, não o estado
+// dominante.
+function needsFeedback(checkIn: WorkoutCheckIn): boolean {
+  return checkIn.feedbacks.length === 0;
+}
 
-function viewState(checkIn: WorkoutCheckIn): ViewState {
-  if (!checkIn.viewed_at) return "not_viewed";
-  if (checkIn.feedbacks.length > 0) return "reacted";
-  return "viewed";
+function checkInTimestamp(checkIn: WorkoutCheckIn): number {
+  return new Date(checkIn.completed_at ?? checkIn.started_at).getTime();
+}
+
+interface StudentSummary {
+  student_id: string;
+  student_name: string;
+  total: number;
+  pending: number;
+}
+
+function summarizeByStudent(checkIns: WorkoutCheckIn[]): StudentSummary[] {
+  const byStudent = new Map<string, StudentSummary>();
+  for (const checkIn of checkIns) {
+    const existing = byStudent.get(checkIn.student_id);
+    if (existing) {
+      existing.total += 1;
+      if (needsFeedback(checkIn)) existing.pending += 1;
+    } else {
+      byStudent.set(checkIn.student_id, {
+        student_id: checkIn.student_id,
+        student_name: checkIn.student_name,
+        total: 1,
+        pending: needsFeedback(checkIn) ? 1 : 0,
+      });
+    }
+  }
+  return [...byStudent.values()].sort(
+    (a, b) =>
+      b.pending - a.pending || b.total - a.total || a.student_name.localeCompare(b.student_name),
+  );
 }
 
 export function TreinosConcluidosPage() {
@@ -59,11 +93,34 @@ export function TreinosConcluidosPage() {
     queryFn: fetchCompletedCheckIns,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filterStudentId, setFilterStudentId] = useState<string | null>(null);
+  const [answeredOpen, setAnsweredOpen] = useState(false);
   const selected = checkIns.find((c) => c.id === selectedId) ?? null;
 
   const invalidate = useCallback(
     () => qc.invalidateQueries({ queryKey: ["completed-check-ins"] }),
     [qc],
+  );
+
+  const studentSummaries = useMemo(() => summarizeByStudent(checkIns), [checkIns]);
+
+  const visibleCheckIns = filterStudentId
+    ? checkIns.filter((c) => c.student_id === filterStudentId)
+    : checkIns;
+
+  const pending = useMemo(
+    () =>
+      visibleCheckIns
+        .filter(needsFeedback)
+        .sort((a, b) => checkInTimestamp(a) - checkInTimestamp(b)),
+    [visibleCheckIns],
+  );
+  const answered = useMemo(
+    () =>
+      visibleCheckIns
+        .filter((c) => !needsFeedback(c))
+        .sort((a, b) => checkInTimestamp(b) - checkInTimestamp(a)),
+    [visibleCheckIns],
   );
 
   return (
@@ -86,15 +143,64 @@ export function TreinosConcluidosPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {checkIns.map((checkIn) => (
-            <CheckInCard
-              key={checkIn.id}
-              checkIn={checkIn}
-              onClick={() => setSelectedId(checkIn.id)}
-            />
-          ))}
-        </div>
+        <>
+          <StudentSummaryStrip
+            summaries={studentSummaries}
+            selectedId={filterStudentId}
+            onSelect={(id) => setFilterStudentId((cur) => (cur === id ? null : id))}
+          />
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground">
+              Aguardando feedback ({pending.length})
+            </h2>
+            {pending.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                  Tudo em dia! Nenhum treino aguardando feedback.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {pending.map((checkIn) => (
+                  <CheckInCard
+                    key={checkIn.id}
+                    checkIn={checkIn}
+                    emphasized
+                    onClick={() => setSelectedId(checkIn.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {answered.length > 0 && (
+            <Collapsible open={answeredOpen} onOpenChange={setAnsweredOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown
+                    className={cn("h-4 w-4 transition-transform", answeredOpen && "rotate-180")}
+                  />
+                  Já respondido ({answered.length})
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {answered.map((checkIn) => (
+                    <CheckInCard
+                      key={checkIn.id}
+                      checkIn={checkIn}
+                      onClick={() => setSelectedId(checkIn.id)}
+                    />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </>
       )}
 
       <CheckInReviewDialog
@@ -106,17 +212,66 @@ export function TreinosConcluidosPage() {
   );
 }
 
-function CheckInCard({ checkIn, onClick }: { checkIn: WorkoutCheckIn; onClick: () => void }) {
-  const state = viewState(checkIn);
+function StudentSummaryStrip({
+  summaries,
+  selectedId,
+  onSelect,
+}: {
+  summaries: StudentSummary[];
+  selectedId: string | null;
+  onSelect: (studentId: string) => void;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {summaries.map((summary) => {
+        const active = summary.student_id === selectedId;
+        return (
+          <button
+            key={summary.student_id}
+            type="button"
+            onClick={() => onSelect(summary.student_id)}
+            aria-pressed={active}
+            aria-label={`Filtrar por ${summary.student_name}`}
+            className={cn(
+              "flex shrink-0 flex-col items-start gap-1 rounded-lg border p-3 text-left transition hover:border-primary",
+              active && "border-primary bg-primary/5",
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-sm font-medium">{summary.student_name}</span>
+              {summary.pending > 0 && <Badge>{summary.pending} aguardando</Badge>}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {summary.total} {summary.total === 1 ? "treino concluído" : "treinos concluídos"}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CheckInCard({
+  checkIn,
+  emphasized = false,
+  onClick,
+}: {
+  checkIn: WorkoutCheckIn;
+  emphasized?: boolean;
+  onClick: () => void;
+}) {
+  const isNew = !checkIn.viewed_at;
+  const hasFeedback = checkIn.feedbacks.length > 0;
   const date = new Date(checkIn.completed_at ?? checkIn.started_at);
 
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${checkIn.student_name} — ${checkIn.workout_title}`}
       className={cn(
         "flex flex-col gap-2 rounded-lg border p-4 text-left transition hover:border-primary",
-        state === "not_viewed" && "border-primary bg-primary/5",
+        emphasized && "border-primary bg-primary/5",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -124,11 +279,8 @@ function CheckInCard({ checkIn, onClick }: { checkIn: WorkoutCheckIn; onClick: (
           <div className="font-medium">{checkIn.student_name}</div>
           <div className="text-sm text-muted-foreground">{checkIn.workout_title}</div>
         </div>
-        {state === "not_viewed" && <Badge>Novo</Badge>}
-        {state === "viewed" && (
-          <Eye className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Visualizado" />
-        )}
-        {state === "reacted" && (
+        {isNew && <Badge>Novo</Badge>}
+        {hasFeedback && (
           <span className="text-lg" aria-label="Feedback enviado">
             {checkIn.feedbacks.find((f) => f.emoji)?.emoji ?? "💬"}
           </span>
