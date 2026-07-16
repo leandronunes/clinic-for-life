@@ -73,6 +73,12 @@ export function TreinoCard({
   const { copyWorkout } = useWorkoutClipboard();
   const canCopy = canEdit || canUnarchive;
   const [execOpen, setExecOpen] = useState(false);
+  const [execFocusExerciseId, setExecFocusExerciseId] = useState<string | null>(null);
+
+  function openExecution(exerciseId?: string) {
+    setExecFocusExerciseId(exerciseId ?? null);
+    setExecOpen(true);
+  }
 
   const [localExercises, setLocalExercises] = useState(() =>
     [...treino.exercises].sort((a, b) => a.position - b.position),
@@ -102,7 +108,7 @@ export function TreinoCard({
     mutationFn: () => startCheckIn(alunoId, treino.id),
     onSuccess: (data) => {
       qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
-      setExecOpen(true);
+      openExecution();
     },
     onError: () => toast.error("Não foi possível iniciar o treino"),
   });
@@ -350,7 +356,7 @@ export function TreinoCard({
                 {checkIn.exercises_completed}/{checkIn.exercises_total} concluídos
               </Badge>
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" onClick={() => setExecOpen(true)}>
+                <Button size="sm" onClick={() => openExecution()}>
                   <Play className="mr-1 h-4 w-4" /> Retomar execução
                 </Button>
                 <AlertDialog>
@@ -410,6 +416,11 @@ export function TreinoCard({
                     onToggleExercise={(exerciseId, completed) =>
                       toggleExerciseMut.mutate({ exerciseId, completed })
                     }
+                    onOpenExecution={
+                      checkIn?.status === "in_progress"
+                        ? (exercise) => openExecution(exercise.id)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -429,6 +440,11 @@ export function TreinoCard({
                 checkIn={checkIn}
                 onToggleExercise={(exerciseId, completed) =>
                   toggleExerciseMut.mutate({ exerciseId, completed })
+                }
+                onOpenExecution={
+                  checkIn?.status === "in_progress"
+                    ? (exercise) => openExecution(exercise.id)
+                    : undefined
                 }
               />
             ))}
@@ -461,12 +477,16 @@ export function TreinoCard({
       {checkIn && checkIn.status === "in_progress" && (
         <ExecucaoTreinoDialog
           open={execOpen}
-          onOpenChange={setExecOpen}
+          onOpenChange={(o) => {
+            setExecOpen(o);
+            if (!o) setExecFocusExerciseId(null);
+          }}
           treino={treino}
           checkIn={checkIn}
           onToggleExercise={(exerciseId, completed) =>
             toggleExerciseMut.mutate({ exerciseId, completed })
           }
+          focusExerciseId={execFocusExerciseId}
         />
       )}
     </Card>

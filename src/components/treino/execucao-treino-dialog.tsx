@@ -322,12 +322,16 @@ export function ExecucaoTreinoDialog({
   treino,
   checkIn,
   onToggleExercise,
+  focusExerciseId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   treino: Workout;
   checkIn: WorkoutCheckIn;
   onToggleExercise: (exerciseId: string, completed: boolean) => void;
+  /** Exercise to open the dialog on (e.g. clicked directly from the workout
+   * list), taking priority over resuming the started/first-pending one. */
+  focusExerciseId?: string | null;
 }) {
   const exercises = useMemo(
     () => [...treino.exercises].sort((a, b) => a.position - b.position),
@@ -355,9 +359,15 @@ export function ExecucaoTreinoDialog({
   startedIdxRef.current = startedIdx;
   const firstPendingIdxRef = useRef(firstPendingIdx);
   firstPendingIdxRef.current = firstPendingIdx;
+  const focusExerciseIdRef = useRef(focusExerciseId);
+  focusExerciseIdRef.current = focusExerciseId;
   useEffect(() => {
-    if (open) setIdx(startedIdxRef.current ?? firstPendingIdxRef.current);
-  }, [open]);
+    if (!open) return;
+    const focusIdx = focusExerciseIdRef.current
+      ? exercises.findIndex((e) => e.id === focusExerciseIdRef.current)
+      : -1;
+    setIdx(focusIdx !== -1 ? focusIdx : (startedIdxRef.current ?? firstPendingIdxRef.current));
+  }, [open, exercises]);
 
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   useEffect(() => {

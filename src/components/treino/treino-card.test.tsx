@@ -1215,6 +1215,67 @@ describe("TreinoCard", () => {
         expect(mockToggleExerciseCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1", "e1", false),
       );
     });
+
+    it("opens the execution dialog focused on the exercise that was clicked", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Retomar execução/i });
+      // Clicking the (already completed) Supino reto row directly must open
+      // on Supino reto, not the default first-pending exercise (Crucifixo).
+      await user.click(screen.getByRole("button", { name: /Abrir execução de "Supino reto"/i }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("group", { name: "Supino reto" })).toBeInTheDocument();
+    });
+
+    it("does not open the execution dialog when clicking the row's toggle icon", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      mockToggleExerciseCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(
+        await screen.findByRole("button", { name: /Marcar "Crucifixo" como concluído/i }),
+      );
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("does not make exercise rows clickable before the workout is started", async () => {
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Iniciar treino/i });
+      expect(screen.queryByRole("button", { name: /Abrir execução de/i })).not.toBeInTheDocument();
+    });
   });
 
   describe("editing a strength exercise's numeric fields", () => {
