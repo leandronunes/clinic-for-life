@@ -172,6 +172,14 @@ async function routeMockRequest<T>({
       return undefined as T;
     }
   }
+  match = /^\/api\/v1\/students\/([^/]+)\/renew_cycle$/.exec(path);
+  if (match && m === "POST") {
+    return store.renewAttendanceCycle(match[1]) as T;
+  }
+  match = /^\/api\/v1\/students\/([^/]+)\/attendance_cycles$/.exec(path);
+  if (match && m === "GET") {
+    return store.listAttendanceCycles(match[1]) as T;
+  }
 
   // -------- Partners --------
   if (m === "GET" && path === "/api/v1/partners") {

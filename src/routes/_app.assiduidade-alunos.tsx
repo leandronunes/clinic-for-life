@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { CalendarCheck, Dumbbell, Loader2, RefreshCcw, Search, AlertTriangle } from "lucide-react";
+import {
+  CalendarCheck,
+  Dumbbell,
+  History,
+  Loader2,
+  RefreshCcw,
+  Search,
+  AlertTriangle,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,8 +31,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchStudents, updateStudent, type Student } from "@/lib/api/students";
+import { fetchStudents, type Student } from "@/lib/api/students";
 import { fetchCompletedCheckIns, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import {
+  fetchAttendanceCycleHistory,
+  renewAttendanceCycle,
+  type AttendanceCycleRecord,
+} from "@/lib/api/attendance-cycles";
 import { useAuth } from "@/contexts/use-auth";
 import {
   computeAttendanceCycle,
@@ -54,7 +67,7 @@ interface Row {
   cycle: AttendanceCycle;
 }
 
-function AssiduidadeAlunosPage() {
+export function AssiduidadeAlunosPage() {
   const { user, hasRole } = useAuth();
   const isPersonal = hasRole("personal");
   const personalId = isPersonal ? (user?.personal_id ?? undefined) : undefined;
@@ -282,11 +295,11 @@ function StatusBadge({ status }: { status: AttendanceStatus }) {
 function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const qc = useQueryClient();
   const renewMut = useMutation({
-    mutationFn: (studentId: string) =>
-      updateStudent(studentId, { cycle_started_at: new Date().toISOString() }),
-    onSuccess: () => {
+    mutationFn: (studentId: string) => renewAttendanceCycle(studentId),
+    onSuccess: (_data, studentId) => {
       toast.success("Ciclo renovado. A contagem recomeça agora.");
       qc.invalidateQueries({ queryKey: ["alunos"] });
+      qc.invalidateQueries({ queryKey: ["attendance-cycles", studentId] });
       onClose();
     },
     onError: () => toast.error("Não foi possível renovar o ciclo."),
@@ -380,9 +393,65 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                 </Button>
               </div>
             )}
+
+            <CycleHistorySection studentId={row.student.id} />
           </div>
         </DialogContent>
       )}
     </Dialog>
+  );
+}
+
+function CycleHistorySection({ studentId }: { studentId: string }) {
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ["attendance-cycles", studentId],
+    queryFn: () => fetchAttendanceCycleHistory(studentId),
+  });
+
+  return (
+    <div className="space-y-2 border-t pt-4">
+      <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+        <History className="h-3.5 w-3.5" /> Histórico de ciclos
+      </h3>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        </div>
+      ) : history.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum ciclo encerrado ainda.</p>
+      ) : (
+        <ul className="divide-y rounded-lg border">
+          {history.map((cycle) => (
+            <CycleHistoryRow key={cycle.id} cycle={cycle} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CycleHistoryRow({ cycle }: { cycle: AttendanceCycleRecord }) {
+  return (
+    <li className="flex items-center justify-between gap-3 p-3">
+      <div>
+        <div className="text-sm font-medium">
+          {new Date(cycle.started_at).toLocaleDateString("pt-BR")} —{" "}
+          {new Date(cycle.ended_at).toLocaleDateString("pt-BR")}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {cycle.completed_workouts} / {cycle.contracted_workouts_per_cycle} treinos (
+          {cycle.percentage}%)
+        </div>
+      </div>
+      <Badge
+        className={
+          cycle.status === "exceeded"
+            ? "bg-destructive text-destructive-foreground"
+            : "bg-success text-success-foreground"
+        }
+      >
+        {cycle.status === "exceeded" ? "Estourou" : "Cumpriu"}
+      </Badge>
+    </li>
   );
 }

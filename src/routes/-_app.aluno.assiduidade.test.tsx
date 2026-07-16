@@ -23,6 +23,11 @@ vi.mock("@/lib/api/check-ins", () => ({ fetchCheckInHistory: vi.fn() }));
 import { fetchCheckInHistory } from "@/lib/api/check-ins";
 const mockFetchHistory = vi.mocked(fetchCheckInHistory);
 
+vi.mock("@/lib/api/attendance-cycles", () => ({ fetchAttendanceCycleHistory: vi.fn() }));
+import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
+import type { AttendanceCycleRecord } from "@/lib/api/attendance-cycles";
+const mockFetchCycleHistory = vi.mocked(fetchAttendanceCycleHistory);
+
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -71,10 +76,25 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
   };
 }
 
+function buildCycleRecord(overrides: Partial<AttendanceCycleRecord> = {}): AttendanceCycleRecord {
+  return {
+    id: "cycle1",
+    student_id: "s1",
+    contracted_workouts_per_cycle: 8,
+    completed_workouts: 6,
+    percentage: 75,
+    status: "completed",
+    started_at: "2026-05-01T00:00:00Z",
+    ended_at: "2026-06-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
 describe("AssiduidadePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchHistory.mockResolvedValue([]);
+    mockFetchCycleHistory.mockResolvedValue([]);
     mockUseAuth.mockReturnValue(buildAuth());
   });
 
@@ -239,5 +259,28 @@ describe("AssiduidadePage", () => {
 
     await screen.findByText("Treino A");
     expect(screen.queryByText("Feedback do personal de hoje")).not.toBeInTheDocument();
+  });
+
+  it("does not show a cycle history section when there are no closed cycles", async () => {
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Nenhum check-in registrado ainda.");
+    expect(screen.queryByText("Histórico de ciclos")).not.toBeInTheDocument();
+  });
+
+  it("shows past closed cycles in the history section", async () => {
+    mockFetchCycleHistory.mockResolvedValue([
+      buildCycleRecord({
+        completed_workouts: 6,
+        contracted_workouts_per_cycle: 8,
+        status: "completed",
+      }),
+    ]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(await screen.findByText("Histórico de ciclos")).toBeInTheDocument();
+    expect(screen.getByText("6 / 8 treinos (75%)")).toBeInTheDocument();
+    expect(screen.getByText("Cumpriu")).toBeInTheDocument();
   });
 });
