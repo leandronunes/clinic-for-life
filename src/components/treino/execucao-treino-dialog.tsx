@@ -85,7 +85,7 @@ function StatBox({
   value: string;
   icon?: LucideIcon;
   highlight?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div
