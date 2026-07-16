@@ -451,6 +451,36 @@ describe("workouts API contract", () => {
     });
   });
 
+  it("lets the student update only the load on their own exercise", async () => {
+    const pact = createPact();
+    pact
+      .given("workout 806 for student 701 has exercise 905, and that student is authenticated")
+      .uponReceiving("a request from the student to update the load of their own exercise")
+      .withRequest({
+        method: "PATCH",
+        path: "/api/v1/students/701/workouts/806/exercises/905",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: { load_kg: 22.5 },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: exerciseTemplate({
+            id: idString("905"),
+            load_kg: decimal(22.5),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const exercise = await updateExercise("701", "806", "905", { load_kg: 22.5 });
+        expect(exercise.load_kg).toEqual(expect.any(Number));
+      });
+    });
+  });
+
   it("reorders exercises", async () => {
     const pact = createPact();
     pact

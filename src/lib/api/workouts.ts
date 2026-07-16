@@ -57,7 +57,7 @@ export interface CreateExercisePayload {
   name: string;
   sets?: number;
   reps?: string;
-  load_kg?: number;
+  load_kg?: number | null;
   rest_seconds?: number;
   muscle_group?: string;
   duration_seconds?: number;
