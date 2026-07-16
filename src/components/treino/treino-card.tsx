@@ -37,6 +37,7 @@ import {
   unarchiveWorkout,
   deleteWorkout,
   reorderExercises,
+  updateExercise,
   type Exercise,
   type Workout,
   type WorkoutList,
@@ -145,6 +146,13 @@ export function TreinoCard({
       }
     },
     onError: () => toast.error("Não foi possível atualizar o exercício"),
+  });
+
+  const updateExerciseLoadMut = useMutation({
+    mutationFn: ({ exerciseId, loadKg }: { exerciseId: string; loadKg: number | null }) =>
+      updateExercise(alunoId, treino.id, exerciseId, { load_kg: loadKg }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treinos", alunoId] }),
+    onError: () => toast.error("Não foi possível salvar a carga"),
   });
 
   const archiveMut = useMutation({
@@ -523,6 +531,9 @@ export function TreinoCard({
           checkIn={checkIn}
           onToggleExercise={(exerciseId, completed) =>
             toggleExerciseMut.mutate({ exerciseId, completed })
+          }
+          onUpdateLoad={(exerciseId, loadKg) =>
+            updateExerciseLoadMut.mutate({ exerciseId, loadKg })
           }
           focusExerciseId={execFocusExerciseId}
         />

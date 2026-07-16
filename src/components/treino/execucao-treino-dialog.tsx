@@ -90,6 +90,81 @@ function StatBox({
   );
 }
 
+/** The only field of an exercise a student may edit — everything else about
+ * the workout's structure stays personal/admin-only (see
+ * ExercisesController#update on the backend). Tapping it swaps the value for
+ * a number input; Enter/blur saves, Escape discards. */
+function LoadStatBox({
+  exercise,
+  onUpdateLoad,
+}: {
+  exercise: Exercise;
+  onUpdateLoad: (exerciseId: string, loadKg: number | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const cancelRef = useRef(false);
+
+  function commit() {
+    setEditing(false);
+    if (cancelRef.current) {
+      cancelRef.current = false;
+      return;
+    }
+    const trimmed = draft.trim();
+    const parsed = trimmed === "" ? null : Number(trimmed.replace(",", "."));
+    if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) return;
+    if (parsed === (exercise.load_kg ?? null)) return;
+    onUpdateLoad(exercise.id, parsed);
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-md border border-primary bg-card p-2 text-center">
+        <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.5"
+          min="0"
+          autoFocus
+          aria-label="Carga em quilos"
+          className="mt-0.5 w-full rounded border bg-background text-center text-sm font-semibold outline-none"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") {
+              cancelRef.current = true;
+              e.currentTarget.blur();
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(exercise.load_kg != null ? String(exercise.load_kg) : "");
+        setEditing(true);
+      }}
+      className="rounded-md border bg-card p-2 text-center transition-colors hover:border-primary"
+      aria-label={`Editar carga, atualmente ${exercise.load_kg ? `${exercise.load_kg} kg` : "não definida"}`}
+    >
+      <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
+      <div className="mt-0.5 text-sm font-semibold">
+        {exercise.load_kg ? `${exercise.load_kg} kg` : "—"}
+      </div>
+    </button>
+  );
+}
+
 interface ExecutionCardActiveState {
   phase: ExecPhase;
   currentSet: number;
@@ -154,10 +229,12 @@ function ExerciseExecutionCard({
   exercise,
   active,
   completed,
+  onUpdateLoad,
 }: {
   exercise: Exercise;
   active: ExecutionCardActiveState | null;
   completed: boolean;
+  onUpdateLoad: (exerciseId: string, loadKg: number | null) => void;
 }) {
   const kind = getKind(exercise);
   const isCardio = kind === "cardio";
@@ -184,17 +261,11 @@ function ExerciseExecutionCard({
           <>
             <StatBox label="Série" value={`${currentSet}/${totalSets}`} icon={TrendingUp} />
             <StatBox label="Repetições" value={exercise.reps ?? "—"} icon={RotateCw} />
-            <StatBox
-              label={kind === "strength" ? "Carga" : "Séries"}
-              value={
-                kind === "strength"
-                  ? exercise.load_kg
-                    ? `${exercise.load_kg} kg`
-                    : "—"
-                  : `${totalSets}`
-              }
-              icon={Weight}
-            />
+            {kind === "strength" ? (
+              <LoadStatBox exercise={exercise} onUpdateLoad={onUpdateLoad} />
+            ) : (
+              <StatBox label="Séries" value={`${totalSets}`} icon={Weight} />
+            )}
           </>
         ) : (
           <>
@@ -322,6 +393,7 @@ export function ExecucaoTreinoDialog({
   treino,
   checkIn,
   onToggleExercise,
+  onUpdateLoad,
   focusExerciseId,
 }: {
   open: boolean;
@@ -329,6 +401,9 @@ export function ExecucaoTreinoDialog({
   treino: Workout;
   checkIn: WorkoutCheckIn;
   onToggleExercise: (exerciseId: string, completed: boolean) => void;
+  /** The student may edit only this field of their own exercise — see
+   * LoadStatBox. */
+  onUpdateLoad: (exerciseId: string, loadKg: number | null) => void;
   /** Exercise to open the dialog on (e.g. clicked directly from the workout
    * list), taking priority over resuming the started/first-pending one. */
   focusExerciseId?: string | null;
@@ -626,6 +701,7 @@ export function ExecucaoTreinoDialog({
                         : null
                     }
                     completed={checkIn.completed_exercise_ids.includes(ex.id)}
+                    onUpdateLoad={onUpdateLoad}
                   />
                 </CarouselItem>
               ))}

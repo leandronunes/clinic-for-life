@@ -1360,6 +1360,114 @@ describe("TreinoCard", () => {
     });
   });
 
+  describe("editing the load from the execution screen", () => {
+    const inProgressCheckIn: WorkoutCheckIn = {
+      id: "ci1",
+      workout_id: "w1",
+      workout_title: "Treino A — Push",
+      student_id: "s1",
+      student_name: "Julia Ferreira",
+      status: "in_progress",
+      exercises_completed: 0,
+      exercises_total: 2,
+      completed_exercise_ids: [],
+      started_at: "2026-07-12T10:00:00Z",
+      completed_at: null,
+      viewed_at: null,
+      feedbacks: [],
+    };
+
+    // The carousel renders every slide in the DOM at once (Embla), so
+    // queries must be scoped to the "Supino reto" slide — otherwise
+    // "Editar carga" matches both exercises' buttons.
+    async function openSupinoSlide(user: ReturnType<typeof userEvent.setup>, treino = mockWorkout) {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      render(
+        <TreinoCard
+          treino={treino}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+      return within(dialog).getByRole("group", { name: "Supino reto" });
+    }
+
+    it("saves the new load on blur", async () => {
+      mockUpdateExercise.mockResolvedValue({ ...mockWorkout.exercises[1], load_kg: 25 });
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user);
+
+      await user.click(within(slide).getByRole("button", { name: /Editar carga/i }));
+      const input = within(slide).getByLabelText("Carga em quilos");
+      await user.type(input, "25");
+      await user.tab();
+
+      await waitFor(() =>
+        expect(mockUpdateExercise).toHaveBeenCalledWith("s1", "w1", "e1", { load_kg: 25 }),
+      );
+    });
+
+    it("saves on Enter too", async () => {
+      mockUpdateExercise.mockResolvedValue({ ...mockWorkout.exercises[1], load_kg: 30 });
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user);
+
+      await user.click(within(slide).getByRole("button", { name: /Editar carga/i }));
+      await user.type(within(slide).getByLabelText("Carga em quilos"), "30{Enter}");
+
+      await waitFor(() =>
+        expect(mockUpdateExercise).toHaveBeenCalledWith("s1", "w1", "e1", { load_kg: 30 }),
+      );
+    });
+
+    it("discards the edit on Escape without saving", async () => {
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user);
+
+      await user.click(within(slide).getByRole("button", { name: /Editar carga/i }));
+      await user.type(within(slide).getByLabelText("Carga em quilos"), "40{Escape}");
+
+      expect(mockUpdateExercise).not.toHaveBeenCalled();
+    });
+
+    it("clears the load when the input is emptied", async () => {
+      const loadedWorkout: Workout = {
+        ...mockWorkout,
+        exercises: mockWorkout.exercises.map((e) => (e.id === "e1" ? { ...e, load_kg: 20 } : e)),
+      };
+      mockUpdateExercise.mockResolvedValue({ ...loadedWorkout.exercises[1], load_kg: null });
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user, loadedWorkout);
+
+      await user.click(within(slide).getByRole("button", { name: /Editar carga/i }));
+      const input = within(slide).getByLabelText("Carga em quilos");
+      await user.clear(input);
+      await user.tab();
+
+      await waitFor(() =>
+        expect(mockUpdateExercise).toHaveBeenCalledWith("s1", "w1", "e1", { load_kg: null }),
+      );
+    });
+
+    it("shows an error toast when saving the load fails", async () => {
+      mockUpdateExercise.mockRejectedValue(new Error("network error"));
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user);
+
+      await user.click(within(slide).getByRole("button", { name: /Editar carga/i }));
+      await user.type(within(slide).getByLabelText("Carga em quilos"), "25{Enter}");
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith("Não foi possível salvar a carga"),
+      );
+    });
+  });
+
   describe("editing a strength exercise's numeric fields", () => {
     // Field/Label aren't linked via htmlFor, so number inputs can't be found
     // by label text directly — scope to the Field's wrapper div instead.
