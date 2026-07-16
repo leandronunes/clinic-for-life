@@ -306,44 +306,6 @@ function ExerciseExecutionCard({
 
   return (
     <div className="flex h-full flex-col gap-3 px-4 pb-4 sm:px-6">
-      {/* Tertiary actions — discreet icon buttons, always available but visually
-          out of the way of the primary flow (only shown when needed). */}
-      {(exercise.notes || exercise.video_url) && (
-        <div className="flex items-center justify-end gap-1">
-          {exercise.notes && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Lightbulb className="h-3.5 w-3.5" /> Dica
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="text-sm">
-                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
-                <p className="whitespace-pre-wrap break-words text-foreground/90">
-                  {exercise.notes}
-                </p>
-              </PopoverContent>
-            </Popover>
-          )}
-          {exercise.video_url && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setVideoOpen(true)}
-            >
-              <Play className="h-3.5 w-3.5" /> Vídeo
-            </Button>
-          )}
-        </div>
-      )}
-
       {/* Stats grid — série is highlighted (the number that changes with each
           set) and gets progress dots underneath for a quick glance. */}
       <div className="grid grid-cols-3 gap-2">
@@ -403,6 +365,40 @@ function ExerciseExecutionCard({
         )}
         aria-live="polite"
       >
+        {/* Tertiary actions — icon-only, tucked into the timer corners so the
+            main info stays centered and unobstructed. */}
+        {exercise.notes && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute left-3 top-3 z-10 h-8 w-8 rounded-full bg-card/80 backdrop-blur text-muted-foreground hover:text-foreground"
+                aria-label="Dica do personal"
+              >
+                <Lightbulb className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="text-sm">
+              <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
+              <p className="whitespace-pre-wrap break-words text-foreground/90">{exercise.notes}</p>
+            </PopoverContent>
+          </Popover>
+        )}
+        {exercise.video_url && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full bg-card/80 backdrop-blur text-muted-foreground hover:text-foreground"
+            aria-label="Ver execução"
+            onClick={() => setVideoOpen(true)}
+          >
+            <Play className="h-4 w-4" />
+          </Button>
+        )}
+
         <div
           className={cn(
             "mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
