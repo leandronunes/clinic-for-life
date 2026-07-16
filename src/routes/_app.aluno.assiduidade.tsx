@@ -51,6 +51,7 @@ import {
   deleteCheckIn,
   claimCheckIn,
   type WorkoutCheckIn,
+  type CheckInPerformedBy,
 } from "@/lib/api/check-ins";
 import {
   fetchAttendanceCycleHistory,
@@ -321,15 +322,18 @@ function PeriodView({
   if (view === "semana") {
     const days = eachDayOfInterval({ start: range.start, end: range.end });
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {days.map((d) => (
-          <DayCell
-            key={d.toISOString()}
-            day={d}
-            checkIns={dayCheckIns(d)}
-            onClick={() => onSelectDay(d)}
-          />
-        ))}
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {days.map((d) => (
+            <DayCell
+              key={d.toISOString()}
+              day={d}
+              checkIns={dayCheckIns(d)}
+              onClick={() => onSelectDay(d)}
+            />
+          ))}
+        </div>
+        <Legend />
       </div>
     );
   }
@@ -411,7 +415,11 @@ function DayCell({
               key={c.id}
               className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                c.status === "completed" ? "bg-success" : "bg-amber-500",
+                c.status !== "completed"
+                  ? "bg-amber-500"
+                  : c.performed_by === "personal"
+                    ? "bg-success"
+                    : "bg-primary",
               )}
             />
           ))}
@@ -430,7 +438,10 @@ function Legend() {
   return (
     <div className="flex flex-wrap gap-4 pt-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-success" /> Concluído
+        <span className="h-2 w-2 rounded-full bg-success" /> Confirmado pelo personal
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-primary" /> Feito pelo aluno
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-amber-500" /> Em andamento
@@ -447,6 +458,20 @@ function EmptyDay() {
     <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
       Nenhum check-in registrado ainda.
     </div>
+  );
+}
+
+/** Distingue visualmente quem fez o check-in: só o "personal" conta no
+ * ciclo de atendimento (ver claimCheckIn) — os dois estados sempre aparecem
+ * marcados, nunca um implícito pela ausência do outro. */
+function PerformedByBadge({ performedBy }: { performedBy: CheckInPerformedBy }) {
+  if (performedBy === "aluno") {
+    return <Badge variant="outline">Feito pelo aluno</Badge>;
+  }
+  return (
+    <Badge variant="outline" className="border-success/40 text-success">
+      <BadgeCheck className="mr-1 h-3 w-3" /> Confirmado pelo personal
+    </Badge>
   );
 }
 
@@ -489,7 +514,7 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         >
           {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
         </Badge>
-        {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+        <PerformedByBadge performedBy={checkIn.performed_by} />
         <ClaimCheckInButton checkIn={checkIn} />
         <DeleteCheckInButton checkIn={checkIn} />
       </div>
@@ -638,7 +663,7 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           >
             {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
           </Badge>
-          {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+          <PerformedByBadge performedBy={checkIn.performed_by} />
           <ClaimCheckInButton checkIn={checkIn} />
           <DeleteCheckInButton checkIn={checkIn} />
         </div>
