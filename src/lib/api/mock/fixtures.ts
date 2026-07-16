@@ -197,6 +197,8 @@ export const WORKOUTS_BY_STUDENT: Record<string, Workout[]> = {
           video_url: "",
           notes: null,
         },
+
+
         {
           id: "exercise-s1-a-2",
           position: 1,
