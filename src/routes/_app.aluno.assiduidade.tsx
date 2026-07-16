@@ -51,6 +51,7 @@ import {
   deleteCheckIn,
   claimCheckIn,
   type WorkoutCheckIn,
+  type CheckInPerformedBy,
 } from "@/lib/api/check-ins";
 import {
   fetchAttendanceCycleHistory,
@@ -450,6 +451,20 @@ function EmptyDay() {
   );
 }
 
+/** Distingue visualmente quem fez o check-in: só o "personal" conta no
+ * ciclo de atendimento (ver claimCheckIn) — os dois estados sempre aparecem
+ * marcados, nunca um implícito pela ausência do outro. */
+function PerformedByBadge({ performedBy }: { performedBy: CheckInPerformedBy }) {
+  if (performedBy === "aluno") {
+    return <Badge variant="outline">Feito pelo aluno</Badge>;
+  }
+  return (
+    <Badge variant="outline" className="border-success/40 text-success">
+      <BadgeCheck className="mr-1 h-3 w-3" /> Confirmado pelo personal
+    </Badge>
+  );
+}
+
 function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
   const date = new Date(checkIn.completed_at ?? checkIn.started_at);
   return (
@@ -489,7 +504,7 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         >
           {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
         </Badge>
-        {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+        <PerformedByBadge performedBy={checkIn.performed_by} />
         <ClaimCheckInButton checkIn={checkIn} />
         <DeleteCheckInButton checkIn={checkIn} />
       </div>
@@ -638,7 +653,7 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           >
             {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
           </Badge>
-          {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+          <PerformedByBadge performedBy={checkIn.performed_by} />
           <ClaimCheckInButton checkIn={checkIn} />
           <DeleteCheckInButton checkIn={checkIn} />
         </div>

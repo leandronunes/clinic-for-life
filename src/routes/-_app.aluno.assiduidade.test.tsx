@@ -382,6 +382,16 @@ describe("AssiduidadePage", () => {
     render(<AssiduidadePage />, { wrapper });
 
     expect(await screen.findByText("Feito pelo aluno")).toBeInTheDocument();
+    expect(screen.queryByText("Confirmado pelo personal")).not.toBeInTheDocument();
+  });
+
+  it("shows a distinct badge for a check-in performed/confirmed by the personal", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(await screen.findByText("Confirmado pelo personal")).toBeInTheDocument();
+    expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
   });
 
   it("hides the delete button for the aluno once the personal has performed/confirmed the check-in", async () => {
