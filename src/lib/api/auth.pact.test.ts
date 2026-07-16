@@ -133,7 +133,11 @@ describe("auth API contract", () => {
         .willRespondWith({
           status: 201,
           headers: { "Content-Type": like("application/json; charset=utf-8") },
-          body: { data: sessionTemplate() },
+          // A "student" registration with no pre-existing Trainer/Student
+          // matching the e-mail gets a fresh Student profile built for it,
+          // so student_id is never null here — see auth_controller.rb's
+          // build_student_if_needed.
+          body: { data: sessionTemplate({ user: userTemplate({ student_id: idString("2701") }) }) },
         });
 
       await pact.executeTest(async (mockServer) => {
@@ -280,7 +284,10 @@ describe("auth API contract", () => {
         .willRespondWith({
           status: 201,
           headers: { "Content-Type": like("application/json; charset=utf-8") },
-          body: { data: sessionTemplate() },
+          // Same as self-registration — a brand new "student" account gets
+          // a fresh Student profile built for it, so student_id is never
+          // null here.
+          body: { data: sessionTemplate({ user: userTemplate({ student_id: idString("2702") }) }) },
         });
 
       await pact.executeTest(async (mockServer) => {
