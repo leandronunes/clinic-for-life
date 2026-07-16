@@ -14,6 +14,7 @@ import {
   Route as RouteIcon,
   Activity,
   HeartPulse,
+  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { CollapsibleNote } from "@/components/CollapsibleNote";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ExerciseVideoDialog } from "./exercise-video-dialog";
 import type { Exercise, Workout } from "@/lib/api/workouts";
 import type { WorkoutCheckIn } from "@/lib/api/check-ins";
 import { KIND_META, getKind, formatDuration } from "@/lib/exercise-kind";
@@ -236,6 +238,7 @@ function ExerciseExecutionCard({
   completed: boolean;
   onUpdateLoad: (exerciseId: string, loadKg: number | null) => void;
 }) {
+  const [videoOpen, setVideoOpen] = useState(false);
   const kind = getKind(exercise);
   const isCardio = kind === "cardio";
   const totalSets = Math.max(1, exercise.sets ?? 1);
@@ -330,7 +333,35 @@ function ExerciseExecutionCard({
         )}
       </div>
 
-      {exercise.notes && <CollapsibleNote notes={exercise.notes} variant="callout" />}
+      {(exercise.notes || exercise.video_url) && (
+        <div className="flex flex-wrap gap-2">
+          {exercise.notes && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  <Lightbulb className="mr-1.5 h-3.5 w-3.5" /> Dica do personal
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="text-sm">
+                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
+                <p className="whitespace-pre-wrap break-words text-foreground/90">
+                  {exercise.notes}
+                </p>
+              </PopoverContent>
+            </Popover>
+          )}
+          {exercise.video_url && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setVideoOpen(true)}>
+              <Play className="mr-1.5 h-3.5 w-3.5" /> Ver execução
+            </Button>
+          )}
+        </div>
+      )}
+
+      <ExerciseVideoDialog
+        exercise={videoOpen ? exercise : null}
+        onClose={() => setVideoOpen(false)}
+      />
     </div>
   );
 }

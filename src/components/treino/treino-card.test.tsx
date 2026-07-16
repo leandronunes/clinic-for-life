@@ -1468,6 +1468,112 @@ describe("TreinoCard", () => {
     });
   });
 
+  describe("tip and video access from the execution screen", () => {
+    const inProgressCheckIn: WorkoutCheckIn = {
+      id: "ci1",
+      workout_id: "w1",
+      workout_title: "Treino A — Push",
+      student_id: "s1",
+      student_name: "Julia Ferreira",
+      status: "in_progress",
+      exercises_completed: 0,
+      exercises_total: 2,
+      completed_exercise_ids: [],
+      started_at: "2026-07-12T10:00:00Z",
+      completed_at: null,
+      viewed_at: null,
+      feedbacks: [],
+    };
+
+    async function openSupinoSlide(user: ReturnType<typeof userEvent.setup>, treino: Workout) {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      render(
+        <TreinoCard
+          treino={treino}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+      return within(dialog).getByRole("group", { name: "Supino reto" });
+    }
+
+    it("does not show the personal's tip text within the execution screen until asked for", async () => {
+      const workout: Workout = {
+        ...mockWorkout,
+        exercises: mockWorkout.exercises.map((e) =>
+          e.id === "e1" ? { ...e, notes: "Controlar a fase excêntrica." } : e,
+        ),
+      };
+      const user = userEvent.setup();
+      // The underlying workout list (behind the dialog) already shows its own
+      // note preview per exercise — scoped to `slide` so that pre-existing
+      // display isn't mistaken for the execution screen's own tip text.
+      const slide = await openSupinoSlide(user, workout);
+
+      expect(within(slide).getByRole("button", { name: /Dica do personal/i })).toBeInTheDocument();
+      expect(within(slide).queryByText("Controlar a fase excêntrica.")).not.toBeInTheDocument();
+    });
+
+    it("reveals the tip in a popover when its button is clicked", async () => {
+      const workout: Workout = {
+        ...mockWorkout,
+        exercises: mockWorkout.exercises.map((e) =>
+          e.id === "e1" ? { ...e, notes: "Controlar a fase excêntrica." } : e,
+        ),
+      };
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user, workout);
+      // Only one copy of the note exists yet (the workout list's own preview,
+      // behind the dialog) — the popover portals outside `slide`, so opening
+      // it is asserted by a second copy of the text appearing.
+      expect(screen.getAllByText("Controlar a fase excêntrica.")).toHaveLength(1);
+
+      await user.click(within(slide).getByRole("button", { name: /Dica do personal/i }));
+
+      await waitFor(() =>
+        expect(screen.getAllByText("Controlar a fase excêntrica.")).toHaveLength(2),
+      );
+    });
+
+    it("does not show a tip button when the exercise has no notes", async () => {
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user, mockWorkout);
+
+      expect(
+        within(slide).queryByRole("button", { name: /Dica do personal/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("opens the exercise video in a dialog when 'Ver execução' is clicked", async () => {
+      const workout: Workout = {
+        ...mockWorkout,
+        exercises: mockWorkout.exercises.map((e) =>
+          e.id === "e1" ? { ...e, video_url: "https://www.youtube.com/embed/abc123" } : e,
+        ),
+      };
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user, workout);
+
+      await user.click(within(slide).getByRole("button", { name: /Ver execução/i }));
+
+      expect(await screen.findByTitle("Supino reto")).toBeInTheDocument();
+    });
+
+    it("does not show a video button when the exercise has no video", async () => {
+      const user = userEvent.setup();
+      const slide = await openSupinoSlide(user, mockWorkout);
+
+      expect(
+        within(slide).queryByRole("button", { name: /Ver execução/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("editing a strength exercise's numeric fields", () => {
     // Field/Label aren't linked via htmlFor, so number inputs can't be found
     // by label text directly — scope to the Field's wrapper div instead.
