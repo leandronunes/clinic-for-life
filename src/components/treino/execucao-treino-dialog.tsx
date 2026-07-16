@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Play,
   Pause,
@@ -78,16 +78,58 @@ function StatBox({
   label,
   value,
   icon: Icon,
+  highlight = false,
+  children,
 }: {
   label: string;
   value: string;
   icon?: LucideIcon;
+  highlight?: boolean;
+  children?: ReactNode;
 }) {
   return (
-    <div className="rounded-md border bg-card p-2 text-center">
-      {Icon && <Icon className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />}
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold">{value}</div>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center rounded-lg border bg-card px-2 py-2.5 text-center transition-colors",
+        highlight && "border-primary/60 bg-primary/5",
+      )}
+    >
+      {Icon && (
+        <Icon
+          className={cn("mb-1 h-4 w-4", highlight ? "text-primary" : "text-muted-foreground")}
+          aria-hidden
+        />
+      )}
+      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className={cn("mt-0.5 text-base font-bold tabular-nums", highlight && "text-primary")}>
+        {value}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Small dots showing series progress: filled = done, ring = current, empty = pending. */
+function SeriesDots({ current, total }: { current: number; total: number }) {
+  if (total <= 1 || total > 8) return null;
+  return (
+    <div className="mt-1.5 flex items-center justify-center gap-1" aria-hidden>
+      {Array.from({ length: total }).map((_, i) => {
+        const state = i + 1 < current ? "done" : i + 1 === current ? "current" : "pending";
+        return (
+          <span
+            key={i}
+            className={cn(
+              "h-1.5 w-1.5 rounded-full transition-colors",
+              state === "done" && "bg-primary",
+              state === "current" && "bg-primary/50 ring-2 ring-primary/40",
+              state === "pending" && "bg-muted-foreground/25",
+            )}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -122,9 +164,11 @@ function LoadStatBox({
 
   if (editing) {
     return (
-      <div className="rounded-md border border-primary bg-card p-2 text-center">
-        <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
+      <div className="flex flex-col items-center justify-center rounded-lg border border-primary bg-card px-2 py-2.5 text-center">
+        <Weight className="mb-1 h-4 w-4 text-primary" aria-hidden />
+        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Carga
+        </div>
         <input
           type="number"
           inputMode="decimal"
@@ -132,7 +176,7 @@ function LoadStatBox({
           min="0"
           autoFocus
           aria-label="Carga em quilos"
-          className="mt-0.5 w-full rounded border bg-background text-center text-sm font-semibold outline-none"
+          className="mt-0.5 w-full rounded border bg-background text-center text-base font-bold tabular-nums outline-none"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
@@ -155,12 +199,14 @@ function LoadStatBox({
         setDraft(exercise.load_kg != null ? String(exercise.load_kg) : "");
         setEditing(true);
       }}
-      className="rounded-md border bg-card p-2 text-center transition-colors hover:border-primary"
+      className="flex flex-col items-center justify-center rounded-lg border bg-card px-2 py-2.5 text-center transition-colors hover:border-primary"
       aria-label={`Editar carga, atualmente ${exercise.load_kg ? `${exercise.load_kg} kg` : "não definida"}`}
     >
-      <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
-      <div className="mt-0.5 text-sm font-semibold">
+      <Weight className="mb-1 h-4 w-4 text-primary" aria-hidden />
+      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        Carga
+      </div>
+      <div className="mt-0.5 text-base font-bold tabular-nums">
         {exercise.load_kg ? `${exercise.load_kg} kg` : "—"}
       </div>
     </button>
@@ -256,13 +302,61 @@ function ExerciseExecutionCard({
   // full static frame for those — only "resting" has a real fraction to show.
   const ringProgress = phase === "resting" ? restProgress : 1;
 
+  const isRunning = phase === "executing" || phase === "paused" || phase === "resting";
+
   return (
-    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-6">
-      {/* Stats grid */}
+    <div className="flex h-full flex-col gap-3 px-4 pb-4 sm:px-6">
+      {/* Tertiary actions — discreet icon buttons, always available but visually
+          out of the way of the primary flow (only shown when needed). */}
+      {(exercise.notes || exercise.video_url) && (
+        <div className="flex items-center justify-end gap-1">
+          {exercise.notes && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Lightbulb className="h-3.5 w-3.5" /> Dica
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="text-sm">
+                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
+                <p className="whitespace-pre-wrap break-words text-foreground/90">
+                  {exercise.notes}
+                </p>
+              </PopoverContent>
+            </Popover>
+          )}
+          {exercise.video_url && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setVideoOpen(true)}
+            >
+              <Play className="h-3.5 w-3.5" /> Vídeo
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Stats grid — série is highlighted (the number that changes with each
+          set) and gets progress dots underneath for a quick glance. */}
       <div className="grid grid-cols-3 gap-2">
         {!isCardio ? (
           <>
-            <StatBox label="Série" value={`${currentSet}/${totalSets}`} icon={TrendingUp} />
+            <StatBox
+              label="Série"
+              value={`${currentSet}/${totalSets}`}
+              icon={TrendingUp}
+              highlight={isRunning}
+            >
+              <SeriesDots current={currentSet} total={totalSets} />
+            </StatBox>
             <StatBox label="Repetições" value={exercise.reps ?? "—"} icon={RotateCw} />
             {kind === "strength" ? (
               <LoadStatBox exercise={exercise} onUpdateLoad={onUpdateLoad} />
@@ -332,31 +426,6 @@ function ExerciseExecutionCard({
           </p>
         )}
       </div>
-
-      {(exercise.notes || exercise.video_url) && (
-        <div className="flex flex-wrap gap-2">
-          {exercise.notes && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button type="button" variant="outline" size="sm">
-                  <Lightbulb className="mr-1.5 h-3.5 w-3.5" /> Dica do personal
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="text-sm">
-                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
-                <p className="whitespace-pre-wrap break-words text-foreground/90">
-                  {exercise.notes}
-                </p>
-              </PopoverContent>
-            </Popover>
-          )}
-          {exercise.video_url && (
-            <Button type="button" variant="outline" size="sm" onClick={() => setVideoOpen(true)}>
-              <Play className="mr-1.5 h-3.5 w-3.5" /> Ver execução
-            </Button>
-          )}
-        </div>
-      )}
 
       <ExerciseVideoDialog
         exercise={videoOpen ? exercise : null}
@@ -788,14 +857,16 @@ export function ExecucaoTreinoDialog({
               {phase === "executing" && (
                 <>
                   <Button
-                    className="h-11 flex-1 border-2 border-destructive/60 bg-destructive/15 text-destructive hover:bg-destructive/25"
+                    variant="ghost"
+                    className="h-10 flex-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                     onClick={() => setPhase("paused")}
                   >
                     <Pause className="mr-1.5 h-4 w-4" /> Parar
                   </Button>
                   <Button
+                    variant="ghost"
                     size="icon"
-                    className="h-11 w-11 shrink-0 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
+                    className="h-10 w-10 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Zerar cronômetro"
                     onClick={() => setElapsed(0)}
                   >
@@ -805,7 +876,8 @@ export function ExecucaoTreinoDialog({
               )}
               {phase === "paused" && (
                 <Button
-                  className="h-11 flex-1 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
+                  variant="ghost"
+                  className="h-10 flex-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => setElapsed(0)}
                 >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
