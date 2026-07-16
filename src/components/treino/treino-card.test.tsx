@@ -43,16 +43,19 @@ vi.mock("@/lib/api/check-ins", () => ({
   startCheckIn: vi.fn(),
   finishCheckIn: vi.fn(),
   toggleExerciseCheckIn: vi.fn(),
+  deleteCheckIn: vi.fn(),
 }));
 import {
   fetchCurrentCheckIn,
   startCheckIn,
   finishCheckIn,
   toggleExerciseCheckIn,
+  deleteCheckIn,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 const mockFetchCurrentCheckIn = vi.mocked(fetchCurrentCheckIn);
 const mockStartCheckIn = vi.mocked(startCheckIn);
+const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
 const mockFinishCheckIn = vi.mocked(finishCheckIn);
 const mockToggleExerciseCheckIn = vi.mocked(toggleExerciseCheckIn);
 
@@ -109,6 +112,7 @@ describe("TreinoCard", () => {
     mockDeleteWorkout.mockResolvedValue(null);
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
     mockFetchCurrentCheckIn.mockResolvedValue(null);
+    mockDeleteCheckIn.mockResolvedValue(undefined);
     // ExecucaoTreinoDialog's carousel (Embla) reads matchMedia on mount — jsdom
     // doesn't implement it.
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -1275,6 +1279,84 @@ describe("TreinoCard", () => {
 
       await screen.findByRole("button", { name: /Iniciar treino/i });
       expect(screen.queryByRole("button", { name: /Abrir execução de/i })).not.toBeInTheDocument();
+    });
+
+    it("shows 'já concluído hoje' and hides 'Iniciar treino' when the check-in is completed", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByText("Treino já concluído hoje (1/2)");
+      expect(screen.queryByRole("button", { name: /^Iniciar treino/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remover check-in" })).toBeInTheDocument();
+    });
+
+    it("removes the check-in after confirming, letting the workout be started again", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+      });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByText("Treino já concluído hoje (1/2)");
+      await user.click(screen.getByRole("button", { name: "Remover check-in" }));
+      const confirmDialog = await screen.findByRole("alertdialog");
+      await user.click(within(confirmDialog).getByRole("button", { name: "Remover" }));
+
+      await waitFor(() => expect(mockDeleteCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
+      expect(toast.success).toHaveBeenCalledWith("Check-in removido");
+    });
+
+    it("shows an error toast when removing the check-in fails", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+      });
+      mockDeleteCheckIn.mockRejectedValue(new Error("network error"));
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByText("Treino já concluído hoje (1/2)");
+      await user.click(screen.getByRole("button", { name: "Remover check-in" }));
+      const confirmDialog = await screen.findByRole("alertdialog");
+      await user.click(within(confirmDialog).getByRole("button", { name: "Remover" }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith("Não foi possível remover o check-in"),
+      );
     });
   });
 

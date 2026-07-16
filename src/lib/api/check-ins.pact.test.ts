@@ -5,7 +5,14 @@
  */
 import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
-import { enumString, idString, integer, like, nullValue } from "@/lib/pact/matchers";
+import {
+  enumString,
+  errorStringBody,
+  idString,
+  integer,
+  like,
+  nullValue,
+} from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
 import {
   fetchCurrentCheckIn,
@@ -236,6 +243,62 @@ describe("check-ins API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const checkIn = await markCheckInViewed("2301", "2342", "2352");
         expect(checkIn.viewed_at).toEqual(expect.any(String));
+      });
+    });
+  });
+
+  it("returns today's completed check-in as current, so the frontend can offer to remove it", async () => {
+    const pact = createPact();
+    pact
+      .given("student 2301 already completed workout 2344 today (check-in 2354)")
+      .uponReceiving("a request for the current check-in when it was already completed today")
+      .withRequest({
+        method: "GET",
+        path: "/api/v1/students/2301/workouts/2344/check_ins/current",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: checkInTemplate({
+            id: idString("2354"),
+            workout_id: idString("2344"),
+            status: enumString(STATUSES, "completed"),
+            completed_at: like("2026-07-12T10:30:00Z"),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const checkIn = await fetchCurrentCheckIn("2301", "2344");
+        expect(checkIn?.status).toEqual("completed");
+      });
+    });
+  });
+
+  it("rejects starting a new check-in when the workout was already completed today", async () => {
+    const pact = createPact();
+    pact
+      .given("student 2301 already completed workout 2344 today (check-in 2354)")
+      .uponReceiving("a request to start a check-in for a workout already completed today")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/2301/workouts/2344/check_ins",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 422,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: errorStringBody(
+          "Este treino já foi concluído hoje. Remova o check-in para refazê-lo.",
+        ),
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        await expect(startCheckIn("2301", "2344")).rejects.toMatchObject({ status: 422 });
       });
     });
   });

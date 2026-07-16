@@ -46,6 +46,7 @@ import {
   startCheckIn,
   finishCheckIn,
   toggleExerciseCheckIn,
+  deleteCheckIn,
 } from "@/lib/api/check-ins";
 import { SortableExerciseItem, ExerciseRowContent } from "./exercise-row";
 import { ExercicioFormDialog } from "./exercicio-form-dialog";
@@ -121,6 +122,16 @@ export function TreinoCard({
       qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
     },
     onError: () => toast.error("Não foi possível finalizar o treino"),
+  });
+
+  const deleteCheckInMut = useMutation({
+    mutationFn: () => deleteCheckIn(alunoId, treino.id, checkIn!.id),
+    onSuccess: () => {
+      toast.success("Check-in removido");
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], null);
+      qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível remover o check-in"),
   });
 
   const toggleExerciseMut = useMutation({
@@ -330,18 +341,11 @@ export function TreinoCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {treino.status === "active" &&
-          (!checkIn || checkIn.status === "completed" ? (
+          (!checkIn ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
-              {checkIn?.status === "completed" ? (
-                <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Treino concluído ({checkIn.exercises_completed}/{checkIn.exercises_total})
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Clique em <strong>Iniciar treino</strong> para marcar os exercícios concluídos.
-                </span>
-              )}
+              <span className="text-sm text-muted-foreground">
+                Clique em <strong>Iniciar treino</strong> para marcar os exercícios concluídos.
+              </span>
               <Button
                 size="sm"
                 onClick={() => startCheckInMut.mutate()}
@@ -349,6 +353,40 @@ export function TreinoCard({
               >
                 <Play className="mr-1 h-4 w-4" /> Iniciar treino
               </Button>
+            </div>
+          ) : checkIn.status === "completed" ? (
+            // Só um check-in por treino por dia (o backend também recusa um
+            // segundo) — refazer hoje exige remover este primeiro.
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
+              <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
+                <CheckCircle2 className="h-4 w-4" />
+                Treino já concluído hoje ({checkIn.exercises_completed}/{checkIn.exercises_total})
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={deleteCheckInMut.isPending}>
+                    <Trash2 className="mr-1 h-4 w-4" /> Remover check-in
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remover este check-in?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Para refazer &quot;{treino.title}&quot; hoje,
+                      é preciso remover o check-in atual primeiro.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteCheckInMut.mutate()}
+                      disabled={deleteCheckInMut.isPending}
+                    >
+                      {deleteCheckInMut.isPending ? "Removendo..." : "Remover"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">

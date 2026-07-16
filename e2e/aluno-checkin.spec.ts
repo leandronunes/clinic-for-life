@@ -29,7 +29,17 @@ test.describe("Check-in de treino (aluno)", () => {
     await page.getByRole("button", { name: /Marcar "Cadeira extensora"/ }).click();
 
     await expect(page.getByText("Treino concluído!")).toBeVisible();
-    await expect(page.getByText("Treino concluído (2/2)")).toBeVisible();
+    // Só um check-in por treino por dia — "Iniciar treino" não deve mais
+    // aparecer; em vez disso, é preciso remover o check-in para refazer.
+    await expect(page.getByText("Treino já concluído hoje (2/2)")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Iniciar treino" })).not.toBeVisible();
+
+    await page.getByRole("button", { name: "Remover check-in" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Remover", exact: true })
+      .click();
+    await expect(page.getByText("Check-in removido")).toBeVisible();
     await expect(page.getByRole("button", { name: "Iniciar treino" })).toBeVisible();
   });
 
@@ -50,7 +60,7 @@ test.describe("Check-in de treino (aluno)", () => {
       .click();
 
     await expect(page.getByText("Treino finalizado")).toBeVisible();
-    await expect(page.getByText("Treino concluído (1/2)")).toBeVisible();
+    await expect(page.getByText("Treino já concluído hoje (1/2)")).toBeVisible();
   });
 });
 
