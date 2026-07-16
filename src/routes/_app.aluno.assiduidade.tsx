@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+  BadgeCheck,
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
@@ -45,7 +46,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { fetchCheckInHistory, deleteCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import {
+  fetchCheckInHistory,
+  deleteCheckIn,
+  claimCheckIn,
+  type WorkoutCheckIn,
+} from "@/lib/api/check-ins";
 import {
   fetchAttendanceCycleHistory,
   type AttendanceCycleRecord,
@@ -481,6 +487,8 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         >
           {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
         </Badge>
+        {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+        <ClaimCheckInButton checkIn={checkIn} />
         <DeleteCheckInButton checkIn={checkIn} />
       </div>
     </div>
@@ -488,9 +496,13 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
 }
 
 /** Shared between "dia" view's CheckInRow and the day-detail dialog's
- * CheckInDetail — both need to offer removing the check-in. */
+ * CheckInDetail — both need to offer removing the check-in. Once the
+ * personal has performed/confirmed a check-in, only staff (not the aluno
+ * themselves) may still remove it — mirrors the backend's destroy guard. */
 function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
   const qc = useQueryClient();
+  const { hasRole } = useAuth();
+  const isStaff = hasRole("admin") || hasRole("personal");
   const deleteMut = useMutation({
     mutationFn: () => deleteCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
     onSuccess: () => {
@@ -502,6 +514,8 @@ function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
     },
     onError: () => toast.error("Não foi possível remover o check-in"),
   });
+
+  if (checkIn.performed_by === "personal" && !isStaff) return null;
 
   return (
     <AlertDialog>
@@ -532,6 +546,39 @@ function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+/** Staff-only: confirms a check-in the aluno performed themselves, so it
+ * starts counting toward the personal's attendance cycle — same action
+ * offered in Treinos Concluídos and Assiduidade dos alunos. */
+function ClaimCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
+  const qc = useQueryClient();
+  const { hasRole } = useAuth();
+  const isStaff = hasRole("admin") || hasRole("personal");
+  const claimMut = useMutation({
+    mutationFn: () => claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
+    onSuccess: () => {
+      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
+      qc.invalidateQueries({
+        queryKey: ["check-in", "current", checkIn.student_id, checkIn.workout_id],
+      });
+    },
+    onError: () => toast.error("Não foi possível confirmar o check-in"),
+  });
+
+  if (!isStaff || checkIn.performed_by !== "aluno") return null;
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => claimMut.mutate()}
+      disabled={claimMut.isPending}
+    >
+      <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Confirmar check-in
+    </Button>
   );
 }
 
@@ -589,6 +636,8 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           >
             {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
           </Badge>
+          {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+          <ClaimCheckInButton checkIn={checkIn} />
           <DeleteCheckInButton checkIn={checkIn} />
         </div>
       </div>

@@ -17,10 +17,12 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 vi.mock("@/lib/api/check-ins", () => ({
   fetchCompletedCheckIns: vi.fn(),
   markCheckInViewed: vi.fn(),
+  claimCheckIn: vi.fn(),
 }));
-import { fetchCompletedCheckIns, markCheckInViewed } from "@/lib/api/check-ins";
+import { fetchCompletedCheckIns, markCheckInViewed, claimCheckIn } from "@/lib/api/check-ins";
 const mockFetchCompleted = vi.mocked(fetchCompletedCheckIns);
 const mockMarkViewed = vi.mocked(markCheckInViewed);
+const mockClaimCheckIn = vi.mocked(claimCheckIn);
 
 vi.mock("@/lib/api/check-in-feedbacks", () => ({
   createCheckInFeedback: vi.fn(),
@@ -83,6 +85,7 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     student_id: "s1",
     student_name: "Júlia Ferreira",
     status: "completed",
+    performed_by: "aluno",
     exercises_completed: 3,
     exercises_total: 3,
     completed_exercise_ids: ["e1", "e2", "e3"],
@@ -278,6 +281,63 @@ describe("TreinosConcluidosPage", () => {
       expect(toast.success).toHaveBeenCalledWith("Feedback enviado");
     });
     expect(mockCreateFeedback).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a badge for a check-in the student performed themselves", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    expect(await screen.findByText("Feito pelo aluno")).toBeInTheDocument();
+  });
+
+  it("does not show the self check-in badge once the personal has performed it", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" });
+    expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
+  });
+
+  it("lets the personal confirm a check-in the student performed themselves", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+    mockClaimCheckIn.mockResolvedValue(buildCheckIn({ performed_by: "personal" }));
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText(/não conta no ciclo de atendimento ainda/i),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar check-in" }));
+
+    await waitFor(() => {
+      expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+      expect(toast.success).toHaveBeenCalledWith(
+        "Check-in confirmado — agora conta no ciclo de atendimento",
+      );
+    });
+  });
+
+  it("shows a confirmed message instead of the claim button once performed by the personal", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).getByText(/confirmado pelo personal — conta no ciclo de atendimento/i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Confirmar check-in" }),
+    ).not.toBeInTheDocument();
   });
 
   function buildCheckInWithFeedback() {

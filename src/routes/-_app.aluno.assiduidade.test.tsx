@@ -19,10 +19,15 @@ vi.mock("@/contexts/use-auth", () => ({ useAuth: vi.fn() }));
 import { useAuth } from "@/contexts/use-auth";
 const mockUseAuth = vi.mocked(useAuth);
 
-vi.mock("@/lib/api/check-ins", () => ({ fetchCheckInHistory: vi.fn(), deleteCheckIn: vi.fn() }));
-import { fetchCheckInHistory, deleteCheckIn } from "@/lib/api/check-ins";
+vi.mock("@/lib/api/check-ins", () => ({
+  fetchCheckInHistory: vi.fn(),
+  deleteCheckIn: vi.fn(),
+  claimCheckIn: vi.fn(),
+}));
+import { fetchCheckInHistory, deleteCheckIn, claimCheckIn } from "@/lib/api/check-ins";
 const mockFetchHistory = vi.mocked(fetchCheckInHistory);
 const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
+const mockClaimCheckIn = vi.mocked(claimCheckIn);
 
 vi.mock("@/lib/api/attendance-cycles", () => ({ fetchAttendanceCycleHistory: vi.fn() }));
 import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
@@ -69,6 +74,7 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     student_id: "s1",
     student_name: "Júlia Ferreira",
     status: "completed",
+    performed_by: "aluno",
     exercises_completed: 3,
     exercises_total: 3,
     completed_exercise_ids: ["e1", "e2", "e3"],
@@ -350,5 +356,67 @@ describe("AssiduidadePage", () => {
     await vi.waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Não foi possível remover o check-in"),
     );
+  });
+
+  it("shows a badge for a check-in the aluno performed themselves", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(await screen.findByText("Feito pelo aluno")).toBeInTheDocument();
+  });
+
+  it("hides the delete button for the aluno once the personal has performed/confirmed the check-in", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: 'Remover check-in de "Treino A"' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still lets a personal remove a check-in they performed, viewing via impersonation", async () => {
+    mockUseAuth.mockReturnValue(
+      buildAuth({ hasRole: vi.fn((...roles) => roles.includes("personal")) }),
+    );
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    expect(
+      await screen.findByRole("button", { name: 'Remover check-in de "Treino A"' }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer a claim action to the aluno themselves", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Feito pelo aluno");
+    expect(screen.queryByRole("button", { name: "Confirmar check-in" })).not.toBeInTheDocument();
+  });
+
+  it("lets a personal confirm a check-in the aluno performed themselves, viewing via impersonation", async () => {
+    mockUseAuth.mockReturnValue(
+      buildAuth({ hasRole: vi.fn((...roles) => roles.includes("personal")) }),
+    );
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+    mockClaimCheckIn.mockResolvedValue(buildCheckIn({ performed_by: "personal" }));
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Confirmar check-in" }));
+
+    await vi.waitFor(() => {
+      expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+      expect(toast.success).toHaveBeenCalledWith(
+        "Check-in confirmado — agora conta no ciclo de atendimento",
+      );
+    });
   });
 });

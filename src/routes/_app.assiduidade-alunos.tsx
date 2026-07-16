@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
+  BadgeCheck,
   CalendarCheck,
   Dumbbell,
   History,
@@ -32,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchStudents, type Student } from "@/lib/api/students";
-import { fetchCompletedCheckIns, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import { fetchCompletedCheckIns, claimCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
 import {
   fetchAttendanceCycleHistory,
   renewAttendanceCycle,
@@ -305,6 +306,16 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
     onError: () => toast.error("Não foi possível renovar o ciclo."),
   });
 
+  const claimMut = useMutation({
+    mutationFn: (checkIn: WorkoutCheckIn) =>
+      claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
+    onSuccess: () => {
+      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      qc.invalidateQueries({ queryKey: ["completed-check-ins"] });
+    },
+    onError: () => toast.error("Não foi possível confirmar o check-in"),
+  });
+
   return (
     <Dialog open={!!row} onOpenChange={(o) => !o && onClose()}>
       {row && (
@@ -375,6 +386,50 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                 </ul>
               )}
             </div>
+
+            {row.cycle.pendingClaimCheckIns.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-muted-foreground">
+                  Check-ins do aluno aguardando confirmação ({row.cycle.pendingClaimCheckIns.length}
+                  )
+                </h3>
+                <ul className="divide-y rounded-lg border border-dashed">
+                  {row.cycle.pendingClaimCheckIns.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 p-3">
+                      <div>
+                        <div className="text-sm font-medium">{c.workout_title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {c.completed_at
+                            ? new Date(c.completed_at).toLocaleString("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "—"}{" "}
+                          · Feito pelo aluno — não conta na quota ainda
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => claimMut.mutate(c)}
+                        disabled={claimMut.isPending}
+                      >
+                        {claimMut.isPending ? (
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        ) : (
+                          <BadgeCheck className="mr-2 h-3 w-3" />
+                        )}
+                        Confirmar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {row.student.contracted_workouts_per_cycle != null && (
               <div className="flex justify-end">

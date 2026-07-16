@@ -530,7 +530,11 @@ export function getCurrentCheckIn(studentId: string, workoutId: string): Workout
   return found ? hydrateCheckIn(found) : null;
 }
 
-export function startCheckIn(studentId: string, workoutId: string): WorkoutCheckIn {
+export function startCheckIn(
+  studentId: string,
+  workoutId: string,
+  token: string | null,
+): WorkoutCheckIn {
   const workout = getWorkout(studentId, workoutId);
   if (workout.status === "archived") {
     const err: ApiError = { status: 422, message: "Treino arquivado é somente leitura" };
@@ -552,6 +556,17 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     throw err;
   }
   const student = getStudent(studentId);
+  // Staff (admin/personal) starting a check-in on a student's behalf is
+  // staff-witnessed from the start, so it counts toward the attendance
+  // cycle immediately — mirrors WorkoutCheckInsController#performer. Falls
+  // back to "aluno" when there's no resolvable session (e.g. unauthenticated
+  // test calls), matching the pre-existing default of a self check-in.
+  let performedBy: WorkoutCheckIn["performed_by"] = "aluno";
+  try {
+    performedBy = currentUser(token).role === "student" ? "aluno" : "personal";
+  } catch {
+    // no valid session — keep the "aluno" default
+  }
   const checkIn: WorkoutCheckIn = {
     id: nextId("check-in"),
     workout_id: workout.id,
@@ -559,6 +574,7 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     student_id: student.id,
     student_name: student.name,
     status: "in_progress",
+    performed_by: performedBy,
     exercises_completed: 0,
     exercises_total: workout.exercises.length,
     completed_exercise_ids: [],
@@ -568,6 +584,19 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     feedbacks: [],
   };
   checkInsByWorkout[workout.id] = [checkIn, ...list];
+  return hydrateCheckIn(checkIn);
+}
+
+/** Confirms a check-in the student performed themselves, making it count
+ * toward the personal's attendance cycle — mirrors
+ * WorkoutCheckInsController#claim. Idempotent. */
+export function claimCheckIn(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): WorkoutCheckIn {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  checkIn.performed_by = "personal";
   return hydrateCheckIn(checkIn);
 }
 

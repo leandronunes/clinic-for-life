@@ -307,6 +307,46 @@ describe("resolveMockRequest()", () => {
     expect(finished.exercises_completed).toBe(0);
   });
 
+  it("marks a check-in started by a logged-in personal as performed by the personal", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
+      method: "POST",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
+      token: null,
+    });
+    const { workoutId } = await createWorkoutWithExercises(1);
+
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: login.token,
+    });
+
+    expect(started.performed_by).toBe("personal");
+  });
+
+  it("defaults performed_by to aluno without a resolvable session", async () => {
+    const { workoutId } = await createWorkoutWithExercises(1);
+
+    const started = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: `/api/v1/students/student-1/workouts/${workoutId}/check_ins`,
+      token: null,
+    });
+
+    expect(started.performed_by).toBe("aluno");
+  });
+
+  it("claims a check-in the aluno performed themselves, making it count toward the personal's cycle", async () => {
+    const claimed = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: "/api/v1/students/student-1/workouts/workout-s1-a/check_ins/check-in-s1-a-1/claim",
+      token: null,
+    });
+
+    expect(claimed.performed_by).toBe("personal");
+  });
+
   it("lists a student's check-in history across workouts", async () => {
     const history = await resolveMockRequest<WorkoutCheckIn[]>({
       method: "GET",
