@@ -302,13 +302,61 @@ function ExerciseExecutionCard({
   // full static frame for those — only "resting" has a real fraction to show.
   const ringProgress = phase === "resting" ? restProgress : 1;
 
+  const isRunning = phase === "executing" || phase === "paused" || phase === "resting";
+
   return (
-    <div className="flex h-full flex-col gap-4 px-4 pb-4 sm:px-6">
-      {/* Stats grid */}
+    <div className="flex h-full flex-col gap-3 px-4 pb-4 sm:px-6">
+      {/* Tertiary actions — discreet icon buttons, always available but visually
+          out of the way of the primary flow (only shown when needed). */}
+      {(exercise.notes || exercise.video_url) && (
+        <div className="flex items-center justify-end gap-1">
+          {exercise.notes && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Lightbulb className="h-3.5 w-3.5" /> Dica
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="text-sm">
+                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
+                <p className="whitespace-pre-wrap break-words text-foreground/90">
+                  {exercise.notes}
+                </p>
+              </PopoverContent>
+            </Popover>
+          )}
+          {exercise.video_url && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setVideoOpen(true)}
+            >
+              <Play className="h-3.5 w-3.5" /> Vídeo
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Stats grid — série is highlighted (the number that changes with each
+          set) and gets progress dots underneath for a quick glance. */}
       <div className="grid grid-cols-3 gap-2">
         {!isCardio ? (
           <>
-            <StatBox label="Série" value={`${currentSet}/${totalSets}`} icon={TrendingUp} />
+            <StatBox
+              label="Série"
+              value={`${currentSet}/${totalSets}`}
+              icon={TrendingUp}
+              highlight={isRunning}
+            >
+              <SeriesDots current={currentSet} total={totalSets} />
+            </StatBox>
             <StatBox label="Repetições" value={exercise.reps ?? "—"} icon={RotateCw} />
             {kind === "strength" ? (
               <LoadStatBox exercise={exercise} onUpdateLoad={onUpdateLoad} />
@@ -378,31 +426,6 @@ function ExerciseExecutionCard({
           </p>
         )}
       </div>
-
-      {(exercise.notes || exercise.video_url) && (
-        <div className="flex flex-wrap gap-2">
-          {exercise.notes && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button type="button" variant="outline" size="sm">
-                  <Lightbulb className="mr-1.5 h-3.5 w-3.5" /> Dica do personal
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="text-sm">
-                <p className="mb-1 text-xs font-semibold text-muted-foreground">Dica do personal</p>
-                <p className="whitespace-pre-wrap break-words text-foreground/90">
-                  {exercise.notes}
-                </p>
-              </PopoverContent>
-            </Popover>
-          )}
-          {exercise.video_url && (
-            <Button type="button" variant="outline" size="sm" onClick={() => setVideoOpen(true)}>
-              <Play className="mr-1.5 h-3.5 w-3.5" /> Ver execução
-            </Button>
-          )}
-        </div>
-      )}
 
       <ExerciseVideoDialog
         exercise={videoOpen ? exercise : null}
