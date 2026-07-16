@@ -19,14 +19,18 @@ vi.mock("@/contexts/use-auth", () => ({ useAuth: vi.fn() }));
 import { useAuth } from "@/contexts/use-auth";
 const mockUseAuth = vi.mocked(useAuth);
 
-vi.mock("@/lib/api/check-ins", () => ({ fetchCheckInHistory: vi.fn() }));
-import { fetchCheckInHistory } from "@/lib/api/check-ins";
+vi.mock("@/lib/api/check-ins", () => ({ fetchCheckInHistory: vi.fn(), deleteCheckIn: vi.fn() }));
+import { fetchCheckInHistory, deleteCheckIn } from "@/lib/api/check-ins";
 const mockFetchHistory = vi.mocked(fetchCheckInHistory);
+const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
 
 vi.mock("@/lib/api/attendance-cycles", () => ({ fetchAttendanceCycleHistory: vi.fn() }));
 import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
 import type { AttendanceCycleRecord } from "@/lib/api/attendance-cycles";
 const mockFetchCycleHistory = vi.mocked(fetchAttendanceCycleHistory);
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+import { toast } from "sonner";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -95,6 +99,7 @@ describe("AssiduidadePage", () => {
     vi.clearAllMocks();
     mockFetchHistory.mockResolvedValue([]);
     mockFetchCycleHistory.mockResolvedValue([]);
+    mockDeleteCheckIn.mockResolvedValue(undefined);
     mockUseAuth.mockReturnValue(buildAuth());
   });
 
@@ -282,5 +287,68 @@ describe("AssiduidadePage", () => {
     expect(await screen.findByText("Histórico de ciclos")).toBeInTheDocument();
     expect(screen.getByText("6 / 8 treinos (75%)")).toBeInTheDocument();
     expect(screen.getByText("Cumpriu")).toBeInTheDocument();
+  });
+
+  it("offers to remove a check-in directly from the 'dia' view, without opening a dialog", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    // "dia" is the default view — the check-in row itself must offer removal.
+    await screen.findByText("Treino A");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: 'Remover check-in de "Treino A"' }));
+
+    const confirmDialog = await screen.findByRole("alertdialog");
+    await user.click(within(confirmDialog).getByRole("button", { name: "Remover" }));
+
+    await vi.waitFor(() => expect(mockDeleteCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
+  });
+
+  it("removes a check-in after confirming, and refreshes the history", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: 'Remover check-in de "Treino A"' }),
+    );
+
+    const confirmDialog = await screen.findByRole("alertdialog");
+    await user.click(within(confirmDialog).getByRole("button", { name: "Remover" }));
+
+    await vi.waitFor(() => expect(mockDeleteCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
+    expect(toast.success).toHaveBeenCalledWith("Check-in removido");
+  });
+
+  it("shows an error toast when removing a check-in fails", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
+    mockDeleteCheckIn.mockRejectedValue(new Error("network error"));
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: 'Remover check-in de "Treino A"' }),
+    );
+
+    const confirmDialog = await screen.findByRole("alertdialog");
+    await user.click(within(confirmDialog).getByRole("button", { name: "Remover" }));
+
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Não foi possível remover o check-in"),
+    );
   });
 });

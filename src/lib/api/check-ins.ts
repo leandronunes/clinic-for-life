@@ -72,3 +72,16 @@ export function markCheckInViewed(
     `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/view`,
   );
 }
+
+/** Removes a check-in (completed or in progress) — the student themselves,
+ * their personal, or an admin may do this (e.g. a check-in started by
+ * mistake). Cascades to its exercise check-ins and feedback. */
+export function deleteCheckIn(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): Promise<void> {
+  return http.del<void>(
+    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}`,
+  );
+}

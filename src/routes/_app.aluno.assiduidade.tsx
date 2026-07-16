@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   CalendarCheck,
   ChevronLeft,
@@ -9,6 +10,7 @@ import {
   History,
   Loader2,
   ThumbsUp,
+  Trash2,
 } from "lucide-react";
 import {
   addDays,
@@ -31,8 +33,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { fetchCheckInHistory, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import { fetchCheckInHistory, deleteCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
 import {
   fetchAttendanceCycleHistory,
   type AttendanceCycleRecord,
@@ -468,8 +481,57 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         >
           {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
         </Badge>
+        <DeleteCheckInButton checkIn={checkIn} />
       </div>
     </div>
+  );
+}
+
+/** Shared between "dia" view's CheckInRow and the day-detail dialog's
+ * CheckInDetail — both need to offer removing the check-in. */
+function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
+  const qc = useQueryClient();
+  const deleteMut = useMutation({
+    mutationFn: () => deleteCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
+    onSuccess: () => {
+      toast.success("Check-in removido");
+      qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
+      qc.invalidateQueries({
+        queryKey: ["check-in", "current", checkIn.student_id, checkIn.workout_id],
+      });
+    },
+    onError: () => toast.error("Não foi possível remover o check-in"),
+  });
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          aria-label={`Remover check-in de "${checkIn.workout_title}"`}
+          disabled={deleteMut.isPending}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remover este check-in?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. Os exercícios marcados e o feedback recebido neste
+            check-in de &quot;{checkIn.workout_title}&quot; serão removidos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}>
+            {deleteMut.isPending ? "Removendo..." : "Remover"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -518,12 +580,17 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
     <div className="space-y-2 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="font-semibold">{checkIn.workout_title}</div>
-        <Badge
-          className={cn(checkIn.status === "completed" ? "bg-success text-success-foreground" : "")}
-          variant={checkIn.status === "completed" ? "default" : "secondary"}
-        >
-          {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge
+            className={cn(
+              checkIn.status === "completed" ? "bg-success text-success-foreground" : "",
+            )}
+            variant={checkIn.status === "completed" ? "default" : "secondary"}
+          >
+            {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
+          </Badge>
+          <DeleteCheckInButton checkIn={checkIn} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
         <div>

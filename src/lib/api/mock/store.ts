@@ -588,6 +588,13 @@ export function toggleExerciseCheckIn(
   return hydrateCheckIn(checkIn);
 }
 
+export function deleteCheckIn(studentId: string, workoutId: string, checkInId: string): void {
+  const workout = getWorkout(studentId, workoutId);
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  checkInsByWorkout[workout.id] = checkInsFor(workout.id).filter((c) => c.id !== checkIn.id);
+  delete feedbacksByCheckIn[checkIn.id];
+}
+
 export function listCheckIns(studentId: string): WorkoutCheckIn[] {
   const workoutIds = workoutsFor(studentId).map((w) => w.id);
   return workoutIds
