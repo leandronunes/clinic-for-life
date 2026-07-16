@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { format } from "date-fns";
 import type { ReactNode } from "react";
@@ -107,6 +107,13 @@ describe("AssiduidadePage", () => {
     mockFetchCycleHistory.mockResolvedValue([]);
     mockDeleteCheckIn.mockResolvedValue(undefined);
     mockUseAuth.mockReturnValue(buildAuth());
+    // Don't rely on the ambient .env — pin a known "off" baseline so these
+    // tests pass regardless of what's set on the machine running them.
+    vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "false");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("shows the empty state when there is no check-in history", async () => {
@@ -279,7 +286,8 @@ describe("AssiduidadePage", () => {
     expect(screen.queryByText("Histórico de ciclos")).not.toBeInTheDocument();
   });
 
-  it("shows past closed cycles in the history section", async () => {
+  it("shows past closed cycles in the history section when the feature flag is on", async () => {
+    vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "true");
     mockFetchCycleHistory.mockResolvedValue([
       buildCycleRecord({
         completed_workouts: 6,
@@ -293,6 +301,16 @@ describe("AssiduidadePage", () => {
     expect(await screen.findByText("Histórico de ciclos")).toBeInTheDocument();
     expect(screen.getByText("6 / 8 treinos (75%)")).toBeInTheDocument();
     expect(screen.getByText("Cumpriu")).toBeInTheDocument();
+  });
+
+  it("hides the cycle history section when the feature flag is off, even with closed cycles", async () => {
+    mockFetchCycleHistory.mockResolvedValue([buildCycleRecord()]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Nenhum check-in registrado ainda.");
+    expect(screen.queryByText("Histórico de ciclos")).not.toBeInTheDocument();
+    expect(mockFetchCycleHistory).not.toHaveBeenCalled();
   });
 
   it("offers to remove a check-in directly from the 'dia' view, without opening a dialog", async () => {

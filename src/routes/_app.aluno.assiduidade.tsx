@@ -57,6 +57,7 @@ import {
   type AttendanceCycleRecord,
 } from "@/lib/api/attendance-cycles";
 import { useAuth } from "@/contexts/use-auth";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/aluno/assiduidade")({
@@ -238,13 +239,14 @@ export function AssiduidadePage() {
 }
 
 function CycleHistoryCard({ alunoId }: { alunoId: string }) {
+  const enabled = !!alunoId && isFeatureEnabled("attendanceCycles");
   const { data: history = [], isLoading } = useQuery({
     queryKey: ["attendance-cycles", alunoId],
     queryFn: () => fetchAttendanceCycleHistory(alunoId),
-    enabled: !!alunoId,
+    enabled,
   });
 
-  if (isLoading || history.length === 0) return null;
+  if (!enabled || isLoading || history.length === 0) return null;
 
   return (
     <Card className="shadow-soft">
