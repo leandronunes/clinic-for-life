@@ -644,8 +644,7 @@ export function ExecucaoTreinoDialog({
               {phase === "executing" && (
                 <>
                   <Button
-                    variant="secondary"
-                    className="h-11 flex-1"
+                    className="h-11 flex-1 border-2 border-destructive/60 bg-destructive/15 text-destructive hover:bg-destructive/25"
                     onClick={() => setPhase("paused")}
                   >
                     <Pause className="mr-1.5 h-4 w-4" /> Parar
