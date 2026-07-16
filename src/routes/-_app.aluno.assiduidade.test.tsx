@@ -394,6 +394,61 @@ describe("AssiduidadePage", () => {
     expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
   });
 
+  it("colors the day dot green for a personal-confirmed check-in in the week view", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    const dayButton = screen.getByRole("button", { name: /10\/07\/2026/ });
+
+    expect(dayButton.querySelector(".bg-success")).toBeInTheDocument();
+    expect(dayButton.querySelector(".bg-primary")).not.toBeInTheDocument();
+  });
+
+  it("colors the day dot differently for a check-in the aluno performed themselves in the week view", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    const dayButton = screen.getByRole("button", { name: /10\/07\/2026/ });
+
+    expect(dayButton.querySelector(".bg-primary")).toBeInTheDocument();
+    expect(dayButton.querySelector(".bg-success")).not.toBeInTheDocument();
+  });
+
+  it("shows the legend explaining the dot colors in the week view", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn()]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+
+    expect(screen.getByText("Confirmado pelo personal")).toBeInTheDocument();
+    expect(screen.getByText("Feito pelo aluno")).toBeInTheDocument();
+  });
+
+  it("colors the day dot in the month view the same way as the week view", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Mês" }));
+    const dayButton = screen.getByRole("button", { name: /10\/07\/2026/ });
+
+    expect(dayButton.querySelector(".bg-success")).toBeInTheDocument();
+    expect(screen.getByText("Confirmado pelo personal")).toBeInTheDocument();
+  });
+
   it("hides the delete button for the aluno once the personal has performed/confirmed the check-in", async () => {
     mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
 

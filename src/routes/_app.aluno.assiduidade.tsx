@@ -322,15 +322,18 @@ function PeriodView({
   if (view === "semana") {
     const days = eachDayOfInterval({ start: range.start, end: range.end });
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {days.map((d) => (
-          <DayCell
-            key={d.toISOString()}
-            day={d}
-            checkIns={dayCheckIns(d)}
-            onClick={() => onSelectDay(d)}
-          />
-        ))}
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {days.map((d) => (
+            <DayCell
+              key={d.toISOString()}
+              day={d}
+              checkIns={dayCheckIns(d)}
+              onClick={() => onSelectDay(d)}
+            />
+          ))}
+        </div>
+        <Legend />
       </div>
     );
   }
@@ -412,7 +415,11 @@ function DayCell({
               key={c.id}
               className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                c.status === "completed" ? "bg-success" : "bg-amber-500",
+                c.status !== "completed"
+                  ? "bg-amber-500"
+                  : c.performed_by === "personal"
+                    ? "bg-success"
+                    : "bg-primary",
               )}
             />
           ))}
@@ -431,7 +438,10 @@ function Legend() {
   return (
     <div className="flex flex-wrap gap-4 pt-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-success" /> Concluído
+        <span className="h-2 w-2 rounded-full bg-success" /> Confirmado pelo personal
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-primary" /> Feito pelo aluno
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-amber-500" /> Em andamento
