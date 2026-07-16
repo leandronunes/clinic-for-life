@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Archive, Info } from "lucide-react";
+import { CheckCircle2, Archive, Info, History } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/use-auth";
 import { fetchStudent } from "@/lib/api/students";
 import { fetchWorkouts, reorderWorkouts, type Exercise, type Workout } from "@/lib/api/workouts";
+import { fetchCheckInHistory } from "@/lib/api/check-ins";
+import { findLastExecutedWorkoutId, computeDefaultWorkoutId } from "@/lib/workout-rotation";
 import { toast } from "sonner";
 import { TreinoCard } from "@/components/treino/treino-card";
 import { ColarTreinoButton } from "@/components/treino/colar-treino-button";
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/_app/aluno/")({
   component: MeuTreinoPage,
 });
 
-function MeuTreinoPage() {
+export function MeuTreinoPage() {
   const { user, effectiveAlunoId, canWrite } = useAuth();
   const alunoId = effectiveAlunoId ?? user?.id ?? "";
   const { data, isLoading } = useQuery({
@@ -47,6 +49,18 @@ function MeuTreinoPage() {
     queryKey: ["aluno", alunoId],
     queryFn: () => fetchStudent(alunoId),
   });
+  // Drives both the "último treino executado" badge on the tabs and the
+  // default tab selected on load (see workout-rotation.ts) — same query key
+  // TreinoCard's check-in mutations already invalidate, so this stays fresh.
+  const { data: checkInHistory = [] } = useQuery({
+    queryKey: ["check-in", "history", alunoId],
+    queryFn: () => fetchCheckInHistory(alunoId),
+    enabled: !!alunoId,
+  });
+  const lastExecutedWorkoutId = useMemo(
+    () => findLastExecutedWorkoutId(checkInHistory),
+    [checkInHistory],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"ativos" | "arquivados">("ativos");
   const [videoEx, setVideoEx] = useState<Exercise | null>(null);
@@ -71,7 +85,14 @@ function MeuTreinoPage() {
     setLocalLista(serverLista);
   }, [serverLista]);
 
-  const treinoAtual = localLista.find((t) => t.id === selectedId) ?? localLista[0];
+  const defaultWorkoutId = useMemo(
+    () => computeDefaultWorkoutId(localLista, checkInHistory),
+    [localLista, checkInHistory],
+  );
+  const treinoAtual =
+    localLista.find((t) => t.id === selectedId) ??
+    localLista.find((t) => t.id === defaultWorkoutId) ??
+    localLista[0];
 
   const workoutSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -174,6 +195,7 @@ function MeuTreinoPage() {
                           key={t.id}
                           treino={t}
                           active={treinoAtual?.id === t.id}
+                          lastExecuted={t.id === lastExecutedWorkoutId}
                           onClick={() => setSelectedId(t.id)}
                         />
                       ))}
@@ -184,17 +206,26 @@ function MeuTreinoPage() {
                 <div className="flex flex-wrap gap-2">
                   {localLista.map((t) => {
                     const isActive = treinoAtual?.id === t.id;
+                    const isLastExecuted = t.id === lastExecutedWorkoutId;
                     return (
                       <Button
                         key={t.id}
                         variant={isActive ? "default" : "outline"}
                         onClick={() => setSelectedId(t.id)}
+                        aria-label={
+                          isLastExecuted ? `${t.title} — último treino executado` : undefined
+                        }
                         className={cn(
                           "max-w-[70vw] sm:max-w-[240px]",
                           isActive && "brand-gradient text-primary-foreground",
                         )}
                       >
-                        <span className="min-w-0 truncate">{t.title}</span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {isLastExecuted && (
+                            <History className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          )}
+                          <span className="min-w-0 truncate">{t.title}</span>
+                        </span>
                       </Button>
                     );
                   })}
@@ -225,10 +256,12 @@ function MeuTreinoPage() {
 function SortableWorkoutButton({
   treino,
   active,
+  lastExecuted,
   onClick,
 }: {
   treino: Workout;
   active: boolean;
+  lastExecuted: boolean;
   onClick: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -244,6 +277,7 @@ function SortableWorkoutButton({
       <Button
         variant={active ? "default" : "outline"}
         onClick={onClick}
+        aria-label={lastExecuted ? `${treino.title} — último treino executado` : undefined}
         className={cn(
           "max-w-[70vw] touch-none cursor-grab active:cursor-grabbing sm:max-w-[240px]",
           active && "brand-gradient text-primary-foreground",
@@ -251,7 +285,10 @@ function SortableWorkoutButton({
         {...attributes}
         {...listeners}
       >
-        <span className="min-w-0 truncate">{treino.title}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {lastExecuted && <History className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+          <span className="min-w-0 truncate">{treino.title}</span>
+        </span>
       </Button>
     </div>
   );

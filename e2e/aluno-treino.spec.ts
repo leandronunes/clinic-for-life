@@ -6,19 +6,28 @@ test.describe("Meu Treino (aluno)", () => {
     await loginAs(page, "aluno");
   });
 
-  test("mostra o primeiro treino ativo (posição 0) com seus exercícios", async ({ page }) => {
+  test("abre no próximo treino da rotação após o último executado (Treino A → Treino B)", async ({
+    page,
+  }) => {
+    // As fixtures seedam Treino A (workout-s1-a) como o mais recentemente
+    // executado (check-in concluído em 10/01) — ao abrir a página, o aluno
+    // deve cair direto no próximo da rotação (Treino B), não em Treino A.
     // Apenas o treino selecionado é exibido por completo; os demais aparecem
     // como botões com o título cadastrado do treino — ver SortableWorkoutButton.
-    // O título também aparece no cabeçalho do card do treino selecionado, então
-    // usamos o role "button" pra mirar só o seletor, evitando ambiguidade.
-    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
-    await expect(page.getByText("Supino reto")).toBeVisible();
-  });
-
-  test("troca para o segundo treino ativo pelo seletor 'Treino B'", async ({ page }) => {
-    await page.getByRole("button", { name: "Treino B" }).click();
     await expect(page.getByText("Agachamento livre")).toBeVisible();
     await expect(page.getByText("Cadeira extensora")).toBeVisible();
+  });
+
+  test("indica visualmente qual foi o último treino executado", async ({ page }) => {
+    await expect(
+      page.getByRole("button", { name: "Treino A — último treino executado" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Treino B", exact: true })).toBeVisible();
+  });
+
+  test("troca para o primeiro treino ativo pelo seletor 'Treino A'", async ({ page }) => {
+    await page.getByRole("button", { name: /Treino A/ }).click();
+    await expect(page.getByText("Supino reto")).toBeVisible();
   });
 
   test("aba Arquivados mostra o treino arquivado, não os ativos", async ({ page }) => {
@@ -143,7 +152,10 @@ test.describe("Meu Treino (admin visualizando como aluno)", () => {
     await page.goto("/usuarios");
     await page.getByRole("row").filter({ hasText: "Júlia Ferreira" }).click();
     await expect(page).toHaveURL("/aluno");
-    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
+    // O treino aberto por padrão segue a rotação (não é sempre Treino A) —
+    // seleciona Treino A explicitamente antes de removê-lo, pra garantir
+    // que é ele o alvo, e não o que a rotação abriu por padrão.
+    await page.getByRole("button", { name: "Treino A" }).click();
 
     await page.getByRole("button", { name: "Remover treino" }).click();
     await page.getByRole("button", { name: "Remover", exact: true }).click();
@@ -163,9 +175,11 @@ test.describe("Copiar e colar treino entre alunos (personal)", () => {
     await loginAs(page, "personal");
 
     // Origem: Júlia (student-1) tem "Treino A" com 3 exercícios — ver fixtures.
+    // O treino aberto por padrão segue a rotação (não é sempre Treino A) —
+    // seleciona Treino A explicitamente antes de copiar.
     await page.goto("/alunos/student-1");
     await expect(page).toHaveURL("/aluno");
-    await expect(page.getByRole("button", { name: "Treino A" })).toBeVisible();
+    await page.getByRole("button", { name: "Treino A" }).click();
 
     await page.getByLabel("Copiar treino").click();
     await expect(page.getByText(/copiado/i)).toBeVisible();
