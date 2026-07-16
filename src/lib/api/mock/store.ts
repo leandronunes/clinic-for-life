@@ -504,9 +504,29 @@ function getCheckIn(studentId: string, workoutId: string, checkInId: string): Wo
   return found;
 }
 
+function isSameLocalDay(isoA: string, dateB: Date): boolean {
+  const a = new Date(isoA);
+  return (
+    a.getFullYear() === dateB.getFullYear() &&
+    a.getMonth() === dateB.getMonth() &&
+    a.getDate() === dateB.getDate()
+  );
+}
+
+/** A workout only makes sense to check into once a day — mirrors the
+ * backend's #today_completed_check_in (WorkoutCheckInsController). */
+function todayCompletedCheckIn(workoutId: string): WorkoutCheckIn | undefined {
+  const now = new Date();
+  return checkInsFor(workoutId).find(
+    (c) => c.status === "completed" && c.completed_at && isSameLocalDay(c.completed_at, now),
+  );
+}
+
 export function getCurrentCheckIn(studentId: string, workoutId: string): WorkoutCheckIn | null {
   const workout = getWorkout(studentId, workoutId);
-  const found = checkInsFor(workout.id).find((c) => c.status === "in_progress");
+  const found =
+    checkInsFor(workout.id).find((c) => c.status === "in_progress") ??
+    todayCompletedCheckIn(workout.id);
   return found ? hydrateCheckIn(found) : null;
 }
 
@@ -521,6 +541,13 @@ export function startCheckIn(studentId: string, workoutId: string): WorkoutCheck
     const err: ApiError = {
       status: 422,
       message: "Já existe um check-in em andamento para este treino",
+    };
+    throw err;
+  }
+  if (todayCompletedCheckIn(workout.id)) {
+    const err: ApiError = {
+      status: 422,
+      message: "Este treino já foi concluído hoje. Remova o check-in para refazê-lo.",
     };
     throw err;
   }
