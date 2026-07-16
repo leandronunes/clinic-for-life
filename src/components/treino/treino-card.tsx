@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, Pencil, Archive, ArchiveRestore, CheckCircle2, Copy, Trash2 } from "lucide-react";
+import {
+  Play,
+  Pencil,
+  Archive,
+  ArchiveRestore,
+  BadgeCheck,
+  CheckCircle2,
+  Copy,
+  Trash2,
+} from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -48,7 +57,9 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   deleteCheckIn,
+  claimCheckIn,
 } from "@/lib/api/check-ins";
+import { useAuth } from "@/contexts/use-auth";
 import { SortableExerciseItem, ExerciseRowContent } from "./exercise-row";
 import { ExercicioFormDialog } from "./exercicio-form-dialog";
 import { TreinoFormDialog } from "./treino-form-dialog";
@@ -72,6 +83,8 @@ export function TreinoCard({
   canDelete?: boolean;
 }) {
   const qc = useQueryClient();
+  const { hasRole } = useAuth();
+  const isStaff = hasRole("admin") || hasRole("personal");
   const { copyWorkout } = useWorkoutClipboard();
   const canCopy = canEdit || canUnarchive;
   const [execOpen, setExecOpen] = useState(false);
@@ -133,6 +146,19 @@ export function TreinoCard({
       qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
     },
     onError: () => toast.error("Não foi possível remover o check-in"),
+  });
+
+  // Staff-only: confirma um check-in que o aluno fez sozinho, fazendo-o
+  // contar no ciclo de atendimento do personal — mirrors o botão "Confirmar
+  // check-in" nas telas de Treinos Concluídos e Assiduidade dos alunos.
+  const claimCheckInMut = useMutation({
+    mutationFn: () => claimCheckIn(alunoId, treino.id, checkIn!.id),
+    onSuccess: (data) => {
+      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
+      qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
+    },
+    onError: () => toast.error("Não foi possível confirmar o check-in"),
   });
 
   const toggleExerciseMut = useMutation({
@@ -364,37 +390,56 @@ export function TreinoCard({
             </div>
           ) : checkIn.status === "completed" ? (
             // Só um check-in por treino por dia (o backend também recusa um
-            // segundo) — refazer hoje exige remover este primeiro.
+            // segundo) — refazer hoje exige remover este primeiro. Uma vez
+            // que o personal confirmou o check-in (performed_by "personal"),
+            // só staff pode removê-lo — o aluno não vê mais o botão.
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
               <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
                 <CheckCircle2 className="h-4 w-4" />
                 Treino já concluído hoje ({checkIn.exercises_completed}/{checkIn.exercises_total})
               </span>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" disabled={deleteCheckInMut.isPending}>
-                    <Trash2 className="mr-1 h-4 w-4" /> Remover check-in
+              <div className="flex flex-wrap items-center gap-2">
+                {checkIn.performed_by === "aluno" && (
+                  <Badge variant="outline">Feito pelo aluno</Badge>
+                )}
+                {isStaff && checkIn.performed_by === "aluno" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => claimCheckInMut.mutate()}
+                    disabled={claimCheckInMut.isPending}
+                  >
+                    <BadgeCheck className="mr-1 h-4 w-4" /> Confirmar check-in
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remover este check-in?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Para refazer &quot;{treino.title}&quot; hoje,
-                      é preciso remover o check-in atual primeiro.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => deleteCheckInMut.mutate()}
-                      disabled={deleteCheckInMut.isPending}
-                    >
-                      {deleteCheckInMut.isPending ? "Removendo..." : "Remover"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                )}
+                {(checkIn.performed_by === "aluno" || isStaff) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" disabled={deleteCheckInMut.isPending}>
+                        <Trash2 className="mr-1 h-4 w-4" /> Remover check-in
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover este check-in?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Para refazer &quot;{treino.title}&quot;
+                          hoje, é preciso remover o check-in atual primeiro.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteCheckInMut.mutate()}
+                          disabled={deleteCheckInMut.isPending}
+                        >
+                          {deleteCheckInMut.isPending ? "Removendo..." : "Remover"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">

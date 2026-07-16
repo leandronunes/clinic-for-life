@@ -3,6 +3,11 @@ import type { CheckInFeedback } from "./check-in-feedbacks";
 
 export type CheckInStatus = "in_progress" | "completed";
 
+/** Quem realizou o check-in. Só "personal" conta no ciclo de atendimento do
+ * personal — um check-in "aluno" só passa a contar se confirmado via
+ * claimCheckIn(). */
+export type CheckInPerformedBy = "aluno" | "personal";
+
 export interface WorkoutCheckIn {
   id: string;
   workout_id: string;
@@ -10,6 +15,7 @@ export interface WorkoutCheckIn {
   student_id: string;
   student_name: string;
   status: CheckInStatus;
+  performed_by: CheckInPerformedBy;
   exercises_completed: number;
   exercises_total: number;
   completed_exercise_ids: string[];
@@ -75,7 +81,9 @@ export function markCheckInViewed(
 
 /** Removes a check-in (completed or in progress) — the student themselves,
  * their personal, or an admin may do this (e.g. a check-in started by
- * mistake). Cascades to its exercise check-ins and feedback. */
+ * mistake). Cascades to its exercise check-ins and feedback. Once a
+ * check-in has been claimed by the personal (performed_by "personal"),
+ * only staff (not the student) may still call this. */
 export function deleteCheckIn(
   studentId: string,
   workoutId: string,
@@ -83,5 +91,18 @@ export function deleteCheckIn(
 ): Promise<void> {
   return http.del<void>(
     `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}`,
+  );
+}
+
+/** Staff-only: confirms a check-in the student already did themselves,
+ * making it count toward the personal's attendance cycle from now on.
+ * Idempotent — claiming an already-claimed check-in just re-confirms it. */
+export function claimCheckIn(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+): Promise<WorkoutCheckIn> {
+  return http.post<WorkoutCheckIn>(
+    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/claim`,
   );
 }

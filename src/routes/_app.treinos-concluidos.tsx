@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BadgeCheck,
   CalendarCheck,
   ChevronDown,
   ClipboardCheck,
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchCompletedCheckIns,
   markCheckInViewed,
+  claimCheckIn,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 import {
@@ -279,6 +281,7 @@ function CheckInCard({
           <div className="font-medium">{checkIn.student_name}</div>
           <div className="text-sm text-muted-foreground">{checkIn.workout_title}</div>
         </div>
+        {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
         {isNew && <Badge>Novo</Badge>}
         {hasFeedback && (
           <span className="text-lg" aria-label="Feedback enviado">
@@ -388,6 +391,18 @@ function CheckInReviewDialog({
     onError: () => toast.error("Não foi possível remover o feedback"),
   });
 
+  const claimMut = useMutation({
+    mutationFn: () => {
+      if (!checkIn) throw new Error("Nenhum check-in selecionado");
+      return claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id);
+    },
+    onSuccess: () => {
+      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      onChanged();
+    },
+    onError: () => toast.error("Não foi possível confirmar o check-in"),
+  });
+
   function startEdit(fb: CheckInFeedback) {
     setEditingId(fb.id);
     setEditEmoji(fb.emoji);
@@ -412,6 +427,33 @@ function CheckInReviewDialog({
           </DialogHeader>
 
           <div className="space-y-4">
+            {checkIn.performed_by === "aluno" ? (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed p-3 text-xs">
+                <span className="text-muted-foreground">
+                  Feito pelo aluno — não conta no ciclo de atendimento ainda.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => claimMut.mutate()}
+                  disabled={claimMut.isPending}
+                >
+                  {claimMut.isPending ? (
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    <BadgeCheck className="mr-2 h-3 w-3" />
+                  )}
+                  Confirmar check-in
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                <BadgeCheck className="h-3 w-3 text-success" />
+                Confirmado pelo personal — conta no ciclo de atendimento.
+              </div>
+            )}
+
             <div className="flex items-center gap-3 rounded-lg border p-3">
               <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
                 <Dumbbell className="h-4 w-4" />

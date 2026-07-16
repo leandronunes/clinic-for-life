@@ -44,6 +44,7 @@ vi.mock("@/lib/api/check-ins", () => ({
   finishCheckIn: vi.fn(),
   toggleExerciseCheckIn: vi.fn(),
   deleteCheckIn: vi.fn(),
+  claimCheckIn: vi.fn(),
 }));
 import {
   fetchCurrentCheckIn,
@@ -51,13 +52,43 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   deleteCheckIn,
+  claimCheckIn,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 const mockFetchCurrentCheckIn = vi.mocked(fetchCurrentCheckIn);
 const mockStartCheckIn = vi.mocked(startCheckIn);
 const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
+const mockClaimCheckIn = vi.mocked(claimCheckIn);
 const mockFinishCheckIn = vi.mocked(finishCheckIn);
 const mockToggleExerciseCheckIn = vi.mocked(toggleExerciseCheckIn);
+
+vi.mock("@/contexts/use-auth", () => ({ useAuth: vi.fn() }));
+import { useAuth } from "@/contexts/use-auth";
+const mockUseAuth = vi.mocked(useAuth);
+
+function buildAuth(
+  overrides: Partial<ReturnType<typeof useAuth>> = {},
+): ReturnType<typeof useAuth> {
+  return {
+    user: { id: "s1", name: "Julia Ferreira", email: "julia@test.com", role: "aluno" },
+    token: "tok",
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
+    updateUser: vi.fn(),
+    hasRole: vi.fn(() => false),
+    canWrite: false,
+    impersonatedAlunoId: null,
+    effectiveAlunoId: "s1",
+    effectiveRole: "aluno",
+    isImpersonating: false,
+    impersonateAluno: vi.fn(),
+    stopImpersonating: vi.fn(),
+    ...overrides,
+  };
+}
 
 function createQueryClient() {
   return new QueryClient({
@@ -113,6 +144,7 @@ describe("TreinoCard", () => {
     mockUpdateExercise.mockResolvedValue(mockWorkout.exercises[1]);
     mockFetchCurrentCheckIn.mockResolvedValue(null);
     mockDeleteCheckIn.mockResolvedValue(undefined);
+    mockUseAuth.mockReturnValue(buildAuth());
     // ExecucaoTreinoDialog's carousel (Embla) reads matchMedia on mount — jsdom
     // doesn't implement it.
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -832,6 +864,7 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
+      performed_by: "aluno",
       exercises_completed: 1,
       exercises_total: 2,
       completed_exercise_ids: ["e1"],
@@ -1358,6 +1391,110 @@ describe("TreinoCard", () => {
         expect(toast.error).toHaveBeenCalledWith("Não foi possível remover o check-in"),
       );
     });
+
+    it("shows a badge and no claim button for a completed check-in the aluno performed themselves, viewed as the aluno", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        performed_by: "aluno",
+      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByText("Feito pelo aluno");
+      expect(screen.queryByRole("button", { name: /Confirmar check-in/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remover check-in" })).toBeInTheDocument();
+    });
+
+    it("lets a personal confirm a check-in the aluno performed themselves", async () => {
+      mockUseAuth.mockReturnValue(buildAuth({ hasRole: vi.fn(() => true) }));
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        performed_by: "aluno",
+      });
+      mockClaimCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        performed_by: "personal",
+      });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Confirmar check-in/i }));
+
+      await waitFor(() => {
+        expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+        expect(toast.success).toHaveBeenCalledWith(
+          "Check-in confirmado — agora conta no ciclo de atendimento",
+        );
+      });
+    });
+
+    it("hides the remove button from the aluno once the personal has performed/confirmed the check-in", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        performed_by: "personal",
+      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByText("Treino já concluído hoje (1/2)");
+      expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Remover check-in" })).not.toBeInTheDocument();
+    });
+
+    it("still lets a personal remove a check-in they performed, viewing via impersonation", async () => {
+      mockUseAuth.mockReturnValue(buildAuth({ hasRole: vi.fn(() => true) }));
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        performed_by: "personal",
+      });
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      expect(await screen.findByRole("button", { name: "Remover check-in" })).toBeInTheDocument();
+    });
   });
 
   describe("editing the load from the execution screen", () => {
@@ -1368,6 +1505,7 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
+      performed_by: "aluno",
       exercises_completed: 0,
       exercises_total: 2,
       completed_exercise_ids: [],
@@ -1476,6 +1614,7 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
+      performed_by: "aluno",
       exercises_completed: 0,
       exercises_total: 2,
       completed_exercise_ids: [],

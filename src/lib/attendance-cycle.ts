@@ -12,8 +12,11 @@ export interface AttendanceCycle {
   /** Percentual concluído (0-100+). 0 quando não há contrato. */
   percentage: number;
   status: AttendanceStatus;
-  /** Check-ins concluídos que caem dentro do ciclo, ordenados do mais recente para o mais antigo. */
+  /** Check-ins do personal (contam na quota) dentro do ciclo, do mais recente para o mais antigo. */
   checkInsInCycle: WorkoutCheckIn[];
+  /** Check-ins que o próprio aluno fez dentro do ciclo e o personal ainda não confirmou —
+   * não contam na quota até serem confirmados (ver claimCheckIn). */
+  pendingClaimCheckIns: WorkoutCheckIn[];
 }
 
 /**
@@ -34,8 +37,13 @@ export function computeAttendanceCycle(
     .filter((c) => Date.parse(c.completed_at as string) >= startMs)
     .sort((a, b) => Date.parse(b.completed_at as string) - Date.parse(a.completed_at as string));
 
-  const completedInCycle = withinCycle.length;
-  const lastCompletedAt = withinCycle[0]?.completed_at ?? null;
+  // Só check-ins feitos/confirmados pelo personal consomem a quota — espelha
+  // AttendanceCycle#completed_workouts no backend.
+  const checkInsInCycle = withinCycle.filter((c) => c.performed_by === "personal");
+  const pendingClaimCheckIns = withinCycle.filter((c) => c.performed_by === "aluno");
+
+  const completedInCycle = checkInsInCycle.length;
+  const lastCompletedAt = checkInsInCycle[0]?.completed_at ?? null;
 
   if (contracted == null || contracted <= 0) {
     return {
@@ -44,7 +52,8 @@ export function computeAttendanceCycle(
       lastCompletedAt,
       percentage: 0,
       status: "no_contract",
-      checkInsInCycle: withinCycle,
+      checkInsInCycle,
+      pendingClaimCheckIns,
     };
   }
 
@@ -58,7 +67,8 @@ export function computeAttendanceCycle(
     lastCompletedAt,
     percentage,
     status,
-    checkInsInCycle: withinCycle,
+    checkInsInCycle,
+    pendingClaimCheckIns,
   };
 }
 

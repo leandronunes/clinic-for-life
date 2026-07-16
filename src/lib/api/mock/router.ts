@@ -301,6 +301,8 @@ async function routeMockRequest<T>({
   if (match && m === "POST") return store.finishCheckIn(match[1], match[2], match[3]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/view$/.exec(path);
   if (match && m === "POST") return store.markCheckInViewed(match[1], match[2], match[3]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/claim$/.exec(path);
+  if (match && m === "POST") return store.claimCheckIn(match[1], match[2], match[3]) as T;
   match =
     /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)\/feedbacks\/([^/]+)$/.exec(
       path,
@@ -335,7 +337,7 @@ async function routeMockRequest<T>({
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/current$/.exec(path);
   if (match && m === "GET") return store.getCurrentCheckIn(match[1], match[2]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins$/.exec(path);
-  if (match && m === "POST") return store.startCheckIn(match[1], match[2]) as T;
+  if (match && m === "POST") return store.startCheckIn(match[1], match[2], token) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)$/.exec(path);
   if (match && m === "DELETE") {
     store.deleteCheckIn(match[1], match[2], match[3]);

@@ -40,6 +40,7 @@ const mockCheckIn: WorkoutCheckIn = {
   student_id: "s1",
   student_name: "Aluno",
   status: "in_progress",
+  performed_by: "aluno",
   exercises_completed: 0,
   exercises_total: 1,
   completed_exercise_ids: [],

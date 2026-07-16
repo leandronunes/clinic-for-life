@@ -6,6 +6,7 @@ function checkIn(
   id: string,
   completedAt: string | null,
   status: "completed" | "in_progress" = "completed",
+  performedBy: "aluno" | "personal" = "personal",
 ): WorkoutCheckIn {
   return {
     id,
@@ -14,6 +15,7 @@ function checkIn(
     student_id: "s",
     student_name: "S",
     status,
+    performed_by: performedBy,
     exercises_completed: 1,
     exercises_total: 1,
     completed_exercise_ids: [],
@@ -74,5 +76,28 @@ describe("computeAttendanceCycle", () => {
       null,
     );
     expect(result.completedInCycle).toBe(2);
+  });
+
+  it("does not count a check-in the student performed themselves, unclaimed by staff", () => {
+    const result = computeAttendanceCycle(
+      [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "aluno")],
+      10,
+      "2026-01-01T00:00:00.000Z",
+    );
+    expect(result.completedInCycle).toBe(0);
+    expect(result.checkInsInCycle).toEqual([]);
+    expect(result.pendingClaimCheckIns).toHaveLength(1);
+    expect(result.pendingClaimCheckIns[0].id).toBe("a");
+  });
+
+  it("counts a personal-performed check-in and keeps it out of pendingClaimCheckIns", () => {
+    const result = computeAttendanceCycle(
+      [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "personal")],
+      10,
+      "2026-01-01T00:00:00.000Z",
+    );
+    expect(result.completedInCycle).toBe(1);
+    expect(result.checkInsInCycle).toHaveLength(1);
+    expect(result.pendingClaimCheckIns).toEqual([]);
   });
 });
