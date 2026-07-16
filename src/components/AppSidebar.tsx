@@ -33,6 +33,7 @@ import { BrandLogo } from "./BrandLogo";
 import { useAuth } from "@/contexts/use-auth";
 import { Button } from "./ui/button";
 import type { UserRole } from "@/lib/api/auth";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDashboard }[]> = {
   admin: [
@@ -67,7 +68,9 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const menuRole = effectiveRole ?? user?.role;
-  const items = menuRole ? MENU[menuRole] : [];
+  const items = (menuRole ? MENU[menuRole] : []).filter(
+    (item) => item.url !== "/assiduidade-alunos" || isFeatureEnabled("attendanceCycles"),
+  );
 
   const isActive = (url: string) =>
     pathname === url || (url !== "/dashboard" && pathname.startsWith(url + "/"));

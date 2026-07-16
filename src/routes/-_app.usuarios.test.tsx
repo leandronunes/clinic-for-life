@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent, act, within } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock TanStack Router before importing the route — use importOriginal so
@@ -320,6 +320,57 @@ describe("UsuariosPage — AlunosTab", () => {
       await waitFor(() => expect(mockUpdateStudent).toHaveBeenCalled());
       const payload = mockUpdateStudent.mock.calls[0][1];
       expect(payload).not.toHaveProperty("partner_card_enabled");
+    });
+  });
+
+  describe("campo Treinos contratados por ciclo (feature flag)", () => {
+    beforeEach(() => {
+      // Don't rely on the ambient .env — pin a known "off" baseline so these
+      // tests pass regardless of what's set on the machine running them.
+      vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "false");
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    async function openEditDialog() {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+      const editBtn = screen
+        .getAllByRole("button")
+        .find((b) => !b.getAttribute("class")?.includes("destructive") && b.closest("td"));
+      if (editBtn) fireEvent.click(editBtn);
+      return screen.findByRole("dialog");
+    }
+
+    async function openCreateDialog() {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /novo aluno/i }));
+      return screen.findByRole("dialog");
+    }
+
+    it("hides the field in Editar aluno when the attendanceCycles flag is off", async () => {
+      const dialog = await openEditDialog();
+      expect(within(dialog).queryByText("Treinos contratados por ciclo")).not.toBeInTheDocument();
+    });
+
+    it("shows the field in Editar aluno when the attendanceCycles flag is on", async () => {
+      vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "true");
+      const dialog = await openEditDialog();
+      expect(within(dialog).getByText("Treinos contratados por ciclo")).toBeInTheDocument();
+    });
+
+    it("hides the field in Cadastrar aluno when the attendanceCycles flag is off", async () => {
+      const dialog = await openCreateDialog();
+      expect(within(dialog).queryByText("Treinos contratados por ciclo")).not.toBeInTheDocument();
+    });
+
+    it("shows the field in Cadastrar aluno when the attendanceCycles flag is on", async () => {
+      vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "true");
+      const dialog = await openCreateDialog();
+      expect(within(dialog).getByText("Treinos contratados por ciclo")).toBeInTheDocument();
     });
   });
 });

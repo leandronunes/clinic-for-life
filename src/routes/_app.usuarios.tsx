@@ -59,6 +59,7 @@ import {
   type Trainer,
 } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/usuarios")({
@@ -522,15 +523,19 @@ function NovoAlunoDialog({
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
           </Field>
-          <Field label="Treinos contratados por ciclo">
-            <Input
-              type="number"
-              min={1}
-              placeholder="Ex.: 12"
-              value={form.contracted_workouts_per_cycle}
-              onChange={(e) => setForm({ ...form, contracted_workouts_per_cycle: e.target.value })}
-            />
-          </Field>
+          {isFeatureEnabled("attendanceCycles") && (
+            <Field label="Treinos contratados por ciclo">
+              <Input
+                type="number"
+                min={1}
+                placeholder="Ex.: 12"
+                value={form.contracted_workouts_per_cycle}
+                onChange={(e) =>
+                  setForm({ ...form, contracted_workouts_per_cycle: e.target.value })
+                }
+              />
+            </Field>
+          )}
 
           {!lockedPersonalId && (
             <Field label="Personal responsável" className="sm:col-span-2">
@@ -676,20 +681,22 @@ function EditAlunoDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Treinos contratados por ciclo">
-            <Input
-              type="number"
-              min={1}
-              placeholder="Ex.: 12"
-              value={form.contracted_workouts_per_cycle ?? ""}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  contracted_workouts_per_cycle: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            />
-          </Field>
+          {isFeatureEnabled("attendanceCycles") && (
+            <Field label="Treinos contratados por ciclo">
+              <Input
+                type="number"
+                min={1}
+                placeholder="Ex.: 12"
+                value={form.contracted_workouts_per_cycle ?? ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    contracted_workouts_per_cycle: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              />
+            </Field>
+          )}
 
           {canChangePersonal && (
             <Field label="Personal responsável">

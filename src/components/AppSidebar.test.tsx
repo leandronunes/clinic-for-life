@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { ReactNode } from "react";
 import type { AuthUser } from "@/lib/api/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -107,5 +107,54 @@ describe("AppSidebar", () => {
     renderSidebar();
 
     expect(screen.getByRole("link", { name: /perfil/i })).toHaveAttribute("href", "/perfil");
+  });
+
+  describe("feature flag: attendanceCycles", () => {
+    beforeEach(() => {
+      // Don't rely on the ambient .env — pin a known "off" baseline so these
+      // tests pass regardless of what's set on the machine running them.
+      vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "false");
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('esconde "Assiduidade" (dos alunos) do menu do admin quando a flag está desligada', () => {
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.queryByRole("link", { name: /assiduidade/i })).not.toBeInTheDocument();
+    });
+
+    it('mostra "Assiduidade" (dos alunos) no menu do admin quando a flag está ligada', () => {
+      vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "true");
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /assiduidade/i })).toHaveAttribute(
+        "href",
+        "/assiduidade-alunos",
+      );
+    });
+
+    it('não esconde a "Assiduidade" do próprio aluno (rota diferente) quando a flag está desligada', () => {
+      const alunoUser: AuthUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "julia@test.com",
+        role: "aluno",
+      };
+      mockUseAuth.mockReturnValue(buildAuth({ user: alunoUser, effectiveRole: "aluno" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /assiduidade/i })).toHaveAttribute(
+        "href",
+        "/aluno/assiduidade",
+      );
+    });
   });
 });
