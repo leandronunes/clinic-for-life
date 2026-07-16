@@ -443,7 +443,12 @@ export function ExecucaoTreinoDialog({
   const restProgress = restSecs > 0 ? (restSecs - remaining) / restSecs : 0;
 
   // ---- Contextual primary CTA (large button at the bottom) ---------------
-  type PrimaryAction = { label: string; icon: typeof Play; onClick: () => void; tone?: "success" };
+  type PrimaryAction = {
+    label: string;
+    icon: typeof Play;
+    onClick: () => void;
+    tone?: "success" | "amber";
+  };
   let primary: PrimaryAction | null = null;
 
   if (!isViewingStarted) {
@@ -475,7 +480,7 @@ export function ExecucaoTreinoDialog({
       primary = {
         label: `Iniciar descanso (${restSecs}s)`,
         icon: Clock,
-        tone: "success",
+        tone: "amber",
         onClick: () => {
           setRemaining(restSecs);
           setPhase("resting");
@@ -609,6 +614,8 @@ export function ExecucaoTreinoDialog({
                 "h-14 w-full text-base font-semibold shadow-sm",
                 primary.tone === "success" &&
                   "bg-success text-success-foreground hover:bg-success/90",
+                primary.tone === "amber" &&
+                  "border-2 border-amber-500/60 bg-amber-500/15 text-amber-800 hover:bg-amber-500/25 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30",
               )}
               disabled={canDisableStart}
               onClick={primary.onClick}
