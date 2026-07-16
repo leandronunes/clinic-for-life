@@ -101,6 +101,7 @@ Quando estiver executando em um ambiente com Git local e GitHub CLI:
 - Commit e push devem ocorrer por Pull Request.
 - Nunca faça push direto para `main`.
 - **Toda mensagem de commit deve ser escrita em inglês**, independentemente do idioma usado na conversa.
+- **Sempre que um PR for mergeado, volte para a branch `main` local e atualize com `git pull`** antes de iniciar qualquer trabalho novo (ex.: criar a próxima branch de feature).
 
 Quando estiver executando no Lovable:
 
