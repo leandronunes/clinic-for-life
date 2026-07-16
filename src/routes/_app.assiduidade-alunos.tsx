@@ -34,11 +34,9 @@ import {
 } from "@/components/ui/table";
 import { fetchStudents, type Student } from "@/lib/api/students";
 import { fetchCompletedCheckIns, claimCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
-import {
-  fetchAttendanceCycleHistory,
-  renewAttendanceCycle,
-  type AttendanceCycleRecord,
-} from "@/lib/api/attendance-cycles";
+import { formatCheckInDateTime } from "@/lib/check-in-format";
+import { CycleHistoryRow } from "@/components/CycleHistoryRow";
+import { fetchAttendanceCycleHistory, renewAttendanceCycle } from "@/lib/api/attendance-cycles";
 import { useAuth } from "@/contexts/use-auth";
 import {
   computeAttendanceCycle,
@@ -370,13 +368,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                         <div className="text-sm font-medium">{c.workout_title}</div>
                         <div className="text-xs text-muted-foreground">
                           {c.completed_at
-                            ? new Date(c.completed_at).toLocaleString("pt-BR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                            ? formatCheckInDateTime(new Date(c.completed_at), { withYear: true })
                             : "—"}{" "}
                           · {c.exercises_completed}/{c.exercises_total} exercícios
                         </div>
@@ -400,13 +392,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                         <div className="text-sm font-medium">{c.workout_title}</div>
                         <div className="text-xs text-muted-foreground">
                           {c.completed_at
-                            ? new Date(c.completed_at).toLocaleString("pt-BR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                            ? formatCheckInDateTime(new Date(c.completed_at), { withYear: true })
                             : "—"}{" "}
                           · Feito pelo aluno — não conta na quota ainda
                         </div>
@@ -482,31 +468,5 @@ function CycleHistorySection({ studentId }: { studentId: string }) {
         </ul>
       )}
     </div>
-  );
-}
-
-function CycleHistoryRow({ cycle }: { cycle: AttendanceCycleRecord }) {
-  return (
-    <li className="flex items-center justify-between gap-3 p-3">
-      <div>
-        <div className="text-sm font-medium">
-          {new Date(cycle.started_at).toLocaleDateString("pt-BR")} —{" "}
-          {new Date(cycle.ended_at).toLocaleDateString("pt-BR")}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {cycle.completed_workouts} / {cycle.contracted_workouts_per_cycle} treinos (
-          {cycle.percentage}%)
-        </div>
-      </div>
-      <Badge
-        className={
-          cycle.status === "exceeded"
-            ? "bg-destructive text-destructive-foreground"
-            : "bg-success text-success-foreground"
-        }
-      >
-        {cycle.status === "exceeded" ? "Estourou" : "Cumpriu"}
-      </Badge>
-    </li>
   );
 }

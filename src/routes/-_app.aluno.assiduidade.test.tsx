@@ -463,7 +463,7 @@ describe("AssiduidadePage", () => {
 
   it("still lets a personal remove a check-in they performed, viewing via impersonation", async () => {
     mockUseAuth.mockReturnValue(
-      buildAuth({ hasRole: vi.fn((...roles) => roles.includes("personal")) }),
+      buildAuth({ canWrite: true, hasRole: vi.fn((...roles) => roles.includes("personal")) }),
     );
     mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
 
@@ -485,7 +485,7 @@ describe("AssiduidadePage", () => {
 
   it("lets a personal confirm a check-in the aluno performed themselves, viewing via impersonation", async () => {
     mockUseAuth.mockReturnValue(
-      buildAuth({ hasRole: vi.fn((...roles) => roles.includes("personal")) }),
+      buildAuth({ canWrite: true, hasRole: vi.fn((...roles) => roles.includes("personal")) }),
     );
     mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
     mockClaimCheckIn.mockResolvedValue(buildCheckIn({ performed_by: "personal" }));

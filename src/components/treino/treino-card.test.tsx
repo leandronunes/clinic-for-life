@@ -1416,7 +1416,7 @@ describe("TreinoCard", () => {
     });
 
     it("lets a personal confirm a check-in the aluno performed themselves", async () => {
-      mockUseAuth.mockReturnValue(buildAuth({ hasRole: vi.fn(() => true) }));
+      mockUseAuth.mockReturnValue(buildAuth({ canWrite: true, hasRole: vi.fn(() => true) }));
       mockFetchCurrentCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
         status: "completed",
@@ -1475,7 +1475,7 @@ describe("TreinoCard", () => {
     });
 
     it("still lets a personal remove a check-in they performed, viewing via impersonation", async () => {
-      mockUseAuth.mockReturnValue(buildAuth({ hasRole: vi.fn(() => true) }));
+      mockUseAuth.mockReturnValue(buildAuth({ canWrite: true, hasRole: vi.fn(() => true) }));
       mockFetchCurrentCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
         status: "completed",
