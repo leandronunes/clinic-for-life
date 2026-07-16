@@ -650,9 +650,8 @@ export function ExecucaoTreinoDialog({
                     <Pause className="mr-1.5 h-4 w-4" /> Parar
                   </Button>
                   <Button
-                    variant="outline"
                     size="icon"
-                    className="h-11 w-11 shrink-0"
+                    className="h-11 w-11 shrink-0 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
                     aria-label="Zerar cronômetro"
                     onClick={() => setElapsed(0)}
                   >
@@ -661,7 +660,10 @@ export function ExecucaoTreinoDialog({
                 </>
               )}
               {phase === "paused" && (
-                <Button variant="outline" className="h-11 flex-1" onClick={() => setElapsed(0)}>
+                <Button
+                  className="h-11 flex-1 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
+                  onClick={() => setElapsed(0)}
+                >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
                 </Button>
               )}
@@ -682,8 +684,7 @@ export function ExecucaoTreinoDialog({
           )}
 
           <Button
-            variant="outline"
-            className="h-10 w-full text-sm text-muted-foreground hover:text-foreground"
+            className="h-10 w-full border-2 border-success/60 bg-success/15 text-sm text-success hover:bg-success/25"
             onClick={handleConcluir}
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
