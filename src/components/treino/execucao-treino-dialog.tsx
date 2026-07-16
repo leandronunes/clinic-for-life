@@ -136,28 +136,41 @@ const PHASE_BADGE: Record<
   },
 };
 
+const COMPLETED_BADGE = {
+  icon: CheckCircle2,
+  badgeClass: "bg-success/15 text-success",
+  tone: "success" as TimerTone,
+  cardClass: "border-success/60 bg-success/5",
+};
+
 /** One exercise's stats + timer + notes — rendered once per carousel slide in
  * ExecucaoTreinoDialog. Only the slide matching the dialog's `idx` receives a
  * live `active` state; every other (swiped-away) slide shows an idle
- * placeholder, since only one exercise's timer runs at a time. */
+ * placeholder, since only one exercise's timer runs at a time — unless the
+ * exercise was already completed in a previous pass, in which case it keeps
+ * showing as done (full set count, success badge) instead of resetting back
+ * to "Pronto para começar". */
 function ExerciseExecutionCard({
   exercise,
   active,
+  completed,
 }: {
   exercise: Exercise;
   active: ExecutionCardActiveState | null;
+  completed: boolean;
 }) {
   const kind = getKind(exercise);
   const isCardio = kind === "cardio";
   const totalSets = Math.max(1, exercise.sets ?? 1);
   const restSecs = exercise.rest_seconds ?? 0;
 
+  const showAsCompleted = completed && !active;
   const phase = active?.phase ?? "idle";
-  const currentSet = active?.currentSet ?? 1;
-  const phaseLabel = active?.phaseLabel ?? "Pronto para começar";
+  const currentSet = active?.currentSet ?? (showAsCompleted ? totalSets : 1);
+  const phaseLabel = active?.phaseLabel ?? (showAsCompleted ? "Concluído" : "Pronto para começar");
   const clockValue = active?.clockValue ?? formatClock(0);
   const restProgress = active?.restProgress ?? 0;
-  const badge = PHASE_BADGE[phase];
+  const badge = showAsCompleted ? COMPLETED_BADGE : PHASE_BADGE[phase];
   const BadgeIcon = badge.icon;
   // Executing/paused/idle count up with no fixed target, so the ring is a
   // full static frame for those — only "resting" has a real fraction to show.
@@ -309,12 +322,16 @@ export function ExecucaoTreinoDialog({
   treino,
   checkIn,
   onToggleExercise,
+  focusExerciseId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   treino: Workout;
   checkIn: WorkoutCheckIn;
   onToggleExercise: (exerciseId: string, completed: boolean) => void;
+  /** Exercise to open the dialog on (e.g. clicked directly from the workout
+   * list), taking priority over resuming the started/first-pending one. */
+  focusExerciseId?: string | null;
 }) {
   const exercises = useMemo(
     () => [...treino.exercises].sort((a, b) => a.position - b.position),
@@ -342,9 +359,15 @@ export function ExecucaoTreinoDialog({
   startedIdxRef.current = startedIdx;
   const firstPendingIdxRef = useRef(firstPendingIdx);
   firstPendingIdxRef.current = firstPendingIdx;
+  const focusExerciseIdRef = useRef(focusExerciseId);
+  focusExerciseIdRef.current = focusExerciseId;
   useEffect(() => {
-    if (open) setIdx(startedIdxRef.current ?? firstPendingIdxRef.current);
-  }, [open]);
+    if (!open) return;
+    const focusIdx = focusExerciseIdRef.current
+      ? exercises.findIndex((e) => e.id === focusExerciseIdRef.current)
+      : -1;
+    setIdx(focusIdx !== -1 ? focusIdx : (startedIdxRef.current ?? firstPendingIdxRef.current));
+  }, [open, exercises]);
 
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   useEffect(() => {
@@ -443,10 +466,26 @@ export function ExecucaoTreinoDialog({
   const restProgress = restSecs > 0 ? (restSecs - remaining) / restSecs : 0;
 
   // ---- Contextual primary CTA (large button at the bottom) ---------------
-  type PrimaryAction = { label: string; icon: typeof Play; onClick: () => void; tone?: "success" };
+  type PrimaryAction = {
+    label: string;
+    icon: typeof Play;
+    onClick: () => void;
+    tone?: "success" | "amber" | "primary";
+  };
   let primary: PrimaryAction | null = null;
 
-  if (!isViewingStarted) {
+  if (!isViewingStarted && alreadyCompleted) {
+    // Already concluded and not the one currently running — offer to undo
+    // instead of letting "Iniciar série"/"Concluir exercício" fire again on
+    // a finished exercise (see the "Concluir exercício" button below, which
+    // is hidden in this same state).
+    primary = {
+      label: "Reiniciar série",
+      icon: RotateCcw,
+      tone: "primary",
+      onClick: () => onToggleExercise(current.id, false),
+    };
+  } else if (!isViewingStarted) {
     primary = {
       label: isCardio ? "Iniciar cardio" : `Iniciar série ${currentSet}`,
       icon: Play,
@@ -475,7 +514,7 @@ export function ExecucaoTreinoDialog({
       primary = {
         label: `Iniciar descanso (${restSecs}s)`,
         icon: Clock,
-        tone: "success",
+        tone: "amber",
         onClick: () => {
           setRemaining(restSecs);
           setPhase("resting");
@@ -586,6 +625,7 @@ export function ExecucaoTreinoDialog({
                         ? { phase, currentSet, phaseLabel, clockValue, restProgress }
                         : null
                     }
+                    completed={checkIn.completed_exercise_ids.includes(ex.id)}
                   />
                 </CarouselItem>
               ))}
@@ -609,6 +649,10 @@ export function ExecucaoTreinoDialog({
                 "h-14 w-full text-base font-semibold shadow-sm",
                 primary.tone === "success" &&
                   "bg-success text-success-foreground hover:bg-success/90",
+                primary.tone === "amber" &&
+                  "border-2 border-amber-500/60 bg-amber-500/15 text-amber-800 hover:bg-amber-500/25 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30",
+                primary.tone === "primary" &&
+                  "border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25",
               )}
               disabled={canDisableStart}
               onClick={primary.onClick}
@@ -637,16 +681,14 @@ export function ExecucaoTreinoDialog({
               {phase === "executing" && (
                 <>
                   <Button
-                    variant="secondary"
-                    className="h-11 flex-1"
+                    className="h-11 flex-1 border-2 border-destructive/60 bg-destructive/15 text-destructive hover:bg-destructive/25"
                     onClick={() => setPhase("paused")}
                   >
                     <Pause className="mr-1.5 h-4 w-4" /> Parar
                   </Button>
                   <Button
-                    variant="outline"
                     size="icon"
-                    className="h-11 w-11 shrink-0"
+                    className="h-11 w-11 shrink-0 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
                     aria-label="Zerar cronômetro"
                     onClick={() => setElapsed(0)}
                   >
@@ -655,7 +697,10 @@ export function ExecucaoTreinoDialog({
                 </>
               )}
               {phase === "paused" && (
-                <Button variant="outline" className="h-11 flex-1" onClick={() => setElapsed(0)}>
+                <Button
+                  className="h-11 flex-1 border-2 border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
+                  onClick={() => setElapsed(0)}
+                >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
                 </Button>
               )}
@@ -675,16 +720,17 @@ export function ExecucaoTreinoDialog({
             </Button>
           )}
 
-          <Button
-            variant="outline"
-            className="h-10 w-full text-sm text-muted-foreground hover:text-foreground"
-            onClick={handleConcluir}
-          >
-            <CheckCircle2 className="mr-1.5 h-4 w-4" />
-            {idx + 1 < exercises.length
-              ? "Concluir exercício e ir para o próximo"
-              : "Concluir exercício e fechar"}
-          </Button>
+          {!(alreadyCompleted && !isViewingStarted) && (
+            <Button
+              className="h-10 w-full border-2 border-success/60 bg-success/15 text-sm text-success hover:bg-success/25"
+              onClick={handleConcluir}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" />
+              {idx + 1 < exercises.length
+                ? "Concluir exercício e ir para o próximo"
+                : "Concluir exercício e fechar"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

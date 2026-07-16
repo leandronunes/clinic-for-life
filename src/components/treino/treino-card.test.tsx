@@ -1111,6 +1111,14 @@ describe("TreinoCard", () => {
         ...inProgressCheckIn,
         completed_exercise_ids: [],
       });
+      // Only "Supino reto" (e1) gets completed in this test — "Crucifixo"
+      // (e2) must stay pending so it keeps offering "Iniciar série" instead
+      // of "Reiniciar série" once we navigate to it.
+      mockToggleExerciseCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        exercises_completed: 1,
+        completed_exercise_ids: ["e1"],
+      });
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const user = userEvent.setup();
       render(
@@ -1158,6 +1166,115 @@ describe("TreinoCard", () => {
       expect(within(dialog).getByRole("button", { name: /Iniciar série 1/i })).not.toBeDisabled();
 
       vi.useRealTimers();
+    });
+
+    it("marks an already-completed exercise as done when navigating back to it, offering to restart instead of concluding it again", async () => {
+      // e1 (Supino reto) is already completed per inProgressCheckIn; the
+      // dialog opens on the first pending exercise (e2/Crucifixo).
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: /Retomar execução/i }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Crucifixo")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Exercício anterior" }));
+      const supinoSlide = within(dialog).getByRole("group", { name: "Supino reto" });
+
+      // Visual state reflects completion, not the idle default.
+      expect(within(supinoSlide).getByText("Concluído")).toBeInTheDocument();
+      expect(within(supinoSlide).getByText("4/4")).toBeInTheDocument();
+
+      // Neither "iniciar" nor "concluir" make sense on a finished exercise
+      // (the regex is anchored so it doesn't also match "Reiniciar série").
+      expect(
+        within(dialog).queryByRole("button", { name: /^Iniciar série/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(dialog).queryByRole("button", { name: /Concluir exercício/i }),
+      ).not.toBeInTheDocument();
+
+      mockToggleExerciseCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        exercises_completed: 0,
+        completed_exercise_ids: [],
+      });
+      await user.click(within(dialog).getByRole("button", { name: /Reiniciar série/i }));
+
+      await waitFor(() =>
+        expect(mockToggleExerciseCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1", "e1", false),
+      );
+    });
+
+    it("opens the execution dialog focused on the exercise that was clicked", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Retomar execução/i });
+      // Clicking the (already completed) Supino reto row directly must open
+      // on Supino reto, not the default first-pending exercise (Crucifixo).
+      await user.click(screen.getByRole("button", { name: /Abrir execução de "Supino reto"/i }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("group", { name: "Supino reto" })).toBeInTheDocument();
+    });
+
+    it("does not open the execution dialog when clicking the row's toggle icon", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+      mockToggleExerciseCheckIn.mockResolvedValue(inProgressCheckIn);
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(
+        await screen.findByRole("button", { name: /Marcar "Crucifixo" como concluído/i }),
+      );
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("does not make exercise rows clickable before the workout is started", async () => {
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await screen.findByRole("button", { name: /Iniciar treino/i });
+      expect(screen.queryByRole("button", { name: /Abrir execução de/i })).not.toBeInTheDocument();
     });
   });
 

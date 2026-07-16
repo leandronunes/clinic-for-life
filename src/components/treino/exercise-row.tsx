@@ -33,6 +33,9 @@ interface ExerciseRowProps {
   canEdit: boolean;
   checkIn?: WorkoutCheckIn | null;
   onToggleExercise?: (exerciseId: string, completed: boolean) => void;
+  /** Only passed once a check-in is in progress — opens the execution dialog
+   * focused on this exercise instead of wherever it would otherwise resume. */
+  onOpenExecution?: (exercise: Exercise) => void;
 }
 
 export function SortableExerciseItem(props: ExerciseRowProps) {
@@ -67,6 +70,7 @@ export function ExerciseRowContent({
   canEdit,
   checkIn,
   onToggleExercise,
+  onOpenExecution,
   dragHandleListeners,
   dragHandleAttributes,
 }: ExerciseRowProps & {
@@ -78,12 +82,35 @@ export function ExerciseRowContent({
   const KindIcon = meta.icon;
   return (
     <div
-      className={cn("flex flex-col gap-3 rounded-lg border p-4 transition-colors", meta.rowClass)}
+      className={cn(
+        "flex flex-col gap-3 rounded-lg border p-4 transition-colors",
+        meta.rowClass,
+        onOpenExecution && "cursor-pointer hover:border-primary/40 hover:bg-primary/5",
+      )}
+      role={onOpenExecution ? "button" : undefined}
+      tabIndex={onOpenExecution ? 0 : undefined}
+      aria-label={onOpenExecution ? `Abrir execução de "${exercise.name}"` : undefined}
+      onClick={onOpenExecution ? () => onOpenExecution(exercise) : undefined}
+      onKeyDown={
+        onOpenExecution
+          ? (e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              onOpenExecution(exercise);
+            }
+          : undefined
+      }
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           {onToggleExercise ? (
-            <ExerciseToggleIcon exercise={exercise} checkIn={checkIn} onToggle={onToggleExercise} />
+            <span onClick={(e) => e.stopPropagation()}>
+              <ExerciseToggleIcon
+                exercise={exercise}
+                checkIn={checkIn}
+                onToggle={onToggleExercise}
+              />
+            </span>
           ) : (
             <div
               className={cn(
@@ -100,6 +127,7 @@ export function ExerciseRowContent({
               type="button"
               className="flex shrink-0 cursor-grab items-center self-center p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
               aria-label="Reordenar exercício"
+              onClick={(e) => e.stopPropagation()}
               {...dragHandleAttributes}
               {...dragHandleListeners}
             >
@@ -170,7 +198,10 @@ export function ExerciseRowContent({
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <div
+          className="flex flex-wrap items-center gap-2 self-start sm:self-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           {exercise.video_url && (
             <Button size="sm" variant="outline" onClick={() => onWatch(exercise)}>
               <Play className="mr-1 h-4 w-4" /> Ver execução
@@ -195,7 +226,11 @@ export function ExerciseRowContent({
           )}
         </div>
       </div>
-      {exercise.notes && <CollapsibleNote notes={exercise.notes} variant="plain" />}
+      {exercise.notes && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <CollapsibleNote notes={exercise.notes} variant="plain" />
+        </div>
+      )}
     </div>
   );
 }
