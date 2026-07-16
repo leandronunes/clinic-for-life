@@ -164,9 +164,11 @@ function LoadStatBox({
 
   if (editing) {
     return (
-      <div className="rounded-md border border-primary bg-card p-2 text-center">
-        <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
+      <div className="flex flex-col items-center justify-center rounded-lg border border-primary bg-card px-2 py-2.5 text-center">
+        <Weight className="mb-1 h-4 w-4 text-primary" aria-hidden />
+        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Carga
+        </div>
         <input
           type="number"
           inputMode="decimal"
@@ -174,7 +176,7 @@ function LoadStatBox({
           min="0"
           autoFocus
           aria-label="Carga em quilos"
-          className="mt-0.5 w-full rounded border bg-background text-center text-sm font-semibold outline-none"
+          className="mt-0.5 w-full rounded border bg-background text-center text-base font-bold tabular-nums outline-none"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
@@ -197,12 +199,14 @@ function LoadStatBox({
         setDraft(exercise.load_kg != null ? String(exercise.load_kg) : "");
         setEditing(true);
       }}
-      className="rounded-md border bg-card p-2 text-center transition-colors hover:border-primary"
+      className="flex flex-col items-center justify-center rounded-lg border bg-card px-2 py-2.5 text-center transition-colors hover:border-primary"
       aria-label={`Editar carga, atualmente ${exercise.load_kg ? `${exercise.load_kg} kg` : "não definida"}`}
     >
-      <Weight className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Carga</div>
-      <div className="mt-0.5 text-sm font-semibold">
+      <Weight className="mb-1 h-4 w-4 text-primary" aria-hidden />
+      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        Carga
+      </div>
+      <div className="mt-0.5 text-base font-bold tabular-nums">
         {exercise.load_kg ? `${exercise.load_kg} kg` : "—"}
       </div>
     </button>
