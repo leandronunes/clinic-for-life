@@ -15,6 +15,7 @@ import {
   fetchCheckInHistory,
   fetchCompletedCheckIns,
   markCheckInViewed,
+  deleteCheckIn,
 } from "./check-ins";
 
 const STATUSES = ["in_progress", "completed"];
@@ -235,6 +236,25 @@ describe("check-ins API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const checkIn = await markCheckInViewed("2301", "2342", "2352");
         expect(checkIn.viewed_at).toEqual(expect.any(String));
+      });
+    });
+  });
+
+  it("lets the student remove their own check-in", async () => {
+    const pact = createPact();
+    pact
+      .given("student 2301 has a completed check-in 2353 on workout 2343 to remove")
+      .uponReceiving("a request from the student to remove their own check-in")
+      .withRequest({
+        method: "DELETE",
+        path: "/api/v1/students/2301/workouts/2343/check_ins/2353",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({ status: 204 });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        await expect(deleteCheckIn("2301", "2343", "2353")).resolves.toBeUndefined();
       });
     });
   });

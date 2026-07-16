@@ -336,6 +336,11 @@ async function routeMockRequest<T>({
   if (match && m === "GET") return store.getCurrentCheckIn(match[1], match[2]) as T;
   match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins$/.exec(path);
   if (match && m === "POST") return store.startCheckIn(match[1], match[2]) as T;
+  match = /^\/api\/v1\/students\/([^/]+)\/workouts\/([^/]+)\/check_ins\/([^/]+)$/.exec(path);
+  if (match && m === "DELETE") {
+    store.deleteCheckIn(match[1], match[2], match[3]);
+    return undefined as T;
+  }
   match = /^\/api\/v1\/students\/([^/]+)\/check_ins$/.exec(path);
   if (match && m === "GET") return store.listCheckIns(match[1]) as T;
 
