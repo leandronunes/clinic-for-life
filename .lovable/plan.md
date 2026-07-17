@@ -1,85 +1,94 @@
-# Assiduidade dos alunos (visão do personal)
+## Objetivo
 
-Nova tela para o personal/admin acompanhar quantos treinos cada aluno concluiu no ciclo atual e se já estourou a quota contratada.
+Criar um **Calendário de Treinos Dinâmico** com duas experiências:
 
-## Escopo funcional
+- **Aluno**: agenda pessoal (dia/semana/mês) com os treinos programados; cada dia planejado abre a rotina do dia e permite iniciar a execução.
+- **Personal**: agenda consolidada de todos os alunos (dia/semana/mês) para visualizar horários ocupados, lacunas e planejar novas aulas recorrentes por aluno (dias da semana + horário por dia + data-fim).
 
-1. **Campo novo no aluno** — `contracted_workouts_per_cycle` (inteiro, opcional).
-   - Editável no formulário de cadastro/edição do aluno.
-   - Quando vazio, o aluno aparece na tela como "sem contrato definido" (sem alerta de estouro).
+## Escopo do frontend (este repo)
 
-2. **Ciclo baseado em treinos concluídos** (não em datas fixas):
-   - Um "ciclo" = os N últimos check-ins concluídos, onde N = quota contratada.
-   - Ciclo atual = check-ins concluídos desde o fim do ciclo anterior (quando o aluno bateu a quota, um novo ciclo começa).
-   - Cálculo derivado dos `completed_check_ins` já existentes — sem tabela nova de "ciclo".
+Backend Rails ainda não tem os endpoints de agendamento — vou seguir o padrão já usado em `ciclos de assiduidade` e `contracted_workouts_per_cycle`: implementar tudo no cliente + **mock offline** (`src/lib/api/mock/*`), com o módulo de API pronto para plugar quando o backend expor os endpoints. Sem mudanças no backend nesta entrega.
 
-3. **Nova tela `/assiduidade-alunos`** (menu do personal e admin):
-   - Lista todos os alunos ativos do personal (ou todos, se admin).
-   - Cada linha mostra:
-     - Nome do aluno.
-     - Quota contratada (ex.: `12`).
-     - Treinos concluídos no ciclo atual (ex.: `9 / 12`).
-     - Barra de progresso.
-     - Badge de status: `Em dia`, `Próximo do limite` (≥80%), `Estourou` (>quota), `Sem contrato`.
-     - Data do último treino concluído.
-     - Botão para ver detalhes (abre modal com histórico dos check-ins do ciclo).
-   - Filtros: busca por nome, filtro por status.
-   - Ordenação por: nome, % concluído, treinos restantes.
+### Novos arquivos
 
-4. **Menu**: novo item "Assiduidade" no `AppSidebar` para papéis `admin` e `personal`.
+- `src/lib/api/schedules.ts` — tipos + funções `fetchSchedules`, `createSchedulePlan`, `updateScheduleSession`, `deleteScheduleSession`.
+- `src/lib/schedule.ts` — helpers puros: expandir plano recorrente em ocorrências entre duas datas, agrupar por dia/semana/mês, resolver conflitos de horário. Com testes.
+- `src/lib/schedule.test.ts`.
+- `src/components/agenda/AgendaCalendar.tsx` — componente compartilhado (visão dia/semana/mês, navegação, célula de horário).
+- `src/components/agenda/PlanejarAulasDialog.tsx` — form do personal (aluno, dias da semana com horário individual, data-fim, observação).
+- `src/routes/_app.aluno.agenda.tsx` — rota do aluno.
+- `src/routes/_app.agenda.tsx` — rota do personal/admin.
+- Testes correspondentes em `src/routes/-_app.aluno.agenda.test.tsx` e `src/routes/-_app.agenda.test.tsx`.
 
-## Detalhes técnicos
+### Arquivos alterados
 
-### Backend (fora deste repo, precisa acompanhar)
-- Migration adicionando `contracted_workouts_per_cycle:integer` em `students`.
-- Atualizar `StudentSerializer` e strong params (`create`/`update`) para expor/aceitar o campo.
-- Opcional (recomendado): novo endpoint agregador `GET /api/v1/students/attendance_summary` retornando `[{ student_id, name, contracted, completed_current_cycle, last_completed_at }]` para evitar buscar todos os check-ins no cliente.
-- Se o endpoint agregador não for criado agora, o frontend calcula a partir de `GET /api/v1/completed_check_ins` + `GET /api/v1/students`.
+- `src/components/AppSidebar.tsx` — adicionar item "Agenda" para `aluno`, `personal` e `admin` (com `CalendarDays` icon), atrás de feature flag `agendaCalendar`.
+- `src/lib/feature-flags.ts` — nova flag `agendaCalendar` (default `true` no dev/mock, respeitando padrão dos outros).
+- `src/lib/api/mock/store.ts` + `src/lib/api/mock/fixtures.ts` — seed de sessões planejadas para os alunos demo (ex.: seg/qua/sex 07:00 por 8 semanas).
+- `src/lib/api/mock/router.ts` — handlers para `GET/POST/PATCH/DELETE /api/v1/schedule_sessions` e `POST /api/v1/schedule_plans`.
 
-### Frontend
+### Modelo de dados (cliente + mock)
 
-**Tipos/API**
-- `src/lib/api/students.ts`: adicionar `contracted_workouts_per_cycle?: number | null` em `Student` e nos payloads.
-- `src/lib/api/attendance.ts` (novo): função `fetchStudentsAttendance()` que:
-  - Se endpoint agregador existir, chama direto.
-  - Caso contrário, combina `fetchStudents({ status: "active" })` + `fetchCompletedCheckIns()` e calcula ciclo no cliente.
-- Lógica pura em `src/lib/attendance-cycle.ts` (com testes):
-  - `computeCurrentCycle(completedCheckIns, quota) => { completedInCycle, lastCompletedAt, cyclesFinished }`.
-  - Ordena check-ins por `completed_at` desc, agrupa em blocos de tamanho `quota`; o bloco mais recente incompleto é o ciclo atual.
+```ts
+type ScheduleSession = {
+  id: string;
+  student_id: string;
+  student_name: string;
+  trainer_id: string;
+  starts_at: string; // ISO, com timezone local
+  duration_minutes: number;
+  status: "planned" | "done" | "missed" | "canceled";
+  workout_id?: string | null;
+  notes?: string | null;
+  plan_id?: string | null;
+};
 
-**UI**
-- `src/routes/_app.assiduidade-alunos.tsx` (nova rota, protegida para `admin`/`personal`).
-- Componente `StudentAttendanceRow` com barra `Progress`, `Badge` de status usando tokens semânticos (`success`, `warning`, `destructive`).
-- Modal `StudentCycleDetailsDialog` listando os check-ins do ciclo atual (data, treino, tempo).
-- Filtros com `Input` + `Select` do shadcn.
-- Estados: loading (skeletons), erro, vazio.
+type SchedulePlan = {
+  student_id: string;
+  weekdays: Array<{ weekday: 0|1|2|3|4|5|6; time: string; duration_minutes: number }>;
+  starts_on: string; // YYYY-MM-DD
+  ends_on: string;   // YYYY-MM-DD
+  notes?: string;
+};
+```
 
-**Formulário do aluno**
-- Adicionar campo numérico "Treinos contratados por ciclo" no dialog de cadastro/edição do aluno em `src/routes/_app.usuarios.tsx` (opcional, min 1).
+`POST /schedule_plans` expande no servidor (mock) uma sessão por ocorrência entre `starts_on` e `ends_on`.
 
-**Sidebar**
-- `src/components/AppSidebar.tsx`: adicionar `{ title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck }` para `admin` e `personal`.
+### UX por perfil
 
-**Testes**
-- `src/lib/attendance-cycle.test.ts`: casos com 0 concluídos, ciclo parcial, quota exatamente batida, múltiplos ciclos completos, quota nula.
-- `src/lib/api/attendance.test.ts`: mockando `http`.
-- `src/routes/-_app.assiduidade-alunos.test.tsx`: renderiza linhas, filtra, mostra badge de estouro.
-- Atualizar `src/lib/api/mock/fixtures.ts` para incluir quota em alguns alunos e cobrir o modo offline (E2E).
+**Aluno (`/aluno/agenda`)**
+- Toggle Dia / Semana / Mês + navegação anterior/próximo + "Hoje" (mesmo padrão da tela de Assiduidade).
+- Dia: lista cronológica dos treinos do dia com CTA **Abrir treino do dia** → navega para `/aluno?workout=<id>`. Estado do dia: planejado / concluído / perdido.
+- Semana: grade 7 colunas × faixas horárias (6h–22h) com blocos coloridos por status.
+- Mês: calendário com pontinhos por dia (cor = status agregado).
 
-**E2E**
-- `e2e/assiduidade-alunos.spec.ts`: login como personal, abre a tela, verifica um aluno "em dia" e um "estourou".
+**Personal/Admin (`/agenda`)**
+- Mesma alternância Dia/Semana/Mês.
+- Semana é a visão principal: grade com todos os alunos consolidados, blocos mostrando `HH:mm • Nome do aluno`. Lacunas ficam evidentes visualmente (célula vazia).
+- Filtro rápido por aluno; admin vê todos os personais.
+- Botão **Planejar aulas** → abre `PlanejarAulasDialog`:
+  - Selecionar aluno (autocomplete dos alunos do personal).
+  - Checkbox de dias da semana; para cada dia marcado, campo de **horário** e **duração** independentes.
+  - Data-fim ("Repetir até").
+  - Observação.
+  - Preview do número total de sessões que serão criadas.
+- Clicar num bloco existente abre popover com: aluno, horário, status, botões **Cancelar sessão** e **Ir para o treino**.
+- Detecção de conflito de horário no submit (aviso visual, não bloqueia).
 
-## Fora de escopo
+### Regras técnicas seguidas
 
-- Cobrança/pagamento automático quando estoura a quota.
-- Renovação automática de contrato.
-- Notificação ao aluno quando está perto do limite (pode virar tarefa separada).
+- TanStack Query com `queryKey: ["schedule", { scope, from, to, trainerId?, studentId? }]`.
+- Todas as chamadas HTTP passam por `@/lib/api/http`.
+- react-hook-form + zod no form de planejamento (mensagens em pt-br).
+- Componentes shadcn/ui já existentes (Dialog, Popover, Select, Tabs, Calendar).
+- Testes cobrindo: expansão do plano recorrente, render das três visões, submit do planejamento (sucesso e conflito), navegação para o treino do dia.
+- `npm run lint` e `npm run test` (arquivos alterados) verdes antes de encerrar.
 
-## Pergunta pendente
+### Fora de escopo agora
 
-O endpoint agregador no backend Rails eu **não** consigo criar deste repositório (é outro projeto). Posso:
+- Endpoints reais no backend Rails (documento à parte na entrega).
+- Notificações push do dia de treino (reuso futuro do `use-push-notifications`).
+- Arrastar-e-soltar sessões no calendário do personal (v2).
+- Sincronização com Google/Apple Calendar (v2).
 
-- **(a)** Implementar já com fallback no cliente (busca `completed_check_ins` + `students` e calcula), e você adiciona o endpoint depois quando quiser otimizar; **ou**
-- **(b)** Esperar você adicionar `contracted_workouts_per_cycle` no backend antes de eu mexer no frontend.
-
-Confirma qual caminho seguir? (recomendo **a** para você já ver a tela funcionando; o campo `contracted_workouts_per_cycle` no backend ainda precisa ser adicionado para persistir, mas a UI já fica pronta.)
+Posso seguir com essa implementação?
