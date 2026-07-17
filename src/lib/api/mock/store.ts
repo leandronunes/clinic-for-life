@@ -1241,3 +1241,118 @@ export function changePassword(
   mockUsers[idx] = { ...mockUsers[idx], password: payload.password };
   return { message: "Senha atualizada com sucesso" };
 }
+
+/* -------------------- Schedule sessions (offline) -------------------- */
+
+import type {
+  ScheduleSession,
+  SchedulePlanPayload,
+  UpdateSessionPayload,
+} from "../schedules";
+import { expandPlan } from "../../schedule";
+
+let scheduleSessions: ScheduleSession[] = seedScheduleSessions();
+
+function seedScheduleSessions(): ScheduleSession[] {
+  // Semeia sessões dos últimos 30 dias até +30 dias para os alunos ativos do trainer-1.
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 30);
+  const end = new Date(today);
+  end.setDate(end.getDate() + 30);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const seeds: ScheduleSession[] = [];
+  const plans: Array<{ studentId: string; weekdays: Array<{ weekday: 0|1|2|3|4|5|6; time: string; duration_minutes: number }> }> = [
+    { studentId: "student-1", weekdays: [
+      { weekday: 1, time: "07:00", duration_minutes: 60 },
+      { weekday: 3, time: "07:00", duration_minutes: 60 },
+      { weekday: 5, time: "07:00", duration_minutes: 60 },
+    ]},
+    { studentId: "student-2", weekdays: [
+      { weekday: 2, time: "18:00", duration_minutes: 60 },
+      { weekday: 4, time: "18:00", duration_minutes: 60 },
+    ]},
+    { studentId: "student-3", weekdays: [
+      { weekday: 1, time: "09:00", duration_minutes: 60 },
+      { weekday: 4, time: "09:00", duration_minutes: 60 },
+    ]},
+  ];
+  for (const p of plans) {
+    const student = students.find((s) => s.id === p.studentId);
+    if (!student) continue;
+    const occurrences = expandPlan(p.weekdays, iso(start), iso(end));
+    for (const occ of occurrences) {
+      const occDate = new Date(occ.starts_at);
+      seeds.push({
+        id: nextId("sched"),
+        student_id: student.id,
+        student_name: student.name,
+        trainer_id: student.trainer_id,
+        trainer_name: student.trainer_name,
+        starts_at: occ.starts_at,
+        duration_minutes: occ.duration_minutes,
+        status: occDate < today ? (Math.random() > 0.2 ? "done" : "missed") : "planned",
+        workout_id: null,
+        notes: null,
+        plan_id: "seed",
+      });
+    }
+  }
+  return seeds;
+}
+
+export function listScheduleSessions(params: {
+  from: string;
+  to: string;
+  trainerId?: string;
+  studentId?: string;
+}): ScheduleSession[] {
+  const fromMs = Date.parse(`${params.from}T00:00:00`);
+  const toMs = Date.parse(`${params.to}T23:59:59.999`);
+  return scheduleSessions
+    .filter((s) => {
+      const t = Date.parse(s.starts_at);
+      if (t < fromMs || t > toMs) return false;
+      if (params.trainerId && s.trainer_id !== params.trainerId) return false;
+      if (params.studentId && s.student_id !== params.studentId) return false;
+      return true;
+    })
+    .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+}
+
+export function createSchedulePlan(payload: SchedulePlanPayload): {
+  created: number;
+  sessions: ScheduleSession[];
+} {
+  const student = students.find((s) => s.id === payload.student_id);
+  if (!student) notFound("Aluno não encontrado");
+  const occurrences = expandPlan(payload.weekdays, payload.starts_on, payload.ends_on);
+  const planId = nextId("plan");
+  const created: ScheduleSession[] = occurrences.map((occ) => ({
+    id: nextId("sched"),
+    student_id: student.id,
+    student_name: student.name,
+    trainer_id: student.trainer_id,
+    trainer_name: student.trainer_name,
+    starts_at: occ.starts_at,
+    duration_minutes: occ.duration_minutes,
+    status: "planned",
+    workout_id: null,
+    notes: payload.notes ?? null,
+    plan_id: planId,
+  }));
+  scheduleSessions = [...scheduleSessions, ...created];
+  return { created: created.length, sessions: created };
+}
+
+export function updateScheduleSession(id: string, payload: UpdateSessionPayload): ScheduleSession {
+  const idx = scheduleSessions.findIndex((s) => s.id === id);
+  if (idx === -1) notFound("Sessão não encontrada");
+  scheduleSessions[idx] = { ...scheduleSessions[idx], ...payload };
+  return scheduleSessions[idx];
+}
+
+export function deleteScheduleSession(id: string): void {
+  scheduleSessions = scheduleSessions.filter((s) => s.id !== id);
+}
