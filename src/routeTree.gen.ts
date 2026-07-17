@@ -20,6 +20,7 @@ import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAssiduidadeAlunosRouteImport } from './routes/_app.assiduidade-alunos'
+import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
 import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
@@ -30,6 +31,7 @@ import { Route as AppAlunoComparativoRouteImport } from './routes/_app.aluno.com
 import { Route as AppAlunoBiomecanicaRouteImport } from './routes/_app.aluno.biomecanica'
 import { Route as AppAlunoAssiduidadeRouteImport } from './routes/_app.aluno.assiduidade'
 import { Route as AppAlunoAnamneseRouteImport } from './routes/_app.aluno.anamnese'
+import { Route as AppAlunoAgendaRouteImport } from './routes/_app.aluno.agenda'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -85,6 +87,11 @@ const AppAssiduidadeAlunosRoute = AppAssiduidadeAlunosRouteImport.update({
   path: '/assiduidade-alunos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAlunoIndexRoute = AppAlunoIndexRouteImport.update({
   id: '/aluno/',
   path: '/aluno/',
@@ -135,18 +142,25 @@ const AppAlunoAnamneseRoute = AppAlunoAnamneseRouteImport.update({
   path: '/aluno/anamnese',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAlunoAgendaRoute = AppAlunoAgendaRouteImport.update({
+  id: '/aluno/agenda',
+  path: '/aluno/agenda',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/agenda': typeof AppAgendaRoute
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/agenda': typeof AppAlunoAgendaRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
@@ -163,12 +177,14 @@ export interface FileRoutesByTo {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/agenda': typeof AppAgendaRoute
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/usuarios': typeof AppUsuariosRoute
+  '/aluno/agenda': typeof AppAlunoAgendaRoute
   '/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
   '/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
@@ -187,12 +203,14 @@ export interface FileRoutesById {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/agenda': typeof AppAgendaRoute
   '/_app/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/treinos-concluidos': typeof AppTreinosConcluidosRoute
   '/_app/usuarios': typeof AppUsuariosRoute
+  '/_app/aluno/agenda': typeof AppAlunoAgendaRoute
   '/_app/aluno/anamnese': typeof AppAlunoAnamneseRoute
   '/_app/aluno/assiduidade': typeof AppAlunoAssiduidadeRoute
   '/_app/aluno/biomecanica': typeof AppAlunoBiomecanicaRoute
@@ -211,12 +229,14 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/agenda'
     | '/assiduidade-alunos'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
     | '/usuarios'
+    | '/aluno/agenda'
     | '/aluno/anamnese'
     | '/aluno/assiduidade'
     | '/aluno/biomecanica'
@@ -233,12 +253,14 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/agenda'
     | '/assiduidade-alunos'
     | '/dashboard'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
     | '/usuarios'
+    | '/aluno/agenda'
     | '/aluno/anamnese'
     | '/aluno/assiduidade'
     | '/aluno/biomecanica'
@@ -256,12 +278,14 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/sitemap.xml'
+    | '/_app/agenda'
     | '/_app/assiduidade-alunos'
     | '/_app/dashboard'
     | '/_app/parceiros'
     | '/_app/perfil'
     | '/_app/treinos-concluidos'
     | '/_app/usuarios'
+    | '/_app/aluno/agenda'
     | '/_app/aluno/anamnese'
     | '/_app/aluno/assiduidade'
     | '/_app/aluno/biomecanica'
@@ -361,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssiduidadeAlunosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/agenda': {
+      id: '/_app/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/aluno/': {
       id: '/_app/aluno/'
       path: '/aluno'
@@ -431,16 +462,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlunoAnamneseRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/aluno/agenda': {
+      id: '/_app/aluno/agenda'
+      path: '/aluno/agenda'
+      fullPath: '/aluno/agenda'
+      preLoaderRoute: typeof AppAlunoAgendaRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
   AppAssiduidadeAlunosRoute: typeof AppAssiduidadeAlunosRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppTreinosConcluidosRoute: typeof AppTreinosConcluidosRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
+  AppAlunoAgendaRoute: typeof AppAlunoAgendaRoute
   AppAlunoAnamneseRoute: typeof AppAlunoAnamneseRoute
   AppAlunoAssiduidadeRoute: typeof AppAlunoAssiduidadeRoute
   AppAlunoBiomecanicaRoute: typeof AppAlunoBiomecanicaRoute
@@ -454,12 +494,14 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
   AppAssiduidadeAlunosRoute: AppAssiduidadeAlunosRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppTreinosConcluidosRoute: AppTreinosConcluidosRoute,
   AppUsuariosRoute: AppUsuariosRoute,
+  AppAlunoAgendaRoute: AppAlunoAgendaRoute,
   AppAlunoAnamneseRoute: AppAlunoAnamneseRoute,
   AppAlunoAssiduidadeRoute: AppAlunoAssiduidadeRoute,
   AppAlunoBiomecanicaRoute: AppAlunoBiomecanicaRoute,

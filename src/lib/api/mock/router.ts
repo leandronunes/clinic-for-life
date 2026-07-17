@@ -425,6 +425,33 @@ async function routeMockRequest<T>({
       return store.createEvolutionPhoto(match[1], b as unknown as CreateEvolutionPhotoPayload) as T;
   }
 
+  // -------- Schedule sessions --------
+  if (m === "GET" && path === "/api/v1/schedule_sessions") {
+    return store.listScheduleSessions({
+      from: String(params?.from ?? ""),
+      to: String(params?.to ?? ""),
+      trainerId: params?.trainer_id ? String(params.trainer_id) : undefined,
+      studentId: params?.student_id ? String(params.student_id) : undefined,
+    }) as T;
+  }
+  if (m === "POST" && path === "/api/v1/schedule_plans") {
+    return store.createSchedulePlan(b as unknown as import("../schedules").SchedulePlanPayload) as T;
+  }
+  match = /^\/api\/v1\/schedule_sessions\/([^/]+)$/.exec(path);
+  if (match) {
+    const [, id] = match;
+    if (m === "PATCH") {
+      return store.updateScheduleSession(
+        id,
+        b as unknown as import("../schedules").UpdateSessionPayload,
+      ) as T;
+    }
+    if (m === "DELETE") {
+      store.deleteScheduleSession(id);
+      return undefined as T;
+    }
+  }
+
   const err: ApiError = { status: 404, message: `Rota offline não implementada: ${m} ${path}` };
   throw err;
 }
