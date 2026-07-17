@@ -10,10 +10,11 @@
  * `isFeatureEnabled("theNewFlag")`. Once the feature is ready for everyone,
  * remove the flag and the gating code — it's meant to be temporary.
  */
-export type FeatureFlag = "attendanceCycles";
+export type FeatureFlag = "attendanceCycles" | "agendaCalendar";
 
 const ENV_VARS: Record<FeatureFlag, string> = {
   attendanceCycles: "VITE_FEATURE_ATTENDANCE_CYCLES",
+  agendaCalendar: "VITE_FEATURE_AGENDA_CALENDAR",
 };
 
 export function isFeatureEnabled(flag: FeatureFlag): boolean {
