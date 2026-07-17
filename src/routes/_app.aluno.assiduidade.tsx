@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -53,10 +53,14 @@ import {
   type WorkoutCheckIn,
   type CheckInPerformedBy,
 } from "@/lib/api/check-ins";
+import type { CheckInFeedback } from "@/lib/api/check-in-feedbacks";
+import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
 import {
-  fetchAttendanceCycleHistory,
-  type AttendanceCycleRecord,
-} from "@/lib/api/attendance-cycles";
+  checkInEffectiveDate,
+  formatCheckInDateTime,
+  checkInCompletionPercentage,
+} from "@/lib/check-in-format";
+import { CycleHistoryRow } from "@/components/CycleHistoryRow";
 import { useAuth } from "@/contexts/use-auth";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { pageHead } from "@/lib/seo";
@@ -79,13 +83,19 @@ interface PeriodRange {
   label: string;
 }
 
+/** "quinta-feira, 16 de julho de 2026" — the full weekday+date label used
+ * both as the "dia" view's period label and the day-detail dialog title. */
+function formatFullDate(date: Date): string {
+  return format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+}
+
 function getRange(view: PeriodView, anchor: Date): PeriodRange {
   if (view === "dia") {
     const start = startOfDay(anchor);
     return {
       start,
       end: start,
-      label: format(start, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
+      label: formatFullDate(start),
     };
   }
   if (view === "semana") {
@@ -130,8 +140,7 @@ export function AssiduidadePage() {
   const byDay = useMemo(() => {
     const map = new Map<string, WorkoutCheckIn[]>();
     for (const ci of historico) {
-      const d = new Date(ci.completed_at ?? ci.started_at);
-      const key = format(d, "yyyy-MM-dd");
+      const key = format(checkInEffectiveDate(ci), "yyyy-MM-dd");
       const arr = map.get(key) ?? [];
       arr.push(ci);
       map.set(key, arr);
@@ -144,7 +153,7 @@ export function AssiduidadePage() {
     if (anchor) return anchor;
     if (historico.length === 0) return new Date();
     const latest = historico.reduce((acc, ci) => {
-      const d = new Date(ci.completed_at ?? ci.started_at);
+      const d = checkInEffectiveDate(ci);
       return d > acc ? d : acc;
     }, new Date(0));
     return latest;
@@ -263,32 +272,6 @@ function CycleHistoryCard({ alunoId }: { alunoId: string }) {
         </ul>
       </CardContent>
     </Card>
-  );
-}
-
-function CycleHistoryRow({ cycle }: { cycle: AttendanceCycleRecord }) {
-  return (
-    <li className="flex items-center justify-between gap-3 p-3">
-      <div>
-        <div className="text-sm font-medium">
-          {new Date(cycle.started_at).toLocaleDateString("pt-BR")} —{" "}
-          {new Date(cycle.ended_at).toLocaleDateString("pt-BR")}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {cycle.completed_workouts} / {cycle.contracted_workouts_per_cycle} treinos (
-          {cycle.percentage}%)
-        </div>
-      </div>
-      <Badge
-        className={
-          cycle.status === "exceeded"
-            ? "bg-destructive text-destructive-foreground"
-            : "bg-success text-success-foreground"
-        }
-      >
-        {cycle.status === "exceeded" ? "Estourou" : "Cumpriu"}
-      </Badge>
-    </li>
   );
 }
 
@@ -475,8 +458,21 @@ function PerformedByBadge({ performedBy }: { performedBy: CheckInPerformedBy }) 
   );
 }
 
+/** "Concluído" vs "Em andamento" — shared between CheckInRow and
+ * CheckInDetail so the two views never drift out of sync. */
+function CheckInStatusBadge({ status }: { status: WorkoutCheckIn["status"] }) {
+  return (
+    <Badge
+      variant={status === "completed" ? "default" : "secondary"}
+      className={status === "completed" ? "bg-success text-success-foreground" : ""}
+    >
+      {status === "completed" ? "Concluído" : "Em andamento"}
+    </Badge>
+  );
+}
+
 function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
-  const date = new Date(checkIn.completed_at ?? checkIn.started_at);
+  const date = checkInEffectiveDate(checkIn);
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
       <div className="flex items-center gap-3">
@@ -486,13 +482,8 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         <div>
           <div className="font-medium">{checkIn.workout_title}</div>
           <p className="text-xs text-muted-foreground">
-            {date.toLocaleString("pt-BR", {
-              day: "2-digit",
-              month: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}{" "}
-            · {checkIn.exercises_completed}/{checkIn.exercises_total} exercícios
+            {formatCheckInDateTime(date)} · {checkIn.exercises_completed}/{checkIn.exercises_total}{" "}
+            exercícios
           </p>
         </div>
       </div>
@@ -508,12 +499,7 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
               ))}
           </div>
         )}
-        <Badge
-          variant={checkIn.status === "completed" ? "default" : "secondary"}
-          className={checkIn.status === "completed" ? "bg-success text-success-foreground" : ""}
-        >
-          {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
-        </Badge>
+        <CheckInStatusBadge status={checkIn.status} />
         <PerformedByBadge performedBy={checkIn.performed_by} />
         <ClaimCheckInButton checkIn={checkIn} />
         <DeleteCheckInButton checkIn={checkIn} />
@@ -522,22 +508,29 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
   );
 }
 
+/** Both "check-in" queries (this aluno's history, and the current check-in
+ * for a specific workout) go stale together whenever a check-in is deleted
+ * or claimed — shared by DeleteCheckInButton and ClaimCheckInButton so the
+ * two mutations can't drift apart on which keys they invalidate. */
+function invalidateCheckInQueries(qc: QueryClient, checkIn: WorkoutCheckIn) {
+  qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
+  qc.invalidateQueries({
+    queryKey: ["check-in", "current", checkIn.student_id, checkIn.workout_id],
+  });
+}
+
 /** Shared between "dia" view's CheckInRow and the day-detail dialog's
  * CheckInDetail — both need to offer removing the check-in. Once the
  * personal has performed/confirmed a check-in, only staff (not the aluno
  * themselves) may still remove it — mirrors the backend's destroy guard. */
 function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
   const qc = useQueryClient();
-  const { hasRole } = useAuth();
-  const isStaff = hasRole("admin") || hasRole("personal");
+  const { canWrite: isStaff } = useAuth();
   const deleteMut = useMutation({
     mutationFn: () => deleteCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
     onSuccess: () => {
       toast.success("Check-in removido");
-      qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
-      qc.invalidateQueries({
-        queryKey: ["check-in", "current", checkIn.student_id, checkIn.workout_id],
-      });
+      invalidateCheckInQueries(qc, checkIn);
     },
     onError: () => toast.error("Não foi possível remover o check-in"),
   });
@@ -581,16 +574,12 @@ function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
  * offered in Treinos Concluídos and Assiduidade dos alunos. */
 function ClaimCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
   const qc = useQueryClient();
-  const { hasRole } = useAuth();
-  const isStaff = hasRole("admin") || hasRole("personal");
+  const { canWrite: isStaff } = useAuth();
   const claimMut = useMutation({
     mutationFn: () => claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
     onSuccess: () => {
       toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
-      qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
-      qc.invalidateQueries({
-        queryKey: ["check-in", "current", checkIn.student_id, checkIn.workout_id],
-      });
+      invalidateCheckInQueries(qc, checkIn);
     },
     onError: () => toast.error("Não foi possível confirmar o check-in"),
   });
@@ -624,7 +613,7 @@ function DayDetailsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4" />
-            {day && format(day, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {day && formatFullDate(day)}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
@@ -646,23 +635,14 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
     completed && isSameDay(started, completed)
       ? Math.max(1, Math.round((completed.getTime() - started.getTime()) / 60000))
       : null;
-  const pct = checkIn.exercises_total
-    ? Math.round((checkIn.exercises_completed / checkIn.exercises_total) * 100)
-    : 0;
+  const pct = checkInCompletionPercentage(checkIn);
 
   return (
     <div className="space-y-2 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="font-semibold">{checkIn.workout_title}</div>
         <div className="flex items-center gap-2">
-          <Badge
-            className={cn(
-              checkIn.status === "completed" ? "bg-success text-success-foreground" : "",
-            )}
-            variant={checkIn.status === "completed" ? "default" : "secondary"}
-          >
-            {checkIn.status === "completed" ? "Concluído" : "Em andamento"}
-          </Badge>
+          <CheckInStatusBadge status={checkIn.status} />
           <PerformedByBadge performedBy={checkIn.performed_by} />
           <ClaimCheckInButton checkIn={checkIn} />
           <DeleteCheckInButton checkIn={checkIn} />
@@ -712,38 +692,65 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <ThumbsUp className="h-3.5 w-3.5" /> Feedback do Personal
           </h3>
-          {checkIn.feedbacks.some((f) => f.emoji) && (
-            <div className="flex flex-wrap gap-1">
-              {checkIn.feedbacks
-                .filter((f) => f.emoji)
-                .map((f) => (
-                  <span
-                    key={f.id}
-                    className="rounded-full bg-muted px-2 py-1 text-base"
-                    title={f.author_name ?? undefined}
-                  >
-                    {f.emoji}
-                  </span>
-                ))}
-            </div>
-          )}
-          {checkIn.feedbacks.some((f) => f.message) && (
-            <ul className="space-y-2">
-              {checkIn.feedbacks
-                .filter((f) => f.message)
-                .map((f) => (
-                  <li key={f.id} className="rounded-lg bg-muted/50 p-3 text-sm">
-                    <p>{f.message}</p>
-                    {f.author_name && (
-                      <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
-                    )}
-                  </li>
-                ))}
-            </ul>
-          )}
+          <FeedbackList feedbacks={checkIn.feedbacks} variant="detail" />
         </div>
       )}
     </div>
+  );
+}
+
+/** Renders a feedback list's emoji reactions and text messages — shared
+ * between CheckInDetail (inside a bordered detail card) and
+ * TodayFeedbackBanner (inside a colored highlight card), which only differ
+ * in how each item is styled against its container. */
+function FeedbackList({
+  feedbacks,
+  variant,
+}: {
+  feedbacks: CheckInFeedback[];
+  variant: "detail" | "banner";
+}) {
+  const emojiFeedbacks = feedbacks.filter((f) => f.emoji);
+  const messageFeedbacks = feedbacks.filter((f) => f.message);
+  const isBanner = variant === "banner";
+
+  return (
+    <>
+      {emojiFeedbacks.length > 0 && (
+        <div className={cn("flex flex-wrap", isBanner ? "gap-2" : "gap-1")}>
+          {emojiFeedbacks.map((f) => (
+            <span
+              key={f.id}
+              className={cn(
+                "rounded-full px-2 py-1",
+                isBanner ? "bg-background text-xl shadow-sm" : "bg-muted text-base",
+              )}
+              title={f.author_name ?? undefined}
+            >
+              {f.emoji}
+            </span>
+          ))}
+        </div>
+      )}
+      {messageFeedbacks.length > 0 && (
+        <ul className="space-y-2">
+          {messageFeedbacks.map((f) => (
+            <li
+              key={f.id}
+              className={cn(
+                "rounded-lg p-3 text-sm",
+                isBanner ? "bg-background shadow-sm" : "bg-muted/50",
+              )}
+            >
+              <p>{f.message}</p>
+              {f.author_name && (
+                <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -761,35 +768,7 @@ function TodayFeedbackBanner({ byDay }: { byDay: Map<string, WorkoutCheckIn[]> }
           <ThumbsUp className="h-4 w-4 shrink-0 text-primary" />
           <span className="text-sm font-semibold">Feedback do personal de hoje</span>
         </div>
-        {todayFeedbacks.some((f) => f.emoji) && (
-          <div className="flex flex-wrap gap-2">
-            {todayFeedbacks
-              .filter((f) => f.emoji)
-              .map((f) => (
-                <span
-                  key={f.id}
-                  className="rounded-full bg-background px-2 py-1 text-xl shadow-sm"
-                  title={f.author_name ?? undefined}
-                >
-                  {f.emoji}
-                </span>
-              ))}
-          </div>
-        )}
-        {todayFeedbacks.some((f) => f.message) && (
-          <ul className="space-y-2">
-            {todayFeedbacks
-              .filter((f) => f.message)
-              .map((f) => (
-                <li key={f.id} className="rounded-lg bg-background p-3 text-sm shadow-sm">
-                  <p>{f.message}</p>
-                  {f.author_name && (
-                    <p className="mt-1 text-xs text-muted-foreground">— {f.author_name}</p>
-                  )}
-                </li>
-              ))}
-          </ul>
-        )}
+        <FeedbackList feedbacks={todayFeedbacks} variant="banner" />
       </CardContent>
     </Card>
   );

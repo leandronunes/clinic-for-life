@@ -29,6 +29,11 @@ import {
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 import {
+  checkInEffectiveDate,
+  formatCheckInDateTime,
+  checkInCompletionPercentage,
+} from "@/lib/check-in-format";
+import {
   createCheckInFeedback,
   updateCheckInFeedback,
   deleteCheckInFeedback,
@@ -56,7 +61,7 @@ function needsFeedback(checkIn: WorkoutCheckIn): boolean {
 }
 
 function checkInTimestamp(checkIn: WorkoutCheckIn): number {
-  return new Date(checkIn.completed_at ?? checkIn.started_at).getTime();
+  return checkInEffectiveDate(checkIn).getTime();
 }
 
 interface StudentSummary {
@@ -264,7 +269,7 @@ function CheckInCard({
 }) {
   const isNew = !checkIn.viewed_at;
   const hasFeedback = checkIn.feedbacks.length > 0;
-  const date = new Date(checkIn.completed_at ?? checkIn.started_at);
+  const date = checkInEffectiveDate(checkIn);
 
   return (
     <button
@@ -290,13 +295,8 @@ function CheckInCard({
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        {date.toLocaleString("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}{" "}
-        · {checkIn.exercises_completed}/{checkIn.exercises_total} exercícios
+        {formatCheckInDateTime(date)} · {checkIn.exercises_completed}/{checkIn.exercises_total}{" "}
+        exercícios
       </p>
     </button>
   );
@@ -410,10 +410,7 @@ function CheckInReviewDialog({
     setEditEmojiOpen(false);
   }
 
-  const pct =
-    checkIn && checkIn.exercises_total
-      ? Math.round((checkIn.exercises_completed / checkIn.exercises_total) * 100)
-      : 0;
+  const pct = checkInCompletionPercentage(checkIn);
 
   return (
     <Dialog open={!!checkIn} onOpenChange={(o) => !o && onClose()}>

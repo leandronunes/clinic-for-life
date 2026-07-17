@@ -83,8 +83,7 @@ export function TreinoCard({
   canDelete?: boolean;
 }) {
   const qc = useQueryClient();
-  const { hasRole } = useAuth();
-  const isStaff = hasRole("admin") || hasRole("personal");
+  const { canWrite: isStaff } = useAuth();
   const { copyWorkout } = useWorkoutClipboard();
   const canCopy = canEdit || canUnarchive;
   const [execOpen, setExecOpen] = useState(false);
