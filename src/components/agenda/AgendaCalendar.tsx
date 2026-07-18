@@ -28,8 +28,7 @@ const STATUS_STYLES: Record<ScheduleSession["status"], string> = {
   planned: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25",
   done: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25",
   missed: "bg-destructive/15 text-destructive border-destructive/30 hover:bg-destructive/25",
-  canceled:
-    "bg-muted text-muted-foreground border-border line-through hover:bg-muted/80",
+  canceled: "bg-muted text-muted-foreground border-border line-through hover:bg-muted/80",
 };
 
 const STATUS_DOT: Record<ScheduleSession["status"], string> = {
@@ -116,12 +115,7 @@ function WeekView({ cursor, sessions, showStudentName, onSelectSession }: Agenda
               <span className="text-xs font-medium text-muted-foreground">
                 {WEEKDAY_SHORT_PT[d.getDay()]}
               </span>
-              <span
-                className={cn(
-                  "text-sm font-semibold",
-                  isToday && "text-primary",
-                )}
-              >
+              <span className={cn("text-sm font-semibold", isToday && "text-primary")}>
                 {d.getDate()}
               </span>
             </div>
@@ -140,9 +134,7 @@ function WeekView({ cursor, sessions, showStudentName, onSelectSession }: Agenda
                     title={`${formatHM(t)} · ${s.student_name}`}
                   >
                     <div className="font-semibold tabular-nums">{formatHM(t)}</div>
-                    {showStudentName && (
-                      <div className="truncate">{s.student_name}</div>
-                    )}
+                    {showStudentName && <div className="truncate">{s.student_name}</div>}
                   </button>
                 );
               })}
@@ -158,9 +150,8 @@ function MonthView({ cursor, sessions, showStudentName, onSelectDay }: AgendaCal
   const first = startOfMonth(cursor);
   const last = endOfMonth(cursor);
   const gridStart = startOfWeek(first);
-  const totalCells = Math.ceil(
-    (Math.floor((last.getTime() - gridStart.getTime()) / 86_400_000) + 1) / 7,
-  ) * 7;
+  const totalCells =
+    Math.ceil((Math.floor((last.getTime() - gridStart.getTime()) / 86_400_000) + 1) / 7) * 7;
   const cells = Array.from({ length: totalCells }, (_, i) => addDays(gridStart, i));
   const grouped = useMemo(() => groupByDay(sessions), [sessions]);
   const today = isoDate(new Date());

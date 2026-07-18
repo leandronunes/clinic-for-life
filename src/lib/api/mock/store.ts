@@ -1244,11 +1244,7 @@ export function changePassword(
 
 /* -------------------- Schedule sessions (offline) -------------------- */
 
-import type {
-  ScheduleSession,
-  SchedulePlanPayload,
-  UpdateSessionPayload,
-} from "../schedules";
+import type { ScheduleSession, SchedulePlanPayload, UpdateSessionPayload } from "../schedules";
 import { expandPlan } from "../../schedule";
 
 let scheduleSessions: ScheduleSession[] = seedScheduleSessions();
@@ -1260,23 +1256,36 @@ function seedScheduleSessions(): ScheduleSession[] {
   start.setDate(start.getDate() - 30);
   const end = new Date(today);
   end.setDate(end.getDate() + 30);
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const seeds: ScheduleSession[] = [];
-  const plans: Array<{ studentId: string; weekdays: Array<{ weekday: 0|1|2|3|4|5|6; time: string; duration_minutes: number }> }> = [
-    { studentId: "student-1", weekdays: [
-      { weekday: 1, time: "07:00", duration_minutes: 60 },
-      { weekday: 3, time: "07:00", duration_minutes: 60 },
-      { weekday: 5, time: "07:00", duration_minutes: 60 },
-    ]},
-    { studentId: "student-2", weekdays: [
-      { weekday: 2, time: "18:00", duration_minutes: 60 },
-      { weekday: 4, time: "18:00", duration_minutes: 60 },
-    ]},
-    { studentId: "student-3", weekdays: [
-      { weekday: 1, time: "09:00", duration_minutes: 60 },
-      { weekday: 4, time: "09:00", duration_minutes: 60 },
-    ]},
+  const plans: Array<{
+    studentId: string;
+    weekdays: Array<{ weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; time: string; duration_minutes: number }>;
+  }> = [
+    {
+      studentId: "student-1",
+      weekdays: [
+        { weekday: 1, time: "07:00", duration_minutes: 60 },
+        { weekday: 3, time: "07:00", duration_minutes: 60 },
+        { weekday: 5, time: "07:00", duration_minutes: 60 },
+      ],
+    },
+    {
+      studentId: "student-2",
+      weekdays: [
+        { weekday: 2, time: "18:00", duration_minutes: 60 },
+        { weekday: 4, time: "18:00", duration_minutes: 60 },
+      ],
+    },
+    {
+      studentId: "student-3",
+      weekdays: [
+        { weekday: 1, time: "09:00", duration_minutes: 60 },
+        { weekday: 4, time: "09:00", duration_minutes: 60 },
+      ],
+    },
   ];
   for (const p of plans) {
     const student = students.find((s) => s.id === p.studentId);
