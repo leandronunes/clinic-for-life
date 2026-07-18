@@ -47,8 +47,7 @@ function MinhaAgendaPage() {
   const range = useMemo(() => rangeFor(view, cursor), [view, cursor]);
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ["schedule", { studentId: alunoId, ...range }],
-    queryFn: () =>
-      fetchScheduleSessions({ from: range.from, to: range.to, studentId: alunoId }),
+    queryFn: () => fetchScheduleSessions({ from: range.from, to: range.to, studentId: alunoId }),
     enabled: !!alunoId,
   });
 
@@ -181,7 +180,9 @@ export function SessionDetailsDialog({
             </DialogHeader>
             <div className="space-y-2 text-sm">
               <div>
-                <strong>{new Date(session.starts_at).toLocaleDateString("pt-BR", { dateStyle: "full" })}</strong>
+                <strong>
+                  {new Date(session.starts_at).toLocaleDateString("pt-BR", { dateStyle: "full" })}
+                </strong>
               </div>
               <div>
                 Horário: <strong>{formatHM(new Date(session.starts_at))}</strong> ·{" "}

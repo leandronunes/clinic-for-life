@@ -29,7 +29,9 @@ describe("expandPlan", () => {
   });
 
   it("returns [] when starts_on > ends_on", () => {
-    expect(expandPlan([{ weekday: 1, time: "07:00", duration_minutes: 60 }], "2026-07-20", "2026-07-01")).toEqual([]);
+    expect(
+      expandPlan([{ weekday: 1, time: "07:00", duration_minutes: 60 }], "2026-07-20", "2026-07-01"),
+    ).toEqual([]);
   });
 });
 
