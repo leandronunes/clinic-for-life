@@ -47,6 +47,7 @@ const mockCheckIn: WorkoutCheckIn = {
   started_at: "2026-01-01T10:00:00Z",
   completed_at: null,
   viewed_at: null,
+  pse: null,
   feedbacks: [],
 };
 

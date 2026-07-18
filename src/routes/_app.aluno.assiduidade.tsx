@@ -55,6 +55,7 @@ import {
 } from "@/lib/api/check-ins";
 import type { CheckInFeedback } from "@/lib/api/check-in-feedbacks";
 import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
+import { PseScale } from "@/components/treino/pse-scale";
 import {
   checkInEffectiveDate,
   formatCheckInDateTime,
@@ -499,6 +500,7 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
               ))}
           </div>
         )}
+        <PseScale value={checkIn.pse} readOnly />
         <CheckInStatusBadge status={checkIn.status} />
         <PerformedByBadge performedBy={checkIn.performed_by} />
         <ClaimCheckInButton checkIn={checkIn} />
@@ -687,6 +689,7 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
           />
         </div>
       </div>
+      <PseScale value={checkIn.pse} readOnly />
       {checkIn.feedbacks.length > 0 && (
         <div className="space-y-2 border-t pt-3">
           <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">

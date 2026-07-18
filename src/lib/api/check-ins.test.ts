@@ -8,6 +8,7 @@ import {
   fetchCompletedCheckIns,
   markCheckInViewed,
   claimCheckIn,
+  updateCheckInPse,
   type WorkoutCheckIn,
 } from "./check-ins";
 
@@ -35,6 +36,7 @@ const checkIn: WorkoutCheckIn = {
   started_at: "2026-07-12T10:00:00Z",
   completed_at: null,
   viewed_at: null,
+  pse: null,
   feedbacks: [],
 };
 
@@ -120,6 +122,18 @@ describe("check-ins API", () => {
       const result = await markCheckInViewed("s1", "w1", "ci1");
       expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/check_ins/ci1/view");
       expect(result).toEqual(viewed);
+    });
+  });
+
+  describe("updateCheckInPse()", () => {
+    it("patches .../check_ins/:id/pse with the pse value", async () => {
+      const withPse = { ...checkIn, status: "completed" as const, pse: 7 };
+      mockPatch.mockResolvedValue(withPse);
+      const result = await updateCheckInPse("s1", "w1", "ci1", 7);
+      expect(mockPatch).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/check_ins/ci1/pse", {
+        pse: 7,
+      });
+      expect(result).toEqual(withPse);
     });
   });
 

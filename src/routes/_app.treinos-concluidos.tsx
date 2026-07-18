@@ -39,6 +39,7 @@ import {
   deleteCheckInFeedback,
   type CheckInFeedback,
 } from "@/lib/api/check-in-feedbacks";
+import { PseScale } from "@/components/treino/pse-scale";
 import { pageHead } from "@/lib/seo";
 import { toast } from "sonner";
 
@@ -467,6 +468,8 @@ function CheckInReviewDialog({
                 </div>
               </div>
             </div>
+
+            <PseScale value={checkIn.pse} readOnly />
 
             {checkIn.feedbacks.length > 0 && (
               <div className="space-y-2">

@@ -22,6 +22,10 @@ export interface WorkoutCheckIn {
   started_at: string;
   completed_at: string | null;
   viewed_at: string | null;
+  /** Percepção Subjetiva de Esforço (1-10, escala de Borg CR-10 simplificada
+   * — ver src/lib/pse.ts). `null` até ser registrada; só pode ser definida
+   * com o check-in já concluído. */
+  pse: number | null;
   feedbacks: CheckInFeedback[];
 }
 
@@ -91,6 +95,22 @@ export function deleteCheckIn(
 ): Promise<void> {
   return http.del<void>(
     `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}`,
+  );
+}
+
+/** Registers the student's PSE (1-10) for a completed check-in — captured
+ * once, right when the workout finishes. Safe to call again (no
+ * "already set" guard on the backend), but the frontend never offers a
+ * second chance once the capture dialog is closed. */
+export function updateCheckInPse(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  pse: number,
+): Promise<WorkoutCheckIn> {
+  return http.patch<WorkoutCheckIn>(
+    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/pse`,
+    { pse },
   );
 }
 

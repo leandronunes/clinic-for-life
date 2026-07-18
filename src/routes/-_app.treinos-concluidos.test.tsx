@@ -92,6 +92,7 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     started_at: "2026-07-10T10:00:00Z",
     completed_at: "2026-07-10T10:45:00Z",
     viewed_at: null,
+    pse: null,
     feedbacks: [],
     ...overrides,
   };
@@ -181,6 +182,32 @@ describe("TreinosConcluidosPage", () => {
     await screen.findByRole("dialog");
 
     expect(mockMarkViewed).not.toHaveBeenCalled();
+  });
+
+  it("shows the PSE badge in the review dialog when recorded", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ pse: 9 })]);
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByText(/9 · Máximo/)).toBeInTheDocument();
+  });
+
+  it("omits the PSE badge in the review dialog when no PSE was recorded", async () => {
+    mockFetchCompleted.mockResolvedValue([buildCheckIn({ pse: null })]);
+    const user = userEvent.setup();
+
+    render(<TreinosConcluidosPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Júlia Ferreira — Treino A" }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).queryByText(/PSE \d+ · (Leve|Moderado|Intenso|Máximo)/),
+    ).not.toBeInTheDocument();
   });
 
   it("sends a feedback message for the selected check-in", async () => {

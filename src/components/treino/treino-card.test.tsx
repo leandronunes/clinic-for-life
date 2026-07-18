@@ -45,6 +45,7 @@ vi.mock("@/lib/api/check-ins", () => ({
   toggleExerciseCheckIn: vi.fn(),
   deleteCheckIn: vi.fn(),
   claimCheckIn: vi.fn(),
+  updateCheckInPse: vi.fn(),
 }));
 import {
   fetchCurrentCheckIn,
@@ -53,6 +54,7 @@ import {
   toggleExerciseCheckIn,
   deleteCheckIn,
   claimCheckIn,
+  updateCheckInPse,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 const mockFetchCurrentCheckIn = vi.mocked(fetchCurrentCheckIn);
@@ -61,6 +63,7 @@ const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
 const mockClaimCheckIn = vi.mocked(claimCheckIn);
 const mockFinishCheckIn = vi.mocked(finishCheckIn);
 const mockToggleExerciseCheckIn = vi.mocked(toggleExerciseCheckIn);
+const mockUpdateCheckInPse = vi.mocked(updateCheckInPse);
 
 vi.mock("@/contexts/use-auth", () => ({ useAuth: vi.fn() }));
 import { useAuth } from "@/contexts/use-auth";
@@ -871,6 +874,7 @@ describe("TreinoCard", () => {
       started_at: "2026-07-12T10:00:00Z",
       completed_at: null,
       viewed_at: null,
+      pse: null,
       feedbacks: [],
     };
 
@@ -1063,6 +1067,167 @@ describe("TreinoCard", () => {
       await user.click(within(dialog).getByRole("button", { name: "Finalizar" }));
 
       await waitFor(() => expect(mockFinishCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1"));
+    });
+
+    describe("captura da PSE", () => {
+      it("opens the PSE dialog once 'Finalizar treino' completes the check-in", async () => {
+        mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+        mockFinishCheckIn.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          pse: null,
+        });
+        const user = userEvent.setup();
+        render(
+          <TreinoCard
+            treino={mockWorkout}
+            alunoId="s1"
+            trainerName="Rafael Monteiro"
+            onWatch={vi.fn()}
+            canEdit={false}
+          />,
+          { wrapper },
+        );
+
+        await user.click(await screen.findByRole("button", { name: /Finalizar treino/i }));
+        const confirmDialog = await screen.findByRole("alertdialog");
+        await user.click(within(confirmDialog).getByRole("button", { name: "Finalizar" }));
+
+        await screen.findByRole("dialog", { name: /Como foi o esforço desse treino/i });
+      });
+
+      it("opens the PSE dialog when the last exercise auto-finishes the check-in", async () => {
+        mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+        mockToggleExerciseCheckIn.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          exercises_completed: 2,
+          completed_exercise_ids: ["e1", "e2"],
+          pse: null,
+        });
+        const user = userEvent.setup();
+        render(
+          <TreinoCard
+            treino={mockWorkout}
+            alunoId="s1"
+            trainerName="Rafael Monteiro"
+            onWatch={vi.fn()}
+            canEdit={false}
+          />,
+          { wrapper },
+        );
+
+        const toggle = await screen.findByRole("button", {
+          name: /Marcar "Crucifixo" como concluído/i,
+        });
+        await waitFor(() => expect(toggle).toBeEnabled());
+        await user.click(toggle);
+
+        await screen.findByRole("dialog", { name: /Como foi o esforço desse treino/i });
+      });
+
+      it("does not open the PSE dialog for a check-in that already arrives completed", async () => {
+        mockFetchCurrentCheckIn.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          pse: null,
+        });
+        render(
+          <TreinoCard
+            treino={mockWorkout}
+            alunoId="s1"
+            trainerName="Rafael Monteiro"
+            onWatch={vi.fn()}
+            canEdit={false}
+          />,
+          { wrapper },
+        );
+
+        await screen.findByText(/Treino já concluído hoje/i);
+        expect(
+          screen.queryByRole("dialog", { name: /Como foi o esforço desse treino/i }),
+        ).not.toBeInTheDocument();
+      });
+
+      it("registers the PSE and closes the dialog on confirm", async () => {
+        mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+        mockFinishCheckIn.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          pse: null,
+        });
+        mockUpdateCheckInPse.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          pse: 7,
+        });
+        const user = userEvent.setup();
+        render(
+          <TreinoCard
+            treino={mockWorkout}
+            alunoId="s1"
+            trainerName="Rafael Monteiro"
+            onWatch={vi.fn()}
+            canEdit={false}
+          />,
+          { wrapper },
+        );
+
+        await user.click(await screen.findByRole("button", { name: /Finalizar treino/i }));
+        const confirmDialog = await screen.findByRole("alertdialog");
+        await user.click(within(confirmDialog).getByRole("button", { name: "Finalizar" }));
+
+        const pseDialog = await screen.findByRole("dialog", {
+          name: /Como foi o esforço desse treino/i,
+        });
+        await user.click(within(pseDialog).getByRole("radio", { name: /PSE 7 ·/ }));
+        await user.click(within(pseDialog).getByRole("button", { name: "Confirmar" }));
+
+        await waitFor(() =>
+          expect(mockUpdateCheckInPse).toHaveBeenCalledWith("s1", "w1", "ci1", 7),
+        );
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("dialog", { name: /Como foi o esforço desse treino/i }),
+          ).not.toBeInTheDocument(),
+        );
+      });
+
+      it("does not reopen the PSE dialog after 'Pular' for the same check-in", async () => {
+        mockFetchCurrentCheckIn.mockResolvedValue(inProgressCheckIn);
+        mockFinishCheckIn.mockResolvedValue({
+          ...inProgressCheckIn,
+          status: "completed",
+          pse: null,
+        });
+        const user = userEvent.setup();
+        render(
+          <TreinoCard
+            treino={mockWorkout}
+            alunoId="s1"
+            trainerName="Rafael Monteiro"
+            onWatch={vi.fn()}
+            canEdit={false}
+          />,
+          { wrapper },
+        );
+
+        await user.click(await screen.findByRole("button", { name: /Finalizar treino/i }));
+        const confirmDialog = await screen.findByRole("alertdialog");
+        await user.click(within(confirmDialog).getByRole("button", { name: "Finalizar" }));
+
+        const pseDialog = await screen.findByRole("dialog", {
+          name: /Como foi o esforço desse treino/i,
+        });
+        await user.click(within(pseDialog).getByRole("button", { name: "Pular" }));
+
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("dialog", { name: /Como foi o esforço desse treino/i }),
+          ).not.toBeInTheDocument(),
+        );
+        expect(mockUpdateCheckInPse).not.toHaveBeenCalled();
+      });
     });
 
     it("toggles the set clock between running and paused, and resets it", async () => {
@@ -1512,6 +1677,7 @@ describe("TreinoCard", () => {
       started_at: "2026-07-12T10:00:00Z",
       completed_at: null,
       viewed_at: null,
+      pse: null,
       feedbacks: [],
     };
 
@@ -1621,6 +1787,7 @@ describe("TreinoCard", () => {
       started_at: "2026-07-12T10:00:00Z",
       completed_at: null,
       viewed_at: null,
+      pse: null,
       feedbacks: [],
     };
 

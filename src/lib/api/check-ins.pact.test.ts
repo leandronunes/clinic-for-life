@@ -24,6 +24,7 @@ import {
   markCheckInViewed,
   deleteCheckIn,
   claimCheckIn,
+  updateCheckInPse,
 } from "./check-ins";
 
 const STATUSES = ["in_progress", "completed"];
@@ -43,6 +44,7 @@ const checkInTemplate = (overrides: Record<string, unknown> = {}) => ({
   started_at: like("2026-07-12T10:00:00Z"),
   completed_at: nullValue(),
   viewed_at: nullValue(),
+  pse: nullValue(),
   feedbacks: like([]),
   ...overrides,
 });
@@ -355,6 +357,39 @@ describe("check-ins API contract", () => {
       await withMockServerEnv(mockServer.url, async () => {
         const checkIn = await claimCheckIn("2301", "2345", "2355");
         expect(checkIn.performed_by).toEqual("personal");
+      });
+    });
+  });
+
+  it("registers the PSE for a completed check-in", async () => {
+    const pact = createPact();
+    pact
+      .given("student 2301 has a completed check-in 2356 on workout 2346 with no PSE recorded yet")
+      .uponReceiving("a request to register the PSE of a completed check-in")
+      .withRequest({
+        method: "PATCH",
+        path: "/api/v1/students/2301/workouts/2346/check_ins/2356/pse",
+        headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+        body: { pse: 7 },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: checkInTemplate({
+            id: idString("2356"),
+            workout_id: idString("2346"),
+            status: enumString(STATUSES, "completed"),
+            completed_at: like("2026-07-12T10:30:00Z"),
+            pse: integer(7),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const checkIn = await updateCheckInPse("2301", "2346", "2356", 7);
+        expect(checkIn.pse).toEqual(7);
       });
     });
   });

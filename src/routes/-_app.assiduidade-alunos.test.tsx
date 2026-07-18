@@ -130,6 +130,7 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     started_at: "2026-07-10T10:00:00Z",
     completed_at: "2026-07-10T10:45:00Z",
     viewed_at: null,
+    pse: null,
     feedbacks: [],
     ...overrides,
   };
@@ -269,6 +270,22 @@ describe("AssiduidadeAlunosPage", () => {
     expect(within(dialog).getByText("Júlia Ferreira")).toBeInTheDocument();
     expect(within(dialog).getByText("Treinos concluídos no ciclo (1)")).toBeInTheDocument();
     expect(within(dialog).getByText("Treino A")).toBeInTheDocument();
+  });
+
+  it("shows the PSE badge for a completed check-in in the cycle list", async () => {
+    mockFetchStudents.mockResolvedValue([buildStudent()]);
+    mockFetchCompletedCheckIns.mockResolvedValue([
+      buildCheckIn({ completed_at: "2026-07-10T10:45:00Z", pse: 3 }),
+    ]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadeAlunosPage />, { wrapper });
+
+    await screen.findByText("Júlia Ferreira");
+    await user.click(screen.getByRole("button", { name: "Detalhes" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/3 · Leve/)).toBeInTheDocument();
   });
 
   it("lists a student's self check-in as pending confirmation, not counted in the cycle", async () => {

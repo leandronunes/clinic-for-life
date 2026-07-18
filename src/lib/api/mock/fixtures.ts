@@ -292,6 +292,7 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       started_at: "2026-01-10T13:00:00.000Z",
       completed_at: "2026-01-10T13:45:00.000Z",
       viewed_at: null,
+      pse: null,
       feedbacks: [],
     },
     {
@@ -308,6 +309,7 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       started_at: "2026-01-03T13:00:00.000Z",
       completed_at: "2026-01-03T13:40:00.000Z",
       viewed_at: "2026-01-03T15:00:00.000Z",
+      pse: 7,
       feedbacks: [],
     },
   ],
@@ -326,6 +328,7 @@ export const CHECK_INS_BY_WORKOUT: Record<string, WorkoutCheckIn[]> = {
       started_at: "2026-01-08T09:00:00.000Z",
       completed_at: "2026-01-08T09:35:00.000Z",
       viewed_at: "2026-01-08T09:40:00.000Z",
+      pse: 4,
       feedbacks: [],
     },
   ],
