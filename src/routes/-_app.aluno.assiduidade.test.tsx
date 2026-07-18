@@ -81,6 +81,7 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     started_at: "2026-07-10T10:00:00Z",
     completed_at: "2026-07-10T10:45:00Z",
     viewed_at: null,
+    pse: null,
     feedbacks: [],
     ...overrides,
   };
@@ -129,6 +130,15 @@ describe("AssiduidadePage", () => {
 
     await screen.findByText("Treino A");
     expect(screen.getByText("Concluído")).toBeInTheDocument();
+  });
+
+  it("shows the PSE badge on the 'Dia' view's check-in row when recorded", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ pse: 7 })]);
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    expect(screen.getByText(/7 · Intenso/)).toBeInTheDocument();
   });
 
   it("no longer offers a general 'Enviar feedback' action", async () => {
@@ -217,6 +227,36 @@ describe("AssiduidadePage", () => {
       within(dialog).getByText("Mandou muito bem no treino de hoje, continue assim!"),
     ).toBeInTheDocument();
     expect(within(dialog).getByText("— Rafael Monteiro")).toBeInTheDocument();
+  });
+
+  it("shows the PSE badge inside the day's check-in detail when recorded", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ pse: 7 })]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/7 · Intenso/)).toBeInTheDocument();
+  });
+
+  it("omits the PSE badge when no PSE was recorded for the check-in", async () => {
+    mockFetchHistory.mockResolvedValue([buildCheckIn({ pse: null })]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await screen.findByText("Treino A");
+    await user.click(screen.getByRole("tab", { name: "Semana" }));
+    await user.click(screen.getByRole("button", { name: /10\/07\/2026/ }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByText(/PSE \d+ · (Leve|Moderado|Intenso|Máximo)/),
+    ).not.toBeInTheDocument();
   });
 
   it("shows today's emoji reactions in the feedback banner", async () => {

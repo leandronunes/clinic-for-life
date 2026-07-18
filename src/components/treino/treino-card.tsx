@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Play,
@@ -58,12 +58,15 @@ import {
   toggleExerciseCheckIn,
   deleteCheckIn,
   claimCheckIn,
+  updateCheckInPse,
+  type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 import { useAuth } from "@/contexts/use-auth";
 import { SortableExerciseItem, ExerciseRowContent } from "./exercise-row";
 import { ExercicioFormDialog } from "./exercicio-form-dialog";
 import { TreinoFormDialog } from "./treino-form-dialog";
 import { ExecucaoTreinoDialog } from "./execucao-treino-dialog";
+import { PseCaptureDialog } from "./pse-capture-dialog";
 
 export function TreinoCard({
   treino,
@@ -116,6 +119,42 @@ export function TreinoCard({
     queryKey: ["check-in", "current", alunoId, treino.id],
     queryFn: () => fetchCurrentCheckIn(alunoId, treino.id),
     enabled: treino.status === "active",
+  });
+
+  // Captura da PSE (Percepção Subjetiva de Esforço): um treino conclui de
+  // duas formas independentes — clique em "Finalizar treino" (abaixo) ou
+  // auto-conclusão ao marcar o último exercício (dentro de
+  // ExecucaoTreinoDialog, via toggleExerciseMut). Em vez de duplicar a
+  // captura nos dois lugares, este efeito observa a transição de status e
+  // abre um único diálogo qualquer que seja o caminho que levou até ela.
+  // "pseDismissedForCheckInId" evita reabrir se o usuário pular — a PSE só
+  // é oferecida uma vez, neste momento (não é editável depois).
+  const [pseDialogOpen, setPseDialogOpen] = useState(false);
+  const [pseDismissedForCheckInId, setPseDismissedForCheckInId] = useState<string | null>(null);
+  const prevCheckInStatusRef = useRef<WorkoutCheckIn["status"] | undefined>(checkIn?.status);
+  useEffect(() => {
+    const prevStatus = prevCheckInStatusRef.current;
+    prevCheckInStatusRef.current = checkIn?.status;
+    if (
+      checkIn &&
+      checkIn.status === "completed" &&
+      checkIn.pse == null &&
+      prevStatus === "in_progress" &&
+      checkIn.id !== pseDismissedForCheckInId
+    ) {
+      setPseDialogOpen(true);
+    }
+  }, [checkIn, pseDismissedForCheckInId]);
+
+  const updatePseMut = useMutation({
+    mutationFn: (pse: number) => updateCheckInPse(alunoId, treino.id, checkIn!.id, pse),
+    onSuccess: (data) => {
+      toast.success("Percepção de esforço registrada");
+      qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
+      qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
+      setPseDialogOpen(false);
+    },
+    onError: () => toast.error("Não foi possível registrar a percepção de esforço"),
   });
 
   const startCheckInMut = useMutation({
@@ -582,6 +621,15 @@ export function TreinoCard({
           focusExerciseId={execFocusExerciseId}
         />
       )}
+      <PseCaptureDialog
+        open={pseDialogOpen}
+        onOpenChange={(o) => {
+          setPseDialogOpen(o);
+          if (!o && checkIn) setPseDismissedForCheckInId(checkIn.id);
+        }}
+        onSubmit={(pse) => updatePseMut.mutate(pse)}
+        isPending={updatePseMut.isPending}
+      />
     </Card>
   );
 }

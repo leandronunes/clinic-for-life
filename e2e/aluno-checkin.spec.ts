@@ -29,6 +29,15 @@ test.describe("Check-in de treino (aluno)", () => {
     await page.getByRole("button", { name: /Marcar "Cadeira extensora"/ }).click();
 
     await expect(page.getByText("Treino concluído!")).toBeVisible();
+    // A conclusão (por qualquer caminho) abre o diálogo de PSE — escolhe um
+    // valor e confirma antes de seguir interagindo com a tela.
+    const pseDialog = page.getByRole("dialog", { name: "Como foi o esforço desse treino?" });
+    await expect(pseDialog).toBeVisible();
+    await pseDialog.getByRole("radio", { name: /PSE 5 ·/ }).click();
+    await pseDialog.getByRole("button", { name: "Confirmar" }).click();
+    await expect(page.getByText("Percepção de esforço registrada")).toBeVisible();
+    await expect(pseDialog).not.toBeVisible();
+
     // Só um check-in por treino por dia — "Iniciar treino" não deve mais
     // aparecer; em vez disso, é preciso remover o check-in para refazer.
     await expect(page.getByText("Treino já concluído hoje (2/2)")).toBeVisible();
@@ -60,6 +69,13 @@ test.describe("Check-in de treino (aluno)", () => {
       .click();
 
     await expect(page.getByText("Treino finalizado")).toBeVisible();
+    // A conclusão manual também abre o diálogo de PSE — testa o caminho de
+    // "Pular" aqui (o outro teste deste describe já cobre "Confirmar").
+    const pseDialog = page.getByRole("dialog", { name: "Como foi o esforço desse treino?" });
+    await expect(pseDialog).toBeVisible();
+    await pseDialog.getByRole("button", { name: "Pular" }).click();
+    await expect(pseDialog).not.toBeVisible();
+
     await expect(page.getByText("Treino já concluído hoje (1/2)")).toBeVisible();
   });
 });

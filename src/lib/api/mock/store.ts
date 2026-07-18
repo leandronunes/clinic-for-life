@@ -581,6 +581,7 @@ export function startCheckIn(
     started_at: new Date().toISOString(),
     completed_at: null,
     viewed_at: null,
+    pse: null,
     feedbacks: [],
   };
   checkInsByWorkout[workout.id] = [checkIn, ...list];
@@ -609,6 +610,20 @@ export function finishCheckIn(
   if (checkIn.status === "completed") alreadyFinishedCheckIn();
   checkIn.status = "completed";
   checkIn.completed_at = new Date().toISOString();
+  return hydrateCheckIn(checkIn);
+}
+
+export function updateCheckInPse(
+  studentId: string,
+  workoutId: string,
+  checkInId: string,
+  pse: number,
+): WorkoutCheckIn {
+  const checkIn = getCheckIn(studentId, workoutId, checkInId);
+  if (checkIn.status !== "completed") {
+    notCompletedCheckIn("Só é possível registrar a PSE de um check-in concluído");
+  }
+  checkIn.pse = pse;
   return hydrateCheckIn(checkIn);
 }
 

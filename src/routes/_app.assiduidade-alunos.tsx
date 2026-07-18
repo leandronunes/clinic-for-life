@@ -35,6 +35,7 @@ import {
 import { fetchStudents, type Student } from "@/lib/api/students";
 import { fetchCompletedCheckIns, claimCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
 import { formatCheckInDateTime } from "@/lib/check-in-format";
+import { PseScale } from "@/components/treino/pse-scale";
 import { CycleHistoryRow } from "@/components/CycleHistoryRow";
 import { fetchAttendanceCycleHistory, renewAttendanceCycle } from "@/lib/api/attendance-cycles";
 import { useAuth } from "@/contexts/use-auth";
@@ -364,7 +365,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                       <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
                         <Dumbbell className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-1">
                         <div className="text-sm font-medium">{c.workout_title}</div>
                         <div className="text-xs text-muted-foreground">
                           {c.completed_at
@@ -372,6 +373,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                             : "—"}{" "}
                           · {c.exercises_completed}/{c.exercises_total} exercícios
                         </div>
+                        <PseScale value={c.pse} readOnly />
                       </div>
                     </li>
                   ))}
@@ -388,7 +390,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                 <ul className="divide-y rounded-lg border border-dashed">
                   {row.cycle.pendingClaimCheckIns.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-3 p-3">
-                      <div>
+                      <div className="space-y-1">
                         <div className="text-sm font-medium">{c.workout_title}</div>
                         <div className="text-xs text-muted-foreground">
                           {c.completed_at
@@ -396,6 +398,7 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                             : "—"}{" "}
                           · Feito pelo aluno — não conta na quota ainda
                         </div>
+                        <PseScale value={c.pse} readOnly />
                       </div>
                       <Button
                         type="button"

@@ -21,6 +21,7 @@ function checkIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     started_at: "2026-07-10T13:00:00.000Z",
     completed_at: "2026-07-10T13:45:00.000Z",
     viewed_at: null,
+    pse: null,
     feedbacks: [],
     ...overrides,
   };

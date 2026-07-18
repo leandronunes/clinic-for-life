@@ -22,6 +22,7 @@ function checkIn(
     started_at: completedAt ?? "2026-01-01T00:00:00.000Z",
     completed_at: completedAt,
     viewed_at: null,
+    pse: null,
     feedbacks: [],
   };
 }
