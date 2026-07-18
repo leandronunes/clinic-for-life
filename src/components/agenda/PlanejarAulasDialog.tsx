@@ -193,10 +193,7 @@ export function PlanejarAulasDialog({ trainerId, defaultStudentId }: Props) {
               {WEEKDAYS.map((w) => {
                 const enabled = values.slots?.[w]?.enabled;
                 return (
-                  <div
-                    key={w}
-                    className="flex flex-wrap items-center gap-2 rounded-md border p-2"
-                  >
+                  <div key={w} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
                     <Controller
                       control={control}
                       name={`slots.${w}.enabled` as const}

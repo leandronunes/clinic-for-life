@@ -20,11 +20,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AgendaCalendar, statusLabel } from "@/components/agenda/AgendaCalendar";
-import {
-  Toolbar,
-  rangeFor,
-  SessionDetailsDialog as _AlunoDetails,
-} from "./_app.aluno.agenda";
+import { Toolbar, rangeFor, SessionDetailsDialog as _AlunoDetails } from "./_app.aluno.agenda";
 import {
   deleteScheduleSession,
   fetchScheduleSessions,
@@ -68,10 +64,7 @@ function AgendaPersonalPage() {
   });
 
   const { data: sessions = [], isLoading } = useQuery({
-    queryKey: [
-      "schedule",
-      { trainerId: trainerId ?? "all", studentId: studentFilter, ...range },
-    ],
+    queryKey: ["schedule", { trainerId: trainerId ?? "all", studentId: studentFilter, ...range }],
     queryFn: () =>
       fetchScheduleSessions({
         from: range.from,
@@ -156,9 +149,7 @@ function AgendaPersonalPage() {
                   {selected.duration_minutes} min
                 </div>
                 <div>Status: {statusLabel(selected.status)}</div>
-                {selected.notes && (
-                  <p className="text-muted-foreground">{selected.notes}</p>
-                )}
+                {selected.notes && <p className="text-muted-foreground">{selected.notes}</p>}
               </div>
               <DialogFooter>
                 <Button

@@ -439,7 +439,9 @@ async function routeMockRequest<T>({
     }) as T;
   }
   if (m === "POST" && path === "/api/v1/schedule_plans") {
-    return store.createSchedulePlan(b as unknown as import("../schedules").SchedulePlanPayload) as T;
+    return store.createSchedulePlan(
+      b as unknown as import("../schedules").SchedulePlanPayload,
+    ) as T;
   }
   match = /^\/api\/v1\/schedule_sessions\/([^/]+)$/.exec(path);
   if (match) {
