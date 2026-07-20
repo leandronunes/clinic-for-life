@@ -526,6 +526,14 @@ export function ExecucaoTreinoDialog({
   const [elapsed, setElapsed] = useState(0);
   const [remaining, setRemaining] = useState(0);
 
+  // O relógio é derivado de timestamps absolutos (não apenas incrementado a
+  // cada tick) para continuar correto mesmo se o app ficar em segundo plano e
+  // o navegador suspender/atrasar o setInterval — ao voltar ao primeiro
+  // plano, o valor é recalculado imediatamente via `visibilitychange`.
+  const elapsedBaseRef = useRef(0);
+  const executingStartRef = useRef<number | null>(null);
+  const restEndAtRef = useRef<number | null>(null);
+
   const startedIdxRef = useRef(startedIdx);
   startedIdxRef.current = startedIdx;
   const firstPendingIdxRef = useRef(firstPendingIdx);
@@ -561,22 +569,50 @@ export function ExecucaoTreinoDialog({
 
   useEffect(() => {
     if (phase === "executing") {
-      const t = window.setInterval(() => setElapsed((v) => v + 1), 1000);
-      return () => window.clearInterval(t);
+      executingStartRef.current = Date.now();
+      const tick = () => {
+        const start = executingStartRef.current;
+        if (start == null) return;
+        setElapsed(elapsedBaseRef.current + Math.floor((Date.now() - start) / 1000));
+      };
+      const t = window.setInterval(tick, 1000);
+      const onVisible = () => {
+        if (document.visibilityState === "visible") tick();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        window.clearInterval(t);
+        document.removeEventListener("visibilitychange", onVisible);
+        const start = executingStartRef.current;
+        if (start != null) {
+          elapsedBaseRef.current += Math.floor((Date.now() - start) / 1000);
+        }
+        executingStartRef.current = null;
+      };
     }
     if (phase === "resting") {
-      const t = window.setInterval(() => {
-        setRemaining((v) => {
-          if (v <= 1) {
-            window.clearInterval(t);
-            setPhase("rest-done");
-            playRestAlert();
-            return 0;
-          }
-          return v - 1;
-        });
-      }, 1000);
-      return () => window.clearInterval(t);
+      const tick = () => {
+        const end = restEndAtRef.current;
+        if (end == null) return;
+        const secsLeft = Math.ceil((end - Date.now()) / 1000);
+        if (secsLeft <= 0) {
+          window.clearInterval(t);
+          setRemaining(0);
+          setPhase("rest-done");
+          playRestAlert();
+        } else {
+          setRemaining(secsLeft);
+        }
+      };
+      const t = window.setInterval(tick, 1000);
+      const onVisible = () => {
+        if (document.visibilityState === "visible") tick();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        window.clearInterval(t);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
     }
     return undefined;
   }, [phase]);
@@ -608,10 +644,17 @@ export function ExecucaoTreinoDialog({
       setStartedIdx(null);
       setCurrentSet(1);
       setPhase("idle");
+      elapsedBaseRef.current = 0;
       setElapsed(0);
       setRemaining(0);
     }
     goToNext(current.id);
+  }
+
+  function handleResetElapsed() {
+    elapsedBaseRef.current = 0;
+    if (phase === "executing") executingStartRef.current = Date.now();
+    setElapsed(0);
   }
 
   const phaseLabel =
@@ -663,6 +706,7 @@ export function ExecucaoTreinoDialog({
       onClick: () => {
         setStartedIdx(idx);
         setCurrentSet(1);
+        elapsedBaseRef.current = 0;
         setElapsed(0);
         setPhase("executing");
       },
@@ -672,6 +716,7 @@ export function ExecucaoTreinoDialog({
       label: isCardio ? "Iniciar cardio" : `Iniciar série ${currentSet}`,
       icon: Play,
       onClick: () => {
+        elapsedBaseRef.current = 0;
         setElapsed(0);
         setPhase("executing");
       },
@@ -687,6 +732,7 @@ export function ExecucaoTreinoDialog({
         icon: Clock,
         tone: "amber",
         onClick: () => {
+          restEndAtRef.current = Date.now() + restSecs * 1000;
           setRemaining(restSecs);
           setPhase("resting");
         },
@@ -697,6 +743,7 @@ export function ExecucaoTreinoDialog({
         icon: ChevronRight,
         onClick: () => {
           setCurrentSet((s) => s + 1);
+          elapsedBaseRef.current = 0;
           setElapsed(0);
           setPhase("idle");
         },
@@ -716,6 +763,7 @@ export function ExecucaoTreinoDialog({
           tone: "success",
           onClick: () => {
             setCurrentSet((s) => s + 1);
+            elapsedBaseRef.current = 0;
             setElapsed(0);
             setPhase("executing");
           },
@@ -864,7 +912,7 @@ export function ExecucaoTreinoDialog({
                     size="icon"
                     className="h-10 w-10 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Zerar cronômetro"
-                    onClick={() => setElapsed(0)}
+                    onClick={handleResetElapsed}
                   >
                     <RotateCcw className="h-4 w-4" />
                   </Button>
@@ -874,7 +922,7 @@ export function ExecucaoTreinoDialog({
                 <Button
                   variant="ghost"
                   className="h-10 flex-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={() => setElapsed(0)}
+                  onClick={handleResetElapsed}
                 >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Zerar cronômetro
                 </Button>
