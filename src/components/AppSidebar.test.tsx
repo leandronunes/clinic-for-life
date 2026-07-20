@@ -157,4 +157,65 @@ describe("AppSidebar", () => {
       );
     });
   });
+
+  describe("feature flag: agendaCalendar", () => {
+    beforeEach(() => {
+      // Don't rely on the ambient .env — pin a known "off" baseline so these
+      // tests pass regardless of what's set on the machine running them.
+      vi.stubEnv("VITE_FEATURE_AGENDA_CALENDAR", "false");
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('esconde "Agenda" do menu do admin/personal quando a flag está desligada', () => {
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.queryByRole("link", { name: /^agenda$/i })).not.toBeInTheDocument();
+    });
+
+    it('mostra "Agenda" no menu do admin quando a flag está ligada', () => {
+      vi.stubEnv("VITE_FEATURE_AGENDA_CALENDAR", "true");
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /^agenda$/i })).toHaveAttribute("href", "/agenda");
+    });
+
+    it('esconde "Minha Agenda" do menu do aluno quando a flag está desligada', () => {
+      const alunoUser: AuthUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "julia@test.com",
+        role: "aluno",
+      };
+      mockUseAuth.mockReturnValue(buildAuth({ user: alunoUser, effectiveRole: "aluno" }));
+
+      renderSidebar();
+
+      expect(screen.queryByRole("link", { name: /minha agenda/i })).not.toBeInTheDocument();
+    });
+
+    it('mostra "Minha Agenda" no menu do aluno quando a flag está ligada', () => {
+      vi.stubEnv("VITE_FEATURE_AGENDA_CALENDAR", "true");
+      const alunoUser: AuthUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "julia@test.com",
+        role: "aluno",
+      };
+      mockUseAuth.mockReturnValue(buildAuth({ user: alunoUser, effectiveRole: "aluno" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /minha agenda/i })).toHaveAttribute(
+        "href",
+        "/aluno/agenda",
+      );
+    });
+  });
 });

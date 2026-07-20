@@ -66,13 +66,17 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   ],
 };
 
+const AGENDA_URLS = ["/agenda", "/aluno/agenda"];
+
 export function AppSidebar() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const menuRole = effectiveRole ?? user?.role;
   const items = (menuRole ? MENU[menuRole] : []).filter(
-    (item) => item.url !== "/assiduidade-alunos" || isFeatureEnabled("attendanceCycles"),
+    (item) =>
+      (item.url !== "/assiduidade-alunos" || isFeatureEnabled("attendanceCycles")) &&
+      (!AGENDA_URLS.includes(item.url) || isFeatureEnabled("agendaCalendar")),
   );
 
   const isActive = (url: string) =>
