@@ -11,6 +11,7 @@ import { ParceirosVitrine } from "@/components/ParceirosVitrine";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { validateStrongPassword } from "@/lib/utils";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { toast } from "sonner";
 import type { AuthUser } from "@/lib/api/auth";
 
@@ -119,12 +120,14 @@ function LoginPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Senha</Label>
-                      <Link
-                        to="/esqueci-senha"
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Esqueci minha senha
-                      </Link>
+                      {isFeatureEnabled("passwordReset") && (
+                        <Link
+                          to="/esqueci-senha"
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Esqueci minha senha
+                        </Link>
+                      )}
                     </div>
                     <div className="relative">
                       <Input
