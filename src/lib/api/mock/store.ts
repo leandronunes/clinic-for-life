@@ -1395,9 +1395,7 @@ export function deleteScheduleSession(id: string): void {
 
 /* -------------------- Chat -------------------- */
 
-import type { ChatConversation, ChatMessage, ChatSenderRole } from "../chat";
-
-interface StoredChatMessage extends ChatMessage {}
+type StoredChatMessage = ChatMessage;
 
 let chatMessages: StoredChatMessage[] = [
   {
