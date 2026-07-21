@@ -44,6 +44,59 @@ test.describe("Autenticação", () => {
   });
 });
 
+test.describe("Recuperação de senha", () => {
+  test("pede o link em /esqueci-senha a partir do login", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+    await expect(page).toHaveURL("/esqueci-senha");
+
+    await page.getByLabel("E-mail").fill("aluno@forlife.app");
+    await page.getByRole("button", { name: "Enviar link de redefinição" }).click();
+
+    await expect(page.getByText(/receberá um link de redefinição/)).toBeVisible();
+  });
+
+  test("mostra a mesma mensagem genérica mesmo para um e-mail não cadastrado", async ({ page }) => {
+    await page.goto("/esqueci-senha");
+    await page.getByLabel("E-mail").fill("ninguem@forlife.app");
+    await page.getByRole("button", { name: "Enviar link de redefinição" }).click();
+
+    await expect(page.getByText(/receberá um link de redefinição/)).toBeVisible();
+  });
+
+  test("redefine a senha com um token válido e autentica automaticamente", async ({ page }) => {
+    // Token fixo aceito pelo mock offline — ver MOCK_PASSWORD_RESET_TOKEN em
+    // src/lib/api/mock/store.ts (não há entrega real de e-mail no modo offline).
+    await page.goto("/redefinir-senha?token=mock-reset-token-fixed");
+
+    await page.getByLabel("Nova senha", { exact: true }).fill("N3w@Str0ngPass");
+    await page.getByLabel("Confirmar nova senha").fill("N3w@Str0ngPass");
+    await page.getByRole("button", { name: "Redefinir senha" }).click();
+
+    await expect(page).toHaveURL("/aluno");
+    await expect(page.getByRole("heading", { name: "Meu Treino" })).toBeVisible();
+  });
+
+  test("mostra erro para um token inválido", async ({ page }) => {
+    await page.goto("/redefinir-senha?token=token-invalido");
+
+    await page.getByLabel("Nova senha", { exact: true }).fill("N3w@Str0ngPass");
+    await page.getByLabel("Confirmar nova senha").fill("N3w@Str0ngPass");
+    await page.getByRole("button", { name: "Redefinir senha" }).click();
+
+    await expect(page.getByText("Link inválido ou expirado")).toBeVisible();
+    await expect(page).toHaveURL("/redefinir-senha?token=token-invalido");
+  });
+
+  test("sem token na URL, oferece pedir um novo link", async ({ page }) => {
+    await page.goto("/redefinir-senha");
+
+    await expect(page.getByText("Este link de redefinição é inválido.")).toBeVisible();
+    await page.getByRole("link", { name: "Pedir um novo link" }).click();
+    await expect(page).toHaveURL("/esqueci-senha");
+  });
+});
+
 test.describe("Cadastro (fora do fluxo autenticado)", () => {
   test("link 'Criar conta' navega para /cadastro", async ({ page }) => {
     await page.goto("/login");

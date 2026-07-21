@@ -102,6 +102,30 @@ export function changePassword(payload: ChangePasswordPayload): Promise<{ messag
   return http.patch<{ message: string }>("/api/v1/auth/password", payload);
 }
 
+/**
+ * Requests a password reset link by e-mail. Always resolves with the same
+ * generic message, whether or not the e-mail matches an account — the
+ * backend never reveals which e-mails are registered.
+ */
+export function forgotPassword(email: string): Promise<{ message: string }> {
+  return http.post<{ message: string }>("/api/v1/auth/password/forgot", { email });
+}
+
+export interface ResetPasswordParams {
+  token: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/**
+ * Consumes a password reset token (from the link sent by forgotPassword)
+ * and sets a new password. Returns the same session envelope as login,
+ * signing the user in immediately.
+ */
+export function resetPassword(params: ResetPasswordParams): Promise<LoginResponse> {
+  return http.post<LoginResponse>("/api/v1/auth/password/reset", params);
+}
+
 /** Maps backend English fields to the shape the app currently consumes. */
 export function mapBackendUser(u: BackendUser): AuthUser {
   return {

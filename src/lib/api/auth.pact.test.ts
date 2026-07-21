@@ -18,9 +18,11 @@ import { createPact, withMockServerEnv } from "@/lib/pact/setup";
 import {
   changePassword,
   fetchCurrentUser,
+  forgotPassword,
   googleLogin,
   login,
   register,
+  resetPassword,
   updateCurrentUser,
 } from "./auth";
 
@@ -511,6 +513,147 @@ describe("auth API contract", () => {
                 password_confirmation: "N3w@Str0ngPass",
               }),
             ).rejects.toMatchObject({ status: 401 });
+          },
+          { authenticated: false },
+        );
+      });
+    });
+  });
+
+  describe("POST /api/v1/auth/password/forgot", () => {
+    it("responds with a generic message when the e-mail is registered", async () => {
+      const pact = createPact();
+      pact
+        .given("a user with email pact.forgot@forlife.app exists to request a password reset")
+        .uponReceiving("a request to request a password reset for a registered e-mail")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/auth/password/forgot",
+          headers: { "Content-Type": "application/json" },
+          body: { email: "pact.forgot@forlife.app" },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: {
+            data: { message: like("Se o e-mail existir, enviaremos um link de redefinição.") },
+          },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            const result = await forgotPassword("pact.forgot@forlife.app");
+            expect(result.message).toEqual(expect.any(String));
+          },
+          { authenticated: false },
+        );
+      });
+    });
+
+    it("responds with the same generic message for an unregistered e-mail", async () => {
+      const pact = createPact();
+      pact
+        .given("no account exists for the given email")
+        .uponReceiving("a request to request a password reset for an unregistered e-mail")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/auth/password/forgot",
+          headers: { "Content-Type": "application/json" },
+          body: { email: "nobody@forlife.app" },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: {
+            data: { message: like("Se o e-mail existir, enviaremos um link de redefinição.") },
+          },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            const result = await forgotPassword("nobody@forlife.app");
+            expect(result.message).toEqual(expect.any(String));
+          },
+          { authenticated: false },
+        );
+      });
+    });
+  });
+
+  describe("POST /api/v1/auth/password/reset", () => {
+    it("resets the password and signs the user in with a valid token", async () => {
+      const pact = createPact();
+      pact
+        .given("a user has a valid password reset token")
+        .uponReceiving("a request to reset the password with a valid token")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/auth/password/reset",
+          headers: { "Content-Type": "application/json" },
+          body: {
+            token: "pact-reset-token-0123456789abcdef",
+            password: "N3w@Str0ngPass",
+            password_confirmation: "N3w@Str0ngPass",
+          },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: { data: sessionTemplate() },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            const session = await resetPassword({
+              token: "pact-reset-token-0123456789abcdef",
+              password: "N3w@Str0ngPass",
+              password_confirmation: "N3w@Str0ngPass",
+            });
+            expect(session.token).toEqual(expect.any(String));
+          },
+          { authenticated: false },
+        );
+      });
+    });
+
+    it("rejects an invalid or expired token", async () => {
+      const pact = createPact();
+      pact
+        .given("no password reset token is valid")
+        .uponReceiving("a request to reset the password with an invalid token")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/auth/password/reset",
+          headers: { "Content-Type": "application/json" },
+          body: {
+            token: "not-a-real-token",
+            password: "N3w@Str0ngPass",
+            password_confirmation: "N3w@Str0ngPass",
+          },
+        })
+        .willRespondWith({
+          status: 422,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorStringBody("Link inválido ou expirado"),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(
+          mockServer.url,
+          async () => {
+            await expect(
+              resetPassword({
+                token: "not-a-real-token",
+                password: "N3w@Str0ngPass",
+                password_confirmation: "N3w@Str0ngPass",
+              }),
+            ).rejects.toMatchObject({ status: 422 });
           },
           { authenticated: false },
         );

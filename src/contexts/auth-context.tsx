@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AuthSession, BackendUser, RegisterParams, UserRole } from "@/lib/api/auth";
-import { login, register, googleLogin, fetchCurrentUser, mapBackendUser } from "@/lib/api/auth";
+import type {
+  AuthSession,
+  BackendUser,
+  RegisterParams,
+  ResetPasswordParams,
+  UserRole,
+} from "@/lib/api/auth";
+import {
+  login,
+  register,
+  googleLogin,
+  resetPassword as resetPasswordApi,
+  fetchCurrentUser,
+  mapBackendUser,
+} from "@/lib/api/auth";
 import { setAuthTokenGetter } from "@/lib/api/http";
 import { AuthContext, type AuthContextValue } from "./use-auth";
 
@@ -118,6 +131,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s.user;
   };
 
+  const resetPassword = async (params: ResetPasswordParams) => {
+    const res = await resetPasswordApi(params);
+    const s: AuthSession = {
+      token: res.token,
+      user: mapBackendUser(res.user),
+      expires_at: res.expires_at,
+    };
+    setSession(s);
+    setImpersonatedAlunoId(null);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    localStorage.removeItem(IMPERSONATE_KEY);
+    return s.user;
+  };
+
   const signOut = () => {
     setSession(null);
     setImpersonatedAlunoId(null);
@@ -160,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      resetPassword,
       signOut,
       updateUser,
       hasRole: (...roles: UserRole[]) => !!role && roles.includes(role),

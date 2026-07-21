@@ -1268,6 +1268,37 @@ export function changePassword(
   return { message: "Senha atualizada com sucesso" };
 }
 
+/** Fixed token e2e/demo flows can use to exercise the reset-password happy
+ * path offline — the mock has no real e-mail delivery, so there's no other
+ * way to obtain a "valid" token. Any other value is rejected, mirroring the
+ * real API's expired/unknown-token error. */
+export const MOCK_PASSWORD_RESET_TOKEN = "mock-reset-token-fixed";
+
+/** Always resolves with the same generic message — mirrors the real API's
+ * protection against leaking which e-mails are registered. */
+export function forgotPassword(email: string): { message: string } {
+  void email;
+  return { message: "Se o e-mail existir, enviaremos um link de redefinição." };
+}
+
+export function resetPassword(
+  token: string,
+  payload: { password: string; password_confirmation: string },
+): LoginResponse {
+  if (token !== MOCK_PASSWORD_RESET_TOKEN) {
+    const err: ApiError = { status: 422, message: "Link inválido ou expirado" };
+    throw err;
+  }
+  if (payload.password !== payload.password_confirmation) {
+    const err: ApiError = { status: 422, message: "As senhas não coincidem" };
+    throw err;
+  }
+  const idx = mockUsers.findIndex((u) => u.role === "student");
+  if (idx === -1) notFound("Usuário demo não encontrado");
+  mockUsers[idx] = { ...mockUsers[idx], password: payload.password };
+  return sessionFor(mockUsers[idx]);
+}
+
 /* -------------------- Schedule sessions (offline) -------------------- */
 
 import type { ScheduleSession, SchedulePlanPayload, UpdateSessionPayload } from "../schedules";
