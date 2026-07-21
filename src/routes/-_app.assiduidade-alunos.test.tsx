@@ -24,10 +24,13 @@ vi.mock("@/lib/api/students", () => ({ fetchStudents: vi.fn() }));
 import { fetchStudents } from "@/lib/api/students";
 const mockFetchStudents = vi.mocked(fetchStudents);
 
-vi.mock("@/lib/api/check-ins", () => ({ fetchCompletedCheckIns: vi.fn(), claimCheckIn: vi.fn() }));
-import { fetchCompletedCheckIns, claimCheckIn } from "@/lib/api/check-ins";
+vi.mock("@/lib/api/check-ins", () => ({
+  fetchCompletedCheckIns: vi.fn(),
+  confirmCheckIn: vi.fn(),
+}));
+import { fetchCompletedCheckIns, confirmCheckIn } from "@/lib/api/check-ins";
 const mockFetchCompletedCheckIns = vi.mocked(fetchCompletedCheckIns);
-const mockClaimCheckIn = vi.mocked(claimCheckIn);
+const mockConfirmCheckIn = vi.mocked(confirmCheckIn);
 
 vi.mock("@/lib/api/attendance-cycles", () => ({
   fetchAttendanceCycleHistory: vi.fn(),
@@ -123,7 +126,8 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     student_id: "s1",
     student_name: "Júlia Ferreira",
     status: "completed",
-    performed_by: "personal",
+    student_confirmed_at: "2026-07-10T10:45:00Z",
+    personal_confirmed_at: "2026-07-10T11:00:00Z",
     exercises_completed: 3,
     exercises_total: 3,
     completed_exercise_ids: ["e1", "e2", "e3"],
@@ -291,7 +295,11 @@ describe("AssiduidadeAlunosPage", () => {
   it("lists a student's self check-in as pending confirmation, not counted in the cycle", async () => {
     mockFetchStudents.mockResolvedValue([buildStudent()]);
     mockFetchCompletedCheckIns.mockResolvedValue([
-      buildCheckIn({ performed_by: "aluno", completed_at: "2026-07-10T10:45:00Z" }),
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: null,
+        completed_at: "2026-07-10T10:45:00Z",
+      }),
     ]);
     const user = userEvent.setup();
 
@@ -302,17 +310,46 @@ describe("AssiduidadeAlunosPage", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Treinos concluídos no ciclo (0)")).toBeInTheDocument();
-    expect(
-      within(dialog).getByText("Check-ins do aluno aguardando confirmação (1)"),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Aguardando sua confirmação (1)")).toBeInTheDocument();
+  });
+
+  it("lists a check-in the personal performed as pending the student's confirmation, read-only", async () => {
+    mockFetchStudents.mockResolvedValue([buildStudent()]);
+    mockFetchCompletedCheckIns.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: null,
+        personal_confirmed_at: "2026-07-10T10:45:00Z",
+        completed_at: "2026-07-10T10:45:00Z",
+      }),
+    ]);
+    const user = userEvent.setup();
+
+    render(<AssiduidadeAlunosPage />, { wrapper });
+
+    await screen.findByText("Júlia Ferreira");
+    await user.click(screen.getByRole("button", { name: "Detalhes" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Treinos concluídos no ciclo (0)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Aguardando confirmação do aluno (1)")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
   });
 
   it("confirms a student's self check-in from the cycle details dialog", async () => {
     mockFetchStudents.mockResolvedValue([buildStudent()]);
     mockFetchCompletedCheckIns.mockResolvedValue([
-      buildCheckIn({ performed_by: "aluno", completed_at: "2026-07-10T10:45:00Z" }),
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: null,
+        completed_at: "2026-07-10T10:45:00Z",
+      }),
     ]);
-    mockClaimCheckIn.mockResolvedValue(buildCheckIn({ performed_by: "personal" }));
+    mockConfirmCheckIn.mockResolvedValue(
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    );
     const user = userEvent.setup();
 
     render(<AssiduidadeAlunosPage />, { wrapper });
@@ -324,7 +361,7 @@ describe("AssiduidadeAlunosPage", () => {
     await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
 
     await vi.waitFor(() => {
-      expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+      expect(mockConfirmCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
       expect(toast.success).toHaveBeenCalledWith(
         "Check-in confirmado — agora conta no ciclo de atendimento",
       );

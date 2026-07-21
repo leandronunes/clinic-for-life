@@ -23,12 +23,11 @@ import {
   fetchCompletedCheckIns,
   markCheckInViewed,
   deleteCheckIn,
-  claimCheckIn,
+  confirmCheckIn,
   updateCheckInPse,
 } from "./check-ins";
 
 const STATUSES = ["in_progress", "completed"];
-const PERFORMED_BY_VALUES = ["aluno", "personal"];
 
 const checkInTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("2331"),
@@ -37,7 +36,8 @@ const checkInTemplate = (overrides: Record<string, unknown> = {}) => ({
   student_id: idString("2301"),
   student_name: like("Julia Ferreira"),
   status: enumString(STATUSES, "in_progress"),
-  performed_by: enumString(PERFORMED_BY_VALUES, "aluno"),
+  student_confirmed_at: like("2026-07-12T10:00:00Z"),
+  personal_confirmed_at: nullValue(),
   exercises_completed: integer(0),
   exercises_total: integer(1),
   completed_exercise_ids: like([]),
@@ -327,16 +327,16 @@ describe("check-ins API contract", () => {
     });
   });
 
-  it("lets the personal claim a check-in the student performed themselves", async () => {
+  it("lets the personal confirm a check-in the student performed themselves", async () => {
     const pact = createPact();
     pact
       .given(
-        "student 2301 has a completed check-in 2355 on workout 2345 performed by the aluno, to claim",
+        "student 2301 has a completed check-in 2355 on workout 2345 confirmed only by the aluno, awaiting personal confirmation",
       )
-      .uponReceiving("a request from the personal to claim a check-in")
+      .uponReceiving("a request from the personal to confirm a check-in")
       .withRequest({
         method: "POST",
-        path: "/api/v1/students/2301/workouts/2345/check_ins/2355/claim",
+        path: "/api/v1/students/2301/workouts/2345/check_ins/2355/confirm",
         headers: { Authorization: bearerToken() },
       })
       .willRespondWith({
@@ -347,7 +347,8 @@ describe("check-ins API contract", () => {
             id: idString("2355"),
             workout_id: idString("2345"),
             status: enumString(STATUSES, "completed"),
-            performed_by: enumString(PERFORMED_BY_VALUES, "personal"),
+            student_confirmed_at: like("2026-07-12T10:00:00Z"),
+            personal_confirmed_at: like("2026-07-12T10:30:00Z"),
             completed_at: like("2026-07-12T10:30:00Z"),
           }),
         },
@@ -355,8 +356,43 @@ describe("check-ins API contract", () => {
 
     await pact.executeTest(async (mockServer) => {
       await withMockServerEnv(mockServer.url, async () => {
-        const checkIn = await claimCheckIn("2301", "2345", "2355");
-        expect(checkIn.performed_by).toEqual("personal");
+        const checkIn = await confirmCheckIn("2301", "2345", "2355");
+        expect(checkIn.personal_confirmed_at).toEqual(expect.any(String));
+      });
+    });
+  });
+
+  it("lets the student confirm a check-in the personal performed on their behalf", async () => {
+    const pact = createPact();
+    pact
+      .given(
+        "student 2301 has a completed check-in 2357 on workout 2347 confirmed only by the personal, awaiting student confirmation",
+      )
+      .uponReceiving("a request from the student to confirm a check-in")
+      .withRequest({
+        method: "POST",
+        path: "/api/v1/students/2301/workouts/2347/check_ins/2357/confirm",
+        headers: { Authorization: bearerToken() },
+      })
+      .willRespondWith({
+        status: 200,
+        headers: { "Content-Type": like("application/json; charset=utf-8") },
+        body: {
+          data: checkInTemplate({
+            id: idString("2357"),
+            workout_id: idString("2347"),
+            status: enumString(STATUSES, "completed"),
+            student_confirmed_at: like("2026-07-12T10:30:00Z"),
+            personal_confirmed_at: like("2026-07-12T10:00:00Z"),
+            completed_at: like("2026-07-12T10:30:00Z"),
+          }),
+        },
+      });
+
+    await pact.executeTest(async (mockServer) => {
+      await withMockServerEnv(mockServer.url, async () => {
+        const checkIn = await confirmCheckIn("2301", "2347", "2357");
+        expect(checkIn.student_confirmed_at).toEqual(expect.any(String));
       });
     });
   });

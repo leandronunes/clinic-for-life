@@ -7,7 +7,7 @@ import {
   fetchCheckInHistory,
   fetchCompletedCheckIns,
   markCheckInViewed,
-  claimCheckIn,
+  confirmCheckIn,
   updateCheckInPse,
   type WorkoutCheckIn,
 } from "./check-ins";
@@ -29,7 +29,8 @@ const checkIn: WorkoutCheckIn = {
   student_id: "s1",
   student_name: "Julia Ferreira",
   status: "in_progress",
-  performed_by: "aluno",
+  student_confirmed_at: "2026-07-12T10:00:00Z",
+  personal_confirmed_at: null,
   exercises_completed: 1,
   exercises_total: 3,
   completed_exercise_ids: ["e1"],
@@ -137,13 +138,15 @@ describe("check-ins API", () => {
     });
   });
 
-  describe("claimCheckIn()", () => {
-    it("posts to .../check_ins/:id/claim", async () => {
-      const claimed = { ...checkIn, performed_by: "personal" as const };
-      mockPost.mockResolvedValue(claimed);
-      const result = await claimCheckIn("s1", "w1", "ci1");
-      expect(mockPost).toHaveBeenCalledWith("/api/v1/students/s1/workouts/w1/check_ins/ci1/claim");
-      expect(result).toEqual(claimed);
+  describe("confirmCheckIn()", () => {
+    it("posts to .../check_ins/:id/confirm", async () => {
+      const confirmed = { ...checkIn, personal_confirmed_at: "2026-07-12T11:00:00Z" };
+      mockPost.mockResolvedValue(confirmed);
+      const result = await confirmCheckIn("s1", "w1", "ci1");
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/v1/students/s1/workouts/w1/check_ins/ci1/confirm",
+      );
+      expect(result).toEqual(confirmed);
     });
   });
 });

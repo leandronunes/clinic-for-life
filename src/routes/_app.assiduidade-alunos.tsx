@@ -33,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchStudents, type Student } from "@/lib/api/students";
-import { fetchCompletedCheckIns, claimCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
+import { fetchCompletedCheckIns, confirmCheckIn, type WorkoutCheckIn } from "@/lib/api/check-ins";
 import { formatCheckInDateTime } from "@/lib/check-in-format";
 import { PseScale } from "@/components/treino/pse-scale";
 import { CycleHistoryRow } from "@/components/CycleHistoryRow";
@@ -305,9 +305,9 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
     onError: () => toast.error("Não foi possível renovar o ciclo."),
   });
 
-  const claimMut = useMutation({
+  const confirmMut = useMutation({
     mutationFn: (checkIn: WorkoutCheckIn) =>
-      claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
+      confirmCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
     onSuccess: () => {
       toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
       qc.invalidateQueries({ queryKey: ["completed-check-ins"] });
@@ -381,14 +381,13 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
               )}
             </div>
 
-            {row.cycle.pendingClaimCheckIns.length > 0 && (
+            {row.cycle.pendingPersonalConfirmation.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-muted-foreground">
-                  Check-ins do aluno aguardando confirmação ({row.cycle.pendingClaimCheckIns.length}
-                  )
+                  Aguardando sua confirmação ({row.cycle.pendingPersonalConfirmation.length})
                 </h3>
                 <ul className="divide-y rounded-lg border border-dashed">
-                  {row.cycle.pendingClaimCheckIns.map((c) => (
+                  {row.cycle.pendingPersonalConfirmation.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-3 p-3">
                       <div className="space-y-1">
                         <div className="text-sm font-medium">{c.workout_title}</div>
@@ -404,16 +403,40 @@ function CycleDetailsDialog({ row, onClose }: { row: Row | null; onClose: () => 
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => claimMut.mutate(c)}
-                        disabled={claimMut.isPending}
+                        onClick={() => confirmMut.mutate(c)}
+                        disabled={confirmMut.isPending}
                       >
-                        {claimMut.isPending ? (
+                        {confirmMut.isPending ? (
                           <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                         ) : (
                           <BadgeCheck className="mr-2 h-3 w-3" />
                         )}
                         Confirmar
                       </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {row.cycle.pendingStudentConfirmation.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-muted-foreground">
+                  Aguardando confirmação do aluno ({row.cycle.pendingStudentConfirmation.length})
+                </h3>
+                <ul className="divide-y rounded-lg border border-dashed">
+                  {row.cycle.pendingStudentConfirmation.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 p-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">{c.workout_title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {c.completed_at
+                            ? formatCheckInDateTime(new Date(c.completed_at), { withYear: true })
+                            : "—"}{" "}
+                          · Feito pelo personal — não conta na quota ainda
+                        </div>
+                        <PseScale value={c.pse} readOnly />
+                      </div>
                     </li>
                   ))}
                 </ul>

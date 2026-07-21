@@ -307,7 +307,7 @@ describe("resolveMockRequest()", () => {
     expect(finished.exercises_completed).toBe(0);
   });
 
-  it("marks a check-in started by a logged-in personal as performed by the personal", async () => {
+  it("auto-confirms the personal's side on a check-in started by a logged-in personal", async () => {
     const login = await resolveMockRequest<LoginResponse>({
       method: "POST",
       path: "/api/v1/auth/login",
@@ -322,10 +322,11 @@ describe("resolveMockRequest()", () => {
       token: login.token,
     });
 
-    expect(started.performed_by).toBe("personal");
+    expect(started.personal_confirmed_at).not.toBeNull();
+    expect(started.student_confirmed_at).toBeNull();
   });
 
-  it("defaults performed_by to aluno without a resolvable session", async () => {
+  it("defaults to auto-confirming the student's side without a resolvable session", async () => {
     const { workoutId } = await createWorkoutWithExercises(1);
 
     const started = await resolveMockRequest<WorkoutCheckIn>({
@@ -334,17 +335,26 @@ describe("resolveMockRequest()", () => {
       token: null,
     });
 
-    expect(started.performed_by).toBe("aluno");
+    expect(started.student_confirmed_at).not.toBeNull();
+    expect(started.personal_confirmed_at).toBeNull();
   });
 
-  it("claims a check-in the aluno performed themselves, making it count toward the personal's cycle", async () => {
-    const claimed = await resolveMockRequest<WorkoutCheckIn>({
+  it("confirms a check-in the aluno performed themselves, making it count toward the personal's cycle", async () => {
+    const login = await resolveMockRequest<LoginResponse>({
       method: "POST",
-      path: "/api/v1/students/student-1/workouts/workout-s1-a/check_ins/check-in-s1-a-1/claim",
+      path: "/api/v1/auth/login",
+      body: { email: "personal@forlife.app", password: "Personal@2026" },
       token: null,
     });
 
-    expect(claimed.performed_by).toBe("personal");
+    const confirmed = await resolveMockRequest<WorkoutCheckIn>({
+      method: "POST",
+      path: "/api/v1/students/student-1/workouts/workout-s1-a/check_ins/check-in-s1-a-1/confirm",
+      token: login.token,
+    });
+
+    expect(confirmed.personal_confirmed_at).not.toBeNull();
+    expect(confirmed.student_confirmed_at).not.toBeNull();
   });
 
   it("lists a student's check-in history across workouts", async () => {

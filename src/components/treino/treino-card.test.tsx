@@ -44,7 +44,7 @@ vi.mock("@/lib/api/check-ins", () => ({
   finishCheckIn: vi.fn(),
   toggleExerciseCheckIn: vi.fn(),
   deleteCheckIn: vi.fn(),
-  claimCheckIn: vi.fn(),
+  confirmCheckIn: vi.fn(),
   updateCheckInPse: vi.fn(),
 }));
 import {
@@ -53,14 +53,14 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   deleteCheckIn,
-  claimCheckIn,
+  confirmCheckIn,
   updateCheckInPse,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 const mockFetchCurrentCheckIn = vi.mocked(fetchCurrentCheckIn);
 const mockStartCheckIn = vi.mocked(startCheckIn);
 const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
-const mockClaimCheckIn = vi.mocked(claimCheckIn);
+const mockConfirmCheckIn = vi.mocked(confirmCheckIn);
 const mockFinishCheckIn = vi.mocked(finishCheckIn);
 const mockToggleExerciseCheckIn = vi.mocked(toggleExerciseCheckIn);
 const mockUpdateCheckInPse = vi.mocked(updateCheckInPse);
@@ -867,7 +867,8 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
-      performed_by: "aluno",
+      student_confirmed_at: "2026-07-12T10:00:00Z",
+      personal_confirmed_at: null,
       exercises_completed: 1,
       exercises_total: 2,
       completed_exercise_ids: ["e1"],
@@ -1557,12 +1558,13 @@ describe("TreinoCard", () => {
       );
     });
 
-    it("shows a badge and no claim button for a completed check-in the aluno performed themselves, viewed as the aluno", async () => {
+    it("shows a badge and no confirm button for a completed check-in the aluno performed themselves, viewed as the aluno", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
         status: "completed",
         completed_at: "2026-07-12T10:30:00Z",
-        performed_by: "aluno",
+        student_confirmed_at: "2026-07-12T10:30:00Z",
+        personal_confirmed_at: null,
       });
       render(
         <TreinoCard
@@ -1586,13 +1588,15 @@ describe("TreinoCard", () => {
         ...inProgressCheckIn,
         status: "completed",
         completed_at: "2026-07-12T10:30:00Z",
-        performed_by: "aluno",
+        student_confirmed_at: "2026-07-12T10:30:00Z",
+        personal_confirmed_at: null,
       });
-      mockClaimCheckIn.mockResolvedValue({
+      mockConfirmCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
         status: "completed",
         completed_at: "2026-07-12T10:30:00Z",
-        performed_by: "personal",
+        student_confirmed_at: "2026-07-12T10:30:00Z",
+        personal_confirmed_at: "2026-07-12T10:31:00Z",
       });
       const user = userEvent.setup();
       render(
@@ -1609,19 +1613,55 @@ describe("TreinoCard", () => {
       await user.click(await screen.findByRole("button", { name: /Confirmar check-in/i }));
 
       await waitFor(() => {
-        expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+        expect(mockConfirmCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
         expect(toast.success).toHaveBeenCalledWith(
           "Check-in confirmado — agora conta no ciclo de atendimento",
         );
       });
     });
 
-    it("hides the remove button from the aluno once the personal has performed/confirmed the check-in", async () => {
+    it("lets the aluno confirm a check-in the personal performed on their behalf", async () => {
       mockFetchCurrentCheckIn.mockResolvedValue({
         ...inProgressCheckIn,
         status: "completed",
         completed_at: "2026-07-12T10:30:00Z",
-        performed_by: "personal",
+        student_confirmed_at: null,
+        personal_confirmed_at: "2026-07-12T10:30:00Z",
+      });
+      mockConfirmCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        student_confirmed_at: "2026-07-12T10:31:00Z",
+        personal_confirmed_at: "2026-07-12T10:30:00Z",
+      });
+      const user = userEvent.setup();
+      render(
+        <TreinoCard
+          treino={mockWorkout}
+          alunoId="s1"
+          trainerName="Rafael Monteiro"
+          onWatch={vi.fn()}
+          canEdit={false}
+        />,
+        { wrapper },
+      );
+
+      await user.click(await screen.findByRole("button", { name: "Confirmar meu check-in" }));
+
+      await waitFor(() => {
+        expect(mockConfirmCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+        expect(toast.success).toHaveBeenCalledWith("Check-in confirmado");
+      });
+    });
+
+    it("hides the remove button from the aluno once the personal has confirmed the check-in", async () => {
+      mockFetchCurrentCheckIn.mockResolvedValue({
+        ...inProgressCheckIn,
+        status: "completed",
+        completed_at: "2026-07-12T10:30:00Z",
+        student_confirmed_at: "2026-07-12T10:30:00Z",
+        personal_confirmed_at: "2026-07-12T10:30:00Z",
       });
       render(
         <TreinoCard
@@ -1645,7 +1685,8 @@ describe("TreinoCard", () => {
         ...inProgressCheckIn,
         status: "completed",
         completed_at: "2026-07-12T10:30:00Z",
-        performed_by: "personal",
+        student_confirmed_at: "2026-07-12T10:30:00Z",
+        personal_confirmed_at: "2026-07-12T10:30:00Z",
       });
       render(
         <TreinoCard
@@ -1670,7 +1711,8 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
-      performed_by: "aluno",
+      student_confirmed_at: "2026-07-12T10:00:00Z",
+      personal_confirmed_at: null,
       exercises_completed: 0,
       exercises_total: 2,
       completed_exercise_ids: [],
@@ -1780,7 +1822,8 @@ describe("TreinoCard", () => {
       student_id: "s1",
       student_name: "Julia Ferreira",
       status: "in_progress",
-      performed_by: "aluno",
+      student_confirmed_at: "2026-07-12T10:00:00Z",
+      personal_confirmed_at: null,
       exercises_completed: 0,
       exercises_total: 2,
       completed_exercise_ids: [],
