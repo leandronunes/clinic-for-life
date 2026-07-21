@@ -46,9 +46,11 @@ test.describe("Autenticação", () => {
 
 test.describe("Recuperação de senha", () => {
   test("pede o link em /esqueci-senha a partir do login", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
-    await expect(page).toHaveURL("/esqueci-senha");
+    // Navega direto pela URL — o link "Esqueci minha senha" no login fica
+    // atrás da feature flag VITE_FEATURE_PASSWORD_RESET (ver
+    // src/lib/feature-flags.ts), mas a rota em si não é bloqueada, mesmo
+    // com a flag desligada (ex.: no CI).
+    await page.goto("/esqueci-senha");
 
     await page.getByLabel("E-mail").fill("aluno@forlife.app");
     await page.getByRole("button", { name: "Enviar link de redefinição" }).click();
