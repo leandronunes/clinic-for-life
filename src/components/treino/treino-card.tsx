@@ -57,11 +57,12 @@ import {
   finishCheckIn,
   toggleExerciseCheckIn,
   deleteCheckIn,
-  claimCheckIn,
+  confirmCheckIn,
   updateCheckInPse,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 import { useAuth } from "@/contexts/use-auth";
+import { needsConfirmationFrom } from "@/lib/check-in-confirmation";
 import { SortableExerciseItem, ExerciseRowContent } from "./exercise-row";
 import { ExercicioFormDialog } from "./exercicio-form-dialog";
 import { TreinoFormDialog } from "./treino-form-dialog";
@@ -186,13 +187,18 @@ export function TreinoCard({
     onError: () => toast.error("Não foi possível remover o check-in"),
   });
 
-  // Staff-only: confirma um check-in que o aluno fez sozinho, fazendo-o
-  // contar no ciclo de atendimento do personal — mirrors o botão "Confirmar
-  // check-in" nas telas de Treinos Concluídos e Assiduidade dos alunos.
-  const claimCheckInMut = useMutation({
-    mutationFn: () => claimCheckIn(alunoId, treino.id, checkIn!.id),
+  // Confirma o próprio lado de quem chama (aluno ou staff) — mirrors o
+  // botão "Confirmar check-in"/"Confirmar meu check-in" nas telas de
+  // Treinos Concluídos e Assiduidade dos alunos. Só conta no ciclo de
+  // atendimento do personal quando os dois lados estiverem confirmados.
+  const confirmCheckInMut = useMutation({
+    mutationFn: () => confirmCheckIn(alunoId, treino.id, checkIn!.id),
     onSuccess: (data) => {
-      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      toast.success(
+        isStaff
+          ? "Check-in confirmado — agora conta no ciclo de atendimento"
+          : "Check-in confirmado",
+      );
       qc.setQueryData(["check-in", "current", alunoId, treino.id], data);
       qc.invalidateQueries({ queryKey: ["check-in", "history", alunoId] });
     },
@@ -429,28 +435,33 @@ export function TreinoCard({
           ) : checkIn.status === "completed" ? (
             // Só um check-in por treino por dia (o backend também recusa um
             // segundo) — refazer hoje exige remover este primeiro. Uma vez
-            // que o personal confirmou o check-in (performed_by "personal"),
-            // só staff pode removê-lo — o aluno não vê mais o botão.
+            // que o personal confirmou o check-in (personal_confirmed_at
+            // presente), só staff pode removê-lo — o aluno não vê mais o
+            // botão.
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
               <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
                 <CheckCircle2 className="h-4 w-4" />
                 Treino já concluído hoje ({checkIn.exercises_completed}/{checkIn.exercises_total})
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                {checkIn.performed_by === "aluno" && (
+                {!checkIn.personal_confirmed_at && (
                   <Badge variant="outline">Feito pelo aluno</Badge>
                 )}
-                {isStaff && checkIn.performed_by === "aluno" && (
+                {!checkIn.student_confirmed_at && (
+                  <Badge variant="outline">Aguardando confirmação do aluno</Badge>
+                )}
+                {needsConfirmationFrom(checkIn, isStaff) && (
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => claimCheckInMut.mutate()}
-                    disabled={claimCheckInMut.isPending}
+                    onClick={() => confirmCheckInMut.mutate()}
+                    disabled={confirmCheckInMut.isPending}
                   >
-                    <BadgeCheck className="mr-1 h-4 w-4" /> Confirmar check-in
+                    <BadgeCheck className="mr-1 h-4 w-4" />
+                    {isStaff ? "Confirmar check-in" : "Confirmar meu check-in"}
                   </Button>
                 )}
-                {(checkIn.performed_by === "aluno" || isStaff) && (
+                {(!checkIn.personal_confirmed_at || isStaff) && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button size="sm" variant="outline" disabled={deleteCheckInMut.isPending}>

@@ -3,11 +3,6 @@ import type { CheckInFeedback } from "./check-in-feedbacks";
 
 export type CheckInStatus = "in_progress" | "completed";
 
-/** Quem realizou o check-in. Só "personal" conta no ciclo de atendimento do
- * personal — um check-in "aluno" só passa a contar se confirmado via
- * claimCheckIn(). */
-export type CheckInPerformedBy = "aluno" | "personal";
-
 export interface WorkoutCheckIn {
   id: string;
   workout_id: string;
@@ -15,7 +10,15 @@ export interface WorkoutCheckIn {
   student_id: string;
   student_name: string;
   status: CheckInStatus;
-  performed_by: CheckInPerformedBy;
+  /** Preenchido quando o aluno confirma o próprio lado (automático se foi
+   * o aluno quem criou o check-in, ou via confirmCheckIn()). Só conta no
+   * ciclo de atendimento do personal (ver src/lib/check-in-confirmation.ts)
+   * quando ESTE e `personal_confirmed_at` estiverem ambos presentes. */
+  student_confirmed_at: string | null;
+  /** Preenchido quando staff (admin/personal) confirma o lado do personal
+   * (automático se foi staff quem criou o check-in, ou via
+   * confirmCheckIn()). */
+  personal_confirmed_at: string | null;
   exercises_completed: number;
   exercises_total: number;
   completed_exercise_ids: string[];
@@ -85,9 +88,9 @@ export function markCheckInViewed(
 
 /** Removes a check-in (completed or in progress) — the student themselves,
  * their personal, or an admin may do this (e.g. a check-in started by
- * mistake). Cascades to its exercise check-ins and feedback. Once a
- * check-in has been claimed by the personal (performed_by "personal"),
- * only staff (not the student) may still call this. */
+ * mistake). Cascades to its exercise check-ins and feedback. Once staff has
+ * confirmed the check-in (personal_confirmed_at present), only staff (not
+ * the student) may still call this. */
 export function deleteCheckIn(
   studentId: string,
   workoutId: string,
@@ -114,15 +117,17 @@ export function updateCheckInPse(
   );
 }
 
-/** Staff-only: confirms a check-in the student already did themselves,
- * making it count toward the personal's attendance cycle from now on.
- * Idempotent — claiming an already-claimed check-in just re-confirms it. */
-export function claimCheckIn(
+/** Confirms the caller's own side of the check-in: the student confirms
+ * `student_confirmed_at`, staff (admin/personal) confirms
+ * `personal_confirmed_at`. Only counts toward the personal's attendance
+ * cycle once BOTH sides are confirmed. Idempotent — confirming an
+ * already-confirmed side just re-affirms it. */
+export function confirmCheckIn(
   studentId: string,
   workoutId: string,
   checkInId: string,
 ): Promise<WorkoutCheckIn> {
   return http.post<WorkoutCheckIn>(
-    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/claim`,
+    `/api/v1/students/${studentId}/workouts/${workoutId}/check_ins/${checkInId}/confirm`,
   );
 }

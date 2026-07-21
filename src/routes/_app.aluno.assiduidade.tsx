@@ -49,9 +49,8 @@ import { cn } from "@/lib/utils";
 import {
   fetchCheckInHistory,
   deleteCheckIn,
-  claimCheckIn,
+  confirmCheckIn,
   type WorkoutCheckIn,
-  type CheckInPerformedBy,
 } from "@/lib/api/check-ins";
 import type { CheckInFeedback } from "@/lib/api/check-in-feedbacks";
 import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
@@ -61,6 +60,7 @@ import {
   formatCheckInDateTime,
   checkInCompletionPercentage,
 } from "@/lib/check-in-format";
+import { isMutuallyConfirmed, needsConfirmationFrom } from "@/lib/check-in-confirmation";
 import { CycleHistoryRow } from "@/components/CycleHistoryRow";
 import { useAuth } from "@/contexts/use-auth";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -401,7 +401,7 @@ function DayCell({
                 "h-1.5 w-1.5 rounded-full",
                 c.status !== "completed"
                   ? "bg-amber-500"
-                  : c.performed_by === "personal"
+                  : isMutuallyConfirmed(c)
                     ? "bg-success"
                     : "bg-primary",
               )}
@@ -422,10 +422,10 @@ function Legend() {
   return (
     <div className="flex flex-wrap gap-4 pt-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-success" /> Confirmado pelo personal
+        <span className="h-2 w-2 rounded-full bg-success" /> Confirmado pelos dois
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-primary" /> Feito pelo aluno
+        <span className="h-2 w-2 rounded-full bg-primary" /> Aguardando confirmação
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-amber-500" /> Em andamento
@@ -445,18 +445,22 @@ function EmptyDay() {
   );
 }
 
-/** Distingue visualmente quem fez o check-in: só o "personal" conta no
- * ciclo de atendimento (ver claimCheckIn) — os dois estados sempre aparecem
- * marcados, nunca um implícito pela ausência do outro. */
-function PerformedByBadge({ performedBy }: { performedBy: CheckInPerformedBy }) {
-  if (performedBy === "aluno") {
+/** Três estados possíveis: confirmado pelos dois (conta no ciclo de
+ * atendimento — ver check-in-confirmation.ts), ou aguardando um dos dois
+ * lados — nunca "nenhum lado confirmado", já que quem cria o check-in tem
+ * o próprio lado auto-confirmado (ver treino-card.tsx). */
+function ConfirmationBadge({ checkIn }: { checkIn: WorkoutCheckIn }) {
+  if (isMutuallyConfirmed(checkIn)) {
+    return (
+      <Badge variant="outline" className="border-success/40 text-success">
+        <BadgeCheck className="mr-1 h-3 w-3" /> Confirmado pelos dois
+      </Badge>
+    );
+  }
+  if (!checkIn.personal_confirmed_at) {
     return <Badge variant="outline">Feito pelo aluno</Badge>;
   }
-  return (
-    <Badge variant="outline" className="border-success/40 text-success">
-      <BadgeCheck className="mr-1 h-3 w-3" /> Confirmado pelo personal
-    </Badge>
-  );
+  return <Badge variant="outline">Aguardando confirmação do aluno</Badge>;
 }
 
 /** "Concluído" vs "Em andamento" — shared between CheckInRow and
@@ -502,8 +506,8 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
         )}
         <PseScale value={checkIn.pse} readOnly />
         <CheckInStatusBadge status={checkIn.status} />
-        <PerformedByBadge performedBy={checkIn.performed_by} />
-        <ClaimCheckInButton checkIn={checkIn} />
+        <ConfirmationBadge checkIn={checkIn} />
+        <ConfirmCheckInButton checkIn={checkIn} />
         <DeleteCheckInButton checkIn={checkIn} />
       </div>
     </div>
@@ -512,8 +516,8 @@ function CheckInRow({ checkIn }: { checkIn: WorkoutCheckIn }) {
 
 /** Both "check-in" queries (this aluno's history, and the current check-in
  * for a specific workout) go stale together whenever a check-in is deleted
- * or claimed — shared by DeleteCheckInButton and ClaimCheckInButton so the
- * two mutations can't drift apart on which keys they invalidate. */
+ * or confirmed — shared by DeleteCheckInButton and ConfirmCheckInButton so
+ * the two mutations can't drift apart on which keys they invalidate. */
 function invalidateCheckInQueries(qc: QueryClient, checkIn: WorkoutCheckIn) {
   qc.invalidateQueries({ queryKey: ["check-in", "history", checkIn.student_id] });
   qc.invalidateQueries({
@@ -537,7 +541,7 @@ function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
     onError: () => toast.error("Não foi possível remover o check-in"),
   });
 
-  if (checkIn.performed_by === "personal" && !isStaff) return null;
+  if (checkIn.personal_confirmed_at && !isStaff) return null;
 
   return (
     <AlertDialog>
@@ -571,31 +575,35 @@ function DeleteCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
   );
 }
 
-/** Staff-only: confirms a check-in the aluno performed themselves, so it
- * starts counting toward the personal's attendance cycle — same action
- * offered in Treinos Concluídos and Assiduidade dos alunos. */
-function ClaimCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
+/** Confirma o próprio lado do viewer (aluno ou staff) — mesma ação
+ * oferecida em Treinos Concluídos e Assiduidade dos alunos. */
+function ConfirmCheckInButton({ checkIn }: { checkIn: WorkoutCheckIn }) {
   const qc = useQueryClient();
   const { canWrite: isStaff } = useAuth();
-  const claimMut = useMutation({
-    mutationFn: () => claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
+  const confirmMut = useMutation({
+    mutationFn: () => confirmCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id),
     onSuccess: () => {
-      toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
+      toast.success(
+        isStaff
+          ? "Check-in confirmado — agora conta no ciclo de atendimento"
+          : "Check-in confirmado",
+      );
       invalidateCheckInQueries(qc, checkIn);
     },
     onError: () => toast.error("Não foi possível confirmar o check-in"),
   });
 
-  if (!isStaff || checkIn.performed_by !== "aluno") return null;
+  if (!needsConfirmationFrom(checkIn, isStaff)) return null;
 
   return (
     <Button
       size="sm"
       variant="outline"
-      onClick={() => claimMut.mutate()}
-      disabled={claimMut.isPending}
+      onClick={() => confirmMut.mutate()}
+      disabled={confirmMut.isPending}
     >
-      <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Confirmar check-in
+      <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+      {isStaff ? "Confirmar check-in" : "Confirmar meu check-in"}
     </Button>
   );
 }
@@ -645,8 +653,8 @@ function CheckInDetail({ checkIn }: { checkIn: WorkoutCheckIn }) {
         <div className="font-semibold">{checkIn.workout_title}</div>
         <div className="flex items-center gap-2">
           <CheckInStatusBadge status={checkIn.status} />
-          <PerformedByBadge performedBy={checkIn.performed_by} />
-          <ClaimCheckInButton checkIn={checkIn} />
+          <ConfirmationBadge checkIn={checkIn} />
+          <ConfirmCheckInButton checkIn={checkIn} />
           <DeleteCheckInButton checkIn={checkIn} />
         </div>
       </div>

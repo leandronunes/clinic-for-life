@@ -22,12 +22,12 @@ const mockUseAuth = vi.mocked(useAuth);
 vi.mock("@/lib/api/check-ins", () => ({
   fetchCheckInHistory: vi.fn(),
   deleteCheckIn: vi.fn(),
-  claimCheckIn: vi.fn(),
+  confirmCheckIn: vi.fn(),
 }));
-import { fetchCheckInHistory, deleteCheckIn, claimCheckIn } from "@/lib/api/check-ins";
+import { fetchCheckInHistory, deleteCheckIn, confirmCheckIn } from "@/lib/api/check-ins";
 const mockFetchHistory = vi.mocked(fetchCheckInHistory);
 const mockDeleteCheckIn = vi.mocked(deleteCheckIn);
-const mockClaimCheckIn = vi.mocked(claimCheckIn);
+const mockConfirmCheckIn = vi.mocked(confirmCheckIn);
 
 vi.mock("@/lib/api/attendance-cycles", () => ({ fetchAttendanceCycleHistory: vi.fn() }));
 import { fetchAttendanceCycleHistory } from "@/lib/api/attendance-cycles";
@@ -74,7 +74,8 @@ function buildCheckIn(overrides: Partial<WorkoutCheckIn> = {}): WorkoutCheckIn {
     student_id: "s1",
     student_name: "Júlia Ferreira",
     status: "completed",
-    performed_by: "aluno",
+    student_confirmed_at: "2026-07-10T10:45:00Z",
+    personal_confirmed_at: null,
     exercises_completed: 3,
     exercises_total: 3,
     completed_exercise_ids: ["e1", "e2", "e3"],
@@ -417,25 +418,37 @@ describe("AssiduidadePage", () => {
   });
 
   it("shows a badge for a check-in the aluno performed themselves", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({ student_confirmed_at: "2026-07-10T10:45:00Z", personal_confirmed_at: null }),
+    ]);
 
     render(<AssiduidadePage />, { wrapper });
 
     expect(await screen.findByText("Feito pelo aluno")).toBeInTheDocument();
-    expect(screen.queryByText("Confirmado pelo personal")).not.toBeInTheDocument();
+    expect(screen.queryByText("Confirmado pelos dois")).not.toBeInTheDocument();
   });
 
-  it("shows a distinct badge for a check-in performed/confirmed by the personal", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+  it("shows a distinct badge for a mutually confirmed check-in", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    ]);
 
     render(<AssiduidadePage />, { wrapper });
 
-    expect(await screen.findByText("Confirmado pelo personal")).toBeInTheDocument();
+    expect(await screen.findByText("Confirmado pelos dois")).toBeInTheDocument();
     expect(screen.queryByText("Feito pelo aluno")).not.toBeInTheDocument();
   });
 
-  it("colors the day dot green for a personal-confirmed check-in in the week view", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+  it("colors the day dot green for a mutually confirmed check-in in the week view", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    ]);
     const user = userEvent.setup();
 
     render(<AssiduidadePage />, { wrapper });
@@ -449,7 +462,9 @@ describe("AssiduidadePage", () => {
   });
 
   it("colors the day dot differently for a check-in the aluno performed themselves in the week view", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({ student_confirmed_at: "2026-07-10T10:45:00Z", personal_confirmed_at: null }),
+    ]);
     const user = userEvent.setup();
 
     render(<AssiduidadePage />, { wrapper });
@@ -471,12 +486,17 @@ describe("AssiduidadePage", () => {
     await screen.findByText("Treino A");
     await user.click(screen.getByRole("tab", { name: "Semana" }));
 
-    expect(screen.getByText("Confirmado pelo personal")).toBeInTheDocument();
-    expect(screen.getByText("Feito pelo aluno")).toBeInTheDocument();
+    expect(screen.getByText("Confirmado pelos dois")).toBeInTheDocument();
+    expect(screen.getByText("Aguardando confirmação")).toBeInTheDocument();
   });
 
   it("colors the day dot in the month view the same way as the week view", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    ]);
     const user = userEvent.setup();
 
     render(<AssiduidadePage />, { wrapper });
@@ -486,11 +506,16 @@ describe("AssiduidadePage", () => {
     const dayButton = screen.getByRole("button", { name: /10\/07\/2026/ });
 
     expect(dayButton.querySelector(".bg-success")).toBeInTheDocument();
-    expect(screen.getByText("Confirmado pelo personal")).toBeInTheDocument();
+    expect(screen.getByText("Confirmado pelos dois")).toBeInTheDocument();
   });
 
-  it("hides the delete button for the aluno once the personal has performed/confirmed the check-in", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+  it("hides the delete button for the aluno once the personal has confirmed the check-in", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    ]);
 
     render(<AssiduidadePage />, { wrapper });
 
@@ -505,7 +530,12 @@ describe("AssiduidadePage", () => {
     mockUseAuth.mockReturnValue(
       buildAuth({ canWrite: true, hasRole: vi.fn((...roles) => roles.includes("personal")) }),
     );
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "personal" })]);
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    ]);
 
     render(<AssiduidadePage />, { wrapper });
 
@@ -514,21 +544,32 @@ describe("AssiduidadePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not offer a claim action to the aluno themselves", async () => {
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
+  it("does not offer a confirm action to the aluno themselves when they already confirmed", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({ student_confirmed_at: "2026-07-10T10:45:00Z", personal_confirmed_at: null }),
+    ]);
 
     render(<AssiduidadePage />, { wrapper });
 
     await screen.findByText("Feito pelo aluno");
-    expect(screen.queryByRole("button", { name: "Confirmar check-in" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Confirmar meu check-in" }),
+    ).not.toBeInTheDocument();
   });
 
   it("lets a personal confirm a check-in the aluno performed themselves, viewing via impersonation", async () => {
     mockUseAuth.mockReturnValue(
       buildAuth({ canWrite: true, hasRole: vi.fn((...roles) => roles.includes("personal")) }),
     );
-    mockFetchHistory.mockResolvedValue([buildCheckIn({ performed_by: "aluno" })]);
-    mockClaimCheckIn.mockResolvedValue(buildCheckIn({ performed_by: "personal" }));
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({ student_confirmed_at: "2026-07-10T10:45:00Z", personal_confirmed_at: null }),
+    ]);
+    mockConfirmCheckIn.mockResolvedValue(
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T10:45:00Z",
+        personal_confirmed_at: "2026-07-10T11:00:00Z",
+      }),
+    );
     const user = userEvent.setup();
 
     render(<AssiduidadePage />, { wrapper });
@@ -536,10 +577,32 @@ describe("AssiduidadePage", () => {
     await user.click(await screen.findByRole("button", { name: "Confirmar check-in" }));
 
     await vi.waitFor(() => {
-      expect(mockClaimCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+      expect(mockConfirmCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
       expect(toast.success).toHaveBeenCalledWith(
         "Check-in confirmado — agora conta no ciclo de atendimento",
       );
+    });
+  });
+
+  it("lets the aluno confirm a check-in the personal performed on their behalf", async () => {
+    mockFetchHistory.mockResolvedValue([
+      buildCheckIn({ student_confirmed_at: null, personal_confirmed_at: "2026-07-10T10:45:00Z" }),
+    ]);
+    mockConfirmCheckIn.mockResolvedValue(
+      buildCheckIn({
+        student_confirmed_at: "2026-07-10T11:00:00Z",
+        personal_confirmed_at: "2026-07-10T10:45:00Z",
+      }),
+    );
+    const user = userEvent.setup();
+
+    render(<AssiduidadePage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: "Confirmar meu check-in" }));
+
+    await vi.waitFor(() => {
+      expect(mockConfirmCheckIn).toHaveBeenCalledWith("s1", "w1", "ci1");
+      expect(toast.success).toHaveBeenCalledWith("Check-in confirmado");
     });
   });
 });

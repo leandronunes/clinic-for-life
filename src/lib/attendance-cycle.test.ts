@@ -6,7 +6,7 @@ function checkIn(
   id: string,
   completedAt: string | null,
   status: "completed" | "in_progress" = "completed",
-  performedBy: "aluno" | "personal" = "personal",
+  confirmedBy: "both" | "student" | "personal" = "both",
 ): WorkoutCheckIn {
   return {
     id,
@@ -15,7 +15,10 @@ function checkIn(
     student_id: "s",
     student_name: "S",
     status,
-    performed_by: performedBy,
+    student_confirmed_at:
+      confirmedBy === "both" || confirmedBy === "student" ? "2026-01-01T00:00:00.000Z" : null,
+    personal_confirmed_at:
+      confirmedBy === "both" || confirmedBy === "personal" ? "2026-01-01T00:00:00.000Z" : null,
     exercises_completed: 1,
     exercises_total: 1,
     completed_exercise_ids: [],
@@ -79,26 +82,39 @@ describe("computeAttendanceCycle", () => {
     expect(result.completedInCycle).toBe(2);
   });
 
-  it("does not count a check-in the student performed themselves, unclaimed by staff", () => {
+  it("does not count a check-in only the student confirmed, pending the personal", () => {
     const result = computeAttendanceCycle(
-      [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "aluno")],
+      [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "student")],
       10,
       "2026-01-01T00:00:00.000Z",
     );
     expect(result.completedInCycle).toBe(0);
     expect(result.checkInsInCycle).toEqual([]);
-    expect(result.pendingClaimCheckIns).toHaveLength(1);
-    expect(result.pendingClaimCheckIns[0].id).toBe("a");
+    expect(result.pendingPersonalConfirmation).toHaveLength(1);
+    expect(result.pendingPersonalConfirmation[0].id).toBe("a");
   });
 
-  it("counts a personal-performed check-in and keeps it out of pendingClaimCheckIns", () => {
+  it("does not count a check-in only the personal confirmed, pending the student", () => {
     const result = computeAttendanceCycle(
       [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "personal")],
       10,
       "2026-01-01T00:00:00.000Z",
     );
+    expect(result.completedInCycle).toBe(0);
+    expect(result.checkInsInCycle).toEqual([]);
+    expect(result.pendingStudentConfirmation).toHaveLength(1);
+    expect(result.pendingStudentConfirmation[0].id).toBe("a");
+  });
+
+  it("counts a mutually confirmed check-in and keeps it out of both pending lists", () => {
+    const result = computeAttendanceCycle(
+      [checkIn("a", "2026-01-10T10:00:00.000Z", "completed", "both")],
+      10,
+      "2026-01-01T00:00:00.000Z",
+    );
     expect(result.completedInCycle).toBe(1);
     expect(result.checkInsInCycle).toHaveLength(1);
-    expect(result.pendingClaimCheckIns).toEqual([]);
+    expect(result.pendingPersonalConfirmation).toEqual([]);
+    expect(result.pendingStudentConfirmation).toEqual([]);
   });
 });

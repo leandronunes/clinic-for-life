@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchCompletedCheckIns,
   markCheckInViewed,
-  claimCheckIn,
+  confirmCheckIn,
   type WorkoutCheckIn,
 } from "@/lib/api/check-ins";
 import {
@@ -33,6 +33,7 @@ import {
   formatCheckInDateTime,
   checkInCompletionPercentage,
 } from "@/lib/check-in-format";
+import { isMutuallyConfirmed } from "@/lib/check-in-confirmation";
 import {
   createCheckInFeedback,
   updateCheckInFeedback,
@@ -287,7 +288,10 @@ function CheckInCard({
           <div className="font-medium">{checkIn.student_name}</div>
           <div className="text-sm text-muted-foreground">{checkIn.workout_title}</div>
         </div>
-        {checkIn.performed_by === "aluno" && <Badge variant="outline">Feito pelo aluno</Badge>}
+        {!checkIn.personal_confirmed_at && <Badge variant="outline">Feito pelo aluno</Badge>}
+        {!checkIn.student_confirmed_at && (
+          <Badge variant="outline">Aguardando confirmação do aluno</Badge>
+        )}
         {isNew && <Badge>Novo</Badge>}
         {hasFeedback && (
           <span className="text-lg" aria-label="Feedback enviado">
@@ -392,10 +396,10 @@ function CheckInReviewDialog({
     onError: () => toast.error("Não foi possível remover o feedback"),
   });
 
-  const claimMut = useMutation({
+  const confirmMut = useMutation({
     mutationFn: () => {
       if (!checkIn) throw new Error("Nenhum check-in selecionado");
-      return claimCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id);
+      return confirmCheckIn(checkIn.student_id, checkIn.workout_id, checkIn.id);
     },
     onSuccess: () => {
       toast.success("Check-in confirmado — agora conta no ciclo de atendimento");
@@ -425,7 +429,11 @@ function CheckInReviewDialog({
           </DialogHeader>
 
           <div className="space-y-4">
-            {checkIn.performed_by === "aluno" ? (
+            {!checkIn.student_confirmed_at ? (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                Aguardando confirmação do aluno — ainda não conta no ciclo de atendimento.
+              </div>
+            ) : !checkIn.personal_confirmed_at ? (
               <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed p-3 text-xs">
                 <span className="text-muted-foreground">
                   Feito pelo aluno — não conta no ciclo de atendimento ainda.
@@ -434,10 +442,10 @@ function CheckInReviewDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => claimMut.mutate()}
-                  disabled={claimMut.isPending}
+                  onClick={() => confirmMut.mutate()}
+                  disabled={confirmMut.isPending}
                 >
-                  {claimMut.isPending ? (
+                  {confirmMut.isPending ? (
                     <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                   ) : (
                     <BadgeCheck className="mr-2 h-3 w-3" />
@@ -448,7 +456,7 @@ function CheckInReviewDialog({
             ) : (
               <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
                 <BadgeCheck className="h-3 w-3 text-success" />
-                Confirmado pelo personal — conta no ciclo de atendimento.
+                Confirmado pelos dois — conta no ciclo de atendimento.
               </div>
             )}
 

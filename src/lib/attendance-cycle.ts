@@ -1,4 +1,5 @@
 import type { WorkoutCheckIn } from "@/lib/api/check-ins";
+import { isMutuallyConfirmed } from "@/lib/check-in-confirmation";
 
 export type AttendanceStatus = "no_contract" | "on_track" | "near_limit" | "exceeded";
 
@@ -12,11 +13,14 @@ export interface AttendanceCycle {
   /** Percentual concluído (0-100+). 0 quando não há contrato. */
   percentage: number;
   status: AttendanceStatus;
-  /** Check-ins do personal (contam na quota) dentro do ciclo, do mais recente para o mais antigo. */
+  /** Check-ins mutuamente confirmados (contam na quota) dentro do ciclo, do mais recente para o mais antigo. */
   checkInsInCycle: WorkoutCheckIn[];
-  /** Check-ins que o próprio aluno fez dentro do ciclo e o personal ainda não confirmou —
-   * não contam na quota até serem confirmados (ver claimCheckIn). */
-  pendingClaimCheckIns: WorkoutCheckIn[];
+  /** Check-ins já confirmados pelo aluno, aguardando o personal — o
+   * personal tem uma ação disponível pra confirmar (ver confirmCheckIn). */
+  pendingPersonalConfirmation: WorkoutCheckIn[];
+  /** Check-ins já confirmados pelo personal, aguardando o aluno — read-only
+   * na tela do personal, não há ação que ele possa tomar aqui. */
+  pendingStudentConfirmation: WorkoutCheckIn[];
 }
 
 /**
@@ -37,10 +41,15 @@ export function computeAttendanceCycle(
     .filter((c) => Date.parse(c.completed_at as string) >= startMs)
     .sort((a, b) => Date.parse(b.completed_at as string) - Date.parse(a.completed_at as string));
 
-  // Só check-ins feitos/confirmados pelo personal consomem a quota — espelha
+  // Só check-ins mutuamente confirmados consomem a quota — espelha
   // AttendanceCycle#completed_workouts no backend.
-  const checkInsInCycle = withinCycle.filter((c) => c.performed_by === "personal");
-  const pendingClaimCheckIns = withinCycle.filter((c) => c.performed_by === "aluno");
+  const checkInsInCycle = withinCycle.filter(isMutuallyConfirmed);
+  const pendingPersonalConfirmation = withinCycle.filter(
+    (c) => c.student_confirmed_at && !c.personal_confirmed_at,
+  );
+  const pendingStudentConfirmation = withinCycle.filter(
+    (c) => c.personal_confirmed_at && !c.student_confirmed_at,
+  );
 
   const completedInCycle = checkInsInCycle.length;
   const lastCompletedAt = checkInsInCycle[0]?.completed_at ?? null;
@@ -53,7 +62,8 @@ export function computeAttendanceCycle(
       percentage: 0,
       status: "no_contract",
       checkInsInCycle,
-      pendingClaimCheckIns,
+      pendingPersonalConfirmation,
+      pendingStudentConfirmation,
     };
   }
 
@@ -68,7 +78,8 @@ export function computeAttendanceCycle(
     percentage,
     status,
     checkInsInCycle,
-    pendingClaimCheckIns,
+    pendingPersonalConfirmation,
+    pendingStudentConfirmation,
   };
 }
 

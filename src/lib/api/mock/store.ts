@@ -556,17 +556,17 @@ export function startCheckIn(
     throw err;
   }
   const student = getStudent(studentId);
-  // Staff (admin/personal) starting a check-in on a student's behalf is
-  // staff-witnessed from the start, so it counts toward the attendance
-  // cycle immediately — mirrors WorkoutCheckInsController#performer. Falls
-  // back to "aluno" when there's no resolvable session (e.g. unauthenticated
-  // test calls), matching the pre-existing default of a self check-in.
-  let performedBy: WorkoutCheckIn["performed_by"] = "aluno";
+  // Whoever creates the check-in has their own side auto-confirmed —
+  // mirrors WorkoutCheckInsController#create. Falls back to "student" when
+  // there's no resolvable session (e.g. unauthenticated test calls),
+  // matching the pre-existing default of a self check-in.
+  let isStudentCreator = true;
   try {
-    performedBy = currentUser(token).role === "student" ? "aluno" : "personal";
+    isStudentCreator = currentUser(token).role === "student";
   } catch {
-    // no valid session — keep the "aluno" default
+    // no valid session — keep the student default
   }
+  const now = new Date().toISOString();
   const checkIn: WorkoutCheckIn = {
     id: nextId("check-in"),
     workout_id: workout.id,
@@ -574,11 +574,12 @@ export function startCheckIn(
     student_id: student.id,
     student_name: student.name,
     status: "in_progress",
-    performed_by: performedBy,
+    student_confirmed_at: isStudentCreator ? now : null,
+    personal_confirmed_at: isStudentCreator ? null : now,
     exercises_completed: 0,
     exercises_total: workout.exercises.length,
     completed_exercise_ids: [],
-    started_at: new Date().toISOString(),
+    started_at: now,
     completed_at: null,
     viewed_at: null,
     pse: null,
@@ -588,16 +589,26 @@ export function startCheckIn(
   return hydrateCheckIn(checkIn);
 }
 
-/** Confirms a check-in the student performed themselves, making it count
- * toward the personal's attendance cycle — mirrors
- * WorkoutCheckInsController#claim. Idempotent. */
-export function claimCheckIn(
+/** Confirms the caller's own side of the check-in — mirrors
+ * WorkoutCheckInsController#confirm. Idempotent. */
+export function confirmCheckIn(
   studentId: string,
   workoutId: string,
   checkInId: string,
+  token: string | null,
 ): WorkoutCheckIn {
   const checkIn = getCheckIn(studentId, workoutId, checkInId);
-  checkIn.performed_by = "personal";
+  let isStudent = true;
+  try {
+    isStudent = currentUser(token).role === "student";
+  } catch {
+    // no valid session — keep the student default
+  }
+  if (isStudent) {
+    checkIn.student_confirmed_at ??= new Date().toISOString();
+  } else {
+    checkIn.personal_confirmed_at ??= new Date().toISOString();
+  }
   return hydrateCheckIn(checkIn);
 }
 
