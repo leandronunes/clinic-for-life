@@ -23,7 +23,9 @@ test.describe("Mensagens (personal)", () => {
     await page.getByRole("link", { name: "Mensagens" }).click();
     await page.getByRole("button", { name: /Júlia Ferreira/ }).click();
 
-    await expect(page.getByText("Perfeito! Amanhã vamos focar em mobilidade, ok? 🧘")).toBeVisible();
+    await expect(
+      page.getByText("Perfeito! Amanhã vamos focar em mobilidade, ok? 🧘"),
+    ).toBeVisible();
   });
 });
 
@@ -33,7 +35,9 @@ test.describe("Mensagens (aluno)", () => {
     await page.getByRole("link", { name: "Mensagens" }).click();
     await expect(page).toHaveURL("/aluno/mensagens");
 
-    await expect(page.getByText("Perfeito! Amanhã vamos focar em mobilidade, ok? 🧘")).toBeVisible();
+    await expect(
+      page.getByText("Perfeito! Amanhã vamos focar em mobilidade, ok? 🧘"),
+    ).toBeVisible();
 
     await page.getByLabel("Mensagem", { exact: true }).fill("Combinado, até amanhã!");
     await page.getByLabel("Enviar mensagem").click();
