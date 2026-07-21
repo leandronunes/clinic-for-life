@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app/aluno/mensagens")({
   component: AlunoMensagensPage,
 });
 
-function AlunoMensagensPage() {
+export function AlunoMensagensPage() {
   const { effectiveAlunoId } = useAuth();
   const { data = [], isLoading } = useQuery({
     queryKey: ["chat", "conversations"],
@@ -25,8 +25,7 @@ function AlunoMensagensPage() {
     refetchInterval: 10000,
   });
 
-  const conv =
-    data.find((c) => c.student_id === effectiveAlunoId) ?? data[0] ?? null;
+  const conv = data.find((c) => c.student_id === effectiveAlunoId) ?? data[0] ?? null;
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-3">
