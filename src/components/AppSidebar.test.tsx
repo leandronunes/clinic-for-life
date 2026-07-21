@@ -219,4 +219,68 @@ describe("AppSidebar", () => {
       );
     });
   });
+
+  describe("feature flag: chat", () => {
+    beforeEach(() => {
+      // Don't rely on the ambient .env — pin a known "off" baseline so these
+      // tests pass regardless of what's set on the machine running them.
+      vi.stubEnv("VITE_FEATURE_CHAT", "false");
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('esconde "Mensagens" do menu do admin/personal quando a flag está desligada', () => {
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.queryByRole("link", { name: /mensagens/i })).not.toBeInTheDocument();
+    });
+
+    it('mostra "Mensagens" no menu do admin quando a flag está ligada', () => {
+      vi.stubEnv("VITE_FEATURE_CHAT", "true");
+      mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /mensagens/i })).toHaveAttribute(
+        "href",
+        "/mensagens",
+      );
+    });
+
+    it('esconde "Mensagens" do menu do aluno quando a flag está desligada', () => {
+      const alunoUser: AuthUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "julia@test.com",
+        role: "aluno",
+      };
+      mockUseAuth.mockReturnValue(buildAuth({ user: alunoUser, effectiveRole: "aluno" }));
+
+      renderSidebar();
+
+      expect(screen.queryByRole("link", { name: /mensagens/i })).not.toBeInTheDocument();
+    });
+
+    it('mostra "Mensagens" no menu do aluno quando a flag está ligada', () => {
+      vi.stubEnv("VITE_FEATURE_CHAT", "true");
+      const alunoUser: AuthUser = {
+        id: "u2",
+        name: "Júlia Ferreira",
+        email: "julia@test.com",
+        role: "aluno",
+      };
+      mockUseAuth.mockReturnValue(buildAuth({ user: alunoUser, effectiveRole: "aluno" }));
+
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /mensagens/i })).toHaveAttribute(
+        "href",
+        "/aluno/mensagens",
+      );
+    });
+  });
 });
