@@ -71,6 +71,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
 };
 
 const AGENDA_URLS = ["/agenda", "/aluno/agenda"];
+const MENSAGENS_URLS = ["/mensagens", "/aluno/mensagens"];
 
 export function AppSidebar() {
   const { user, signOut, effectiveRole, isImpersonating, stopImpersonating } = useAuth();
@@ -80,7 +81,8 @@ export function AppSidebar() {
   const items = (menuRole ? MENU[menuRole] : []).filter(
     (item) =>
       (item.url !== "/assiduidade-alunos" || isFeatureEnabled("attendanceCycles")) &&
-      (!AGENDA_URLS.includes(item.url) || isFeatureEnabled("agendaCalendar")),
+      (!AGENDA_URLS.includes(item.url) || isFeatureEnabled("agendaCalendar")) &&
+      (!MENSAGENS_URLS.includes(item.url) || isFeatureEnabled("chat")),
   );
 
   const isActive = (url: string) =>
