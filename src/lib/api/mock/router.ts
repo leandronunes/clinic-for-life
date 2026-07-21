@@ -469,6 +469,21 @@ async function routeMockRequest<T>({
     }
   }
 
+  // -------- Chat --------
+  if (m === "GET" && path === "/api/v1/chat/conversations") {
+    return store.listChatConversations(token) as T;
+  }
+  match = /^\/api\/v1\/chat\/conversations\/([^/]+)\/messages$/.exec(path);
+  if (match) {
+    const [, studentId] = match;
+    if (m === "GET") return store.listChatMessages(token, studentId) as T;
+    if (m === "POST") return store.createChatMessage(token, studentId, String(b.body ?? "")) as T;
+  }
+  match = /^\/api\/v1\/chat\/conversations\/([^/]+)\/read$/.exec(path);
+  if (match && m === "POST") {
+    return store.markChatConversationRead(token, match[1]) as T;
+  }
+
   const err: ApiError = { status: 404, message: `Rota offline não implementada: ${m} ${path}` };
   throw err;
 }

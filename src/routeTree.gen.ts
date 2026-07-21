@@ -20,12 +20,14 @@ import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppTreinosConcluidosRouteImport } from './routes/_app.treinos-concluidos'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
+import { Route as AppMensagensRouteImport } from './routes/_app.mensagens'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAssiduidadeAlunosRouteImport } from './routes/_app.assiduidade-alunos'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppAlunoIndexRouteImport } from './routes/_app.aluno.index'
 import { Route as AppAlunosIdRouteImport } from './routes/_app.alunos.$id'
 import { Route as AppAlunoParceirosRouteImport } from './routes/_app.aluno.parceiros'
+import { Route as AppAlunoMensagensRouteImport } from './routes/_app.aluno.mensagens'
 import { Route as AppAlunoLaudoRouteImport } from './routes/_app.aluno.laudo'
 import { Route as AppAlunoExamesRouteImport } from './routes/_app.aluno.exames'
 import { Route as AppAlunoEvolucaoRouteImport } from './routes/_app.aluno.evolucao'
@@ -89,6 +91,11 @@ const AppParceirosRoute = AppParceirosRouteImport.update({
   path: '/parceiros',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMensagensRoute = AppMensagensRouteImport.update({
+  id: '/mensagens',
+  path: '/mensagens',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -117,6 +124,11 @@ const AppAlunosIdRoute = AppAlunosIdRouteImport.update({
 const AppAlunoParceirosRoute = AppAlunoParceirosRouteImport.update({
   id: '/aluno/parceiros',
   path: '/aluno/parceiros',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlunoMensagensRoute = AppAlunoMensagensRouteImport.update({
+  id: '/aluno/mensagens',
+  path: '/aluno/mensagens',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAlunoLaudoRoute = AppAlunoLaudoRouteImport.update({
@@ -170,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AppAgendaRoute
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
+  '/mensagens': typeof AppMensagensRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -182,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
   '/aluno/exames': typeof AppAlunoExamesRoute
   '/aluno/laudo': typeof AppAlunoLaudoRoute
+  '/aluno/mensagens': typeof AppAlunoMensagensRoute
   '/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno/': typeof AppAlunoIndexRoute
@@ -196,6 +210,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AppAgendaRoute
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
+  '/mensagens': typeof AppMensagensRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -208,6 +223,7 @@ export interface FileRoutesByTo {
   '/aluno/evolucao': typeof AppAlunoEvolucaoRoute
   '/aluno/exames': typeof AppAlunoExamesRoute
   '/aluno/laudo': typeof AppAlunoLaudoRoute
+  '/aluno/mensagens': typeof AppAlunoMensagensRoute
   '/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/alunos/$id': typeof AppAlunosIdRoute
   '/aluno': typeof AppAlunoIndexRoute
@@ -224,6 +240,7 @@ export interface FileRoutesById {
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/mensagens': typeof AppMensagensRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -236,6 +253,7 @@ export interface FileRoutesById {
   '/_app/aluno/evolucao': typeof AppAlunoEvolucaoRoute
   '/_app/aluno/exames': typeof AppAlunoExamesRoute
   '/_app/aluno/laudo': typeof AppAlunoLaudoRoute
+  '/_app/aluno/mensagens': typeof AppAlunoMensagensRoute
   '/_app/aluno/parceiros': typeof AppAlunoParceirosRoute
   '/_app/alunos/$id': typeof AppAlunosIdRoute
   '/_app/aluno/': typeof AppAlunoIndexRoute
@@ -252,6 +270,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/assiduidade-alunos'
     | '/dashboard'
+    | '/mensagens'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
@@ -264,6 +283,7 @@ export interface FileRouteTypes {
     | '/aluno/evolucao'
     | '/aluno/exames'
     | '/aluno/laudo'
+    | '/aluno/mensagens'
     | '/aluno/parceiros'
     | '/alunos/$id'
     | '/aluno/'
@@ -278,6 +298,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/assiduidade-alunos'
     | '/dashboard'
+    | '/mensagens'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
@@ -290,6 +311,7 @@ export interface FileRouteTypes {
     | '/aluno/evolucao'
     | '/aluno/exames'
     | '/aluno/laudo'
+    | '/aluno/mensagens'
     | '/aluno/parceiros'
     | '/alunos/$id'
     | '/aluno'
@@ -305,6 +327,7 @@ export interface FileRouteTypes {
     | '/_app/agenda'
     | '/_app/assiduidade-alunos'
     | '/_app/dashboard'
+    | '/_app/mensagens'
     | '/_app/parceiros'
     | '/_app/perfil'
     | '/_app/treinos-concluidos'
@@ -317,6 +340,7 @@ export interface FileRouteTypes {
     | '/_app/aluno/evolucao'
     | '/_app/aluno/exames'
     | '/_app/aluno/laudo'
+    | '/_app/aluno/mensagens'
     | '/_app/aluno/parceiros'
     | '/_app/alunos/$id'
     | '/_app/aluno/'
@@ -411,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppParceirosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/mensagens': {
+      id: '/_app/mensagens'
+      path: '/mensagens'
+      fullPath: '/mensagens'
+      preLoaderRoute: typeof AppMensagensRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -451,6 +482,13 @@ declare module '@tanstack/react-router' {
       path: '/aluno/parceiros'
       fullPath: '/aluno/parceiros'
       preLoaderRoute: typeof AppAlunoParceirosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/aluno/mensagens': {
+      id: '/_app/aluno/mensagens'
+      path: '/aluno/mensagens'
+      fullPath: '/aluno/mensagens'
+      preLoaderRoute: typeof AppAlunoMensagensRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/aluno/laudo': {
@@ -516,6 +554,7 @@ interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
   AppAssiduidadeAlunosRoute: typeof AppAssiduidadeAlunosRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppMensagensRoute: typeof AppMensagensRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppTreinosConcluidosRoute: typeof AppTreinosConcluidosRoute
@@ -528,6 +567,7 @@ interface AppRouteChildren {
   AppAlunoEvolucaoRoute: typeof AppAlunoEvolucaoRoute
   AppAlunoExamesRoute: typeof AppAlunoExamesRoute
   AppAlunoLaudoRoute: typeof AppAlunoLaudoRoute
+  AppAlunoMensagensRoute: typeof AppAlunoMensagensRoute
   AppAlunoParceirosRoute: typeof AppAlunoParceirosRoute
   AppAlunosIdRoute: typeof AppAlunosIdRoute
   AppAlunoIndexRoute: typeof AppAlunoIndexRoute
@@ -537,6 +577,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAgendaRoute: AppAgendaRoute,
   AppAssiduidadeAlunosRoute: AppAssiduidadeAlunosRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppMensagensRoute: AppMensagensRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppTreinosConcluidosRoute: AppTreinosConcluidosRoute,
@@ -549,6 +590,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlunoEvolucaoRoute: AppAlunoEvolucaoRoute,
   AppAlunoExamesRoute: AppAlunoExamesRoute,
   AppAlunoLaudoRoute: AppAlunoLaudoRoute,
+  AppAlunoMensagensRoute: AppAlunoMensagensRoute,
   AppAlunoParceirosRoute: AppAlunoParceirosRoute,
   AppAlunosIdRoute: AppAlunosIdRoute,
   AppAlunoIndexRoute: AppAlunoIndexRoute,
