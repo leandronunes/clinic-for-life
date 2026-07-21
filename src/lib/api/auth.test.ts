@@ -4,6 +4,8 @@ import {
   register,
   googleLogin,
   fetchCurrentUser,
+  forgotPassword,
+  resetPassword,
   mapBackendUser,
   type BackendUser,
   type LoginResponse,
@@ -60,6 +62,59 @@ describe("auth API", () => {
       await expect(login({ email: "x@x.com", password: "wrong" })).rejects.toMatchObject({
         status: 401,
       });
+    });
+  });
+
+  describe("forgotPassword()", () => {
+    it("calls POST /api/v1/auth/password/forgot with the e-mail", async () => {
+      mockPost.mockResolvedValue({ message: "Se o e-mail existir, enviaremos um link." });
+
+      const result = await forgotPassword("admin@forlife.app");
+
+      expect(mockPost).toHaveBeenCalledWith("/api/v1/auth/password/forgot", {
+        email: "admin@forlife.app",
+      });
+      expect(result).toEqual({ message: "Se o e-mail existir, enviaremos um link." });
+    });
+
+    it("propagates errors from the HTTP client (e.g. rate limited)", async () => {
+      mockPost.mockRejectedValue({ status: 429, message: "Too many requests" });
+      await expect(forgotPassword("admin@forlife.app")).rejects.toMatchObject({ status: 429 });
+    });
+  });
+
+  describe("resetPassword()", () => {
+    it("calls POST /api/v1/auth/password/reset with the token and new password", async () => {
+      const response: LoginResponse = {
+        token: "tok.abc.123",
+        user: backendUser,
+        expires_at: "2026-07-16T00:00:00Z",
+      };
+      mockPost.mockResolvedValue(response);
+
+      const result = await resetPassword({
+        token: "raw-token",
+        password: "N3w@Str0ngPass",
+        password_confirmation: "N3w@Str0ngPass",
+      });
+
+      expect(mockPost).toHaveBeenCalledWith("/api/v1/auth/password/reset", {
+        token: "raw-token",
+        password: "N3w@Str0ngPass",
+        password_confirmation: "N3w@Str0ngPass",
+      });
+      expect(result).toEqual(response);
+    });
+
+    it("propagates a 422 for an invalid or expired token", async () => {
+      mockPost.mockRejectedValue({ status: 422, message: "Link inválido ou expirado" });
+      await expect(
+        resetPassword({
+          token: "bad-token",
+          password: "N3w@Str0ngPass",
+          password_confirmation: "N3w@Str0ngPass",
+        }),
+      ).rejects.toMatchObject({ status: 422 });
     });
   });
 

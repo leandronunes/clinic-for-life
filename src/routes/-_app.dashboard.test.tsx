@@ -48,6 +48,7 @@ describe("DashboardPage", () => {
       signIn: vi.fn(),
       signUp: vi.fn(),
       signInWithGoogle: vi.fn(),
+      resetPassword: vi.fn(),
       signOut: vi.fn(),
       updateUser: vi.fn(),
       hasRole: (...roles) => roles.includes("admin"),

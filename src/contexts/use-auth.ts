@@ -1,5 +1,11 @@
 import { createContext, useContext } from "react";
-import type { AuthUser, BackendUser, RegisterParams, UserRole } from "@/lib/api/auth";
+import type {
+  AuthUser,
+  BackendUser,
+  RegisterParams,
+  ResetPasswordParams,
+  UserRole,
+} from "@/lib/api/auth";
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -8,6 +14,8 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (params: RegisterParams) => Promise<AuthUser>;
   signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
+  /** Redefine a senha via token de recuperação e autentica o usuário. */
+  resetPassword: (params: ResetPasswordParams) => Promise<AuthUser>;
   signOut: () => void;
   /** Atualiza o usuário da sessão atual em memória/storage sem novo login. */
   updateUser: (backendUser: BackendUser) => void;

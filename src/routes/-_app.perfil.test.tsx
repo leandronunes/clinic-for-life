@@ -109,6 +109,7 @@ function buildAuth(
     loading: false,
     signIn: vi.fn(),
     signUp: vi.fn(),
+    resetPassword: vi.fn(),
     signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
     updateUser: vi.fn(),

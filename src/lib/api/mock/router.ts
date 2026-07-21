@@ -123,6 +123,15 @@ async function routeMockRequest<T>({
       password_confirmation: String(b.password_confirmation ?? ""),
     }) as T;
   }
+  if (m === "POST" && path === "/api/v1/auth/password/forgot") {
+    return store.forgotPassword(String(b.email ?? "")) as T;
+  }
+  if (m === "POST" && path === "/api/v1/auth/password/reset") {
+    return store.resetPassword(String(b.token ?? ""), {
+      password: String(b.password ?? ""),
+      password_confirmation: String(b.password_confirmation ?? ""),
+    }) as T;
+  }
 
   // -------- Trainers --------
   if (m === "GET" && path === "/api/v1/trainers/search") {
