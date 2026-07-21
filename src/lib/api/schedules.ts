@@ -12,6 +12,7 @@ export interface ScheduleSession {
   duration_minutes: number;
   status: "planned" | "done" | "missed" | "canceled";
   workout_id?: string | null;
+  workout_check_in_id?: string | null;
   notes?: string | null;
   plan_id?: string | null;
 }
