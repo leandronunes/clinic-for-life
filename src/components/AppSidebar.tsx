@@ -16,6 +16,7 @@ import {
   FileText,
   Printer,
   CalendarCheck,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,6 +41,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Agenda", url: "/agenda", icon: CalendarCheck },
     { title: "Usuários", url: "/usuarios", icon: Users },
+    { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
     { title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck },
     { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
     { title: "Parceiros", url: "/parceiros", icon: Handshake },
@@ -48,6 +50,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Agenda", url: "/agenda", icon: CalendarCheck },
     { title: "Meus Alunos", url: "/usuarios", icon: Users },
+    { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
     { title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck },
     { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
   ],
@@ -55,6 +58,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
   aluno: [
     { title: "Meu Treino", url: "/aluno", icon: Dumbbell },
     { title: "Minha Agenda", url: "/aluno/agenda", icon: CalendarCheck },
+    { title: "Mensagens", url: "/aluno/mensagens", icon: MessageCircle },
     { title: "Assiduidade", url: "/aluno/assiduidade", icon: CalendarCheck },
     { title: "Evolução", url: "/aluno/evolucao", icon: LineChart },
     { title: "Antes & Depois", url: "/aluno/comparativo", icon: Images },
