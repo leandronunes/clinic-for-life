@@ -31,6 +31,7 @@ import type {
   UpdateCheckInFeedbackPayload,
 } from "../check-in-feedbacks";
 import type { AttendanceSummary } from "../dashboard";
+import type { ChatConversation, ChatMessage, ChatSenderRole } from "../chat";
 import {
   TRAINERS,
   STUDENTS,
