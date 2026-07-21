@@ -1391,3 +1391,147 @@ export function updateScheduleSession(id: string, payload: UpdateSessionPayload)
 export function deleteScheduleSession(id: string): void {
   scheduleSessions = scheduleSessions.filter((s) => s.id !== id);
 }
+
+/* -------------------- Chat -------------------- */
+
+import type { ChatConversation, ChatMessage, ChatSenderRole } from "../chat";
+
+interface StoredChatMessage extends ChatMessage {}
+
+let chatMessages: StoredChatMessage[] = [
+  {
+    id: "chat-msg-1",
+    student_id: "student-1",
+    sender_role: "personal",
+    sender_id: "user-personal-1",
+    sender_name: "Rafael Monteiro",
+    body: "Oi Júlia! Como você está se sentindo depois do treino de ontem? 💪",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+    read_at: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
+  },
+  {
+    id: "chat-msg-2",
+    student_id: "student-1",
+    sender_role: "aluno",
+    sender_id: "user-aluno-1",
+    sender_name: "Júlia Ferreira",
+    body: "Oi Rafa! Um pouco dolorida mas motivada 😄",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
+    read_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+  {
+    id: "chat-msg-3",
+    student_id: "student-1",
+    sender_role: "personal",
+    sender_id: "user-personal-1",
+    sender_name: "Rafael Monteiro",
+    body: "Perfeito! Amanhã vamos focar em mobilidade, ok? 🧘",
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    read_at: null,
+  },
+];
+
+function resolveContextForStudent(
+  token: string | null,
+  studentId: string,
+): { user: BackendUser; role: ChatSenderRole } {
+  const user = currentUser(token);
+  const student = students.find((s) => s.id === studentId);
+  if (!student) notFound("Aluno não encontrado");
+  if (user.role === "student") {
+    if (user.student_id !== studentId) {
+      const err: ApiError = { status: 403, message: "Sem acesso a esta conversa" };
+      throw err;
+    }
+    return { user, role: "aluno" };
+  }
+  if (user.role === "personal") {
+    if (user.trainer_id && student.trainer_id !== user.trainer_id) {
+      const err: ApiError = { status: 403, message: "Sem acesso a esta conversa" };
+      throw err;
+    }
+    return { user, role: "personal" };
+  }
+  // admin visualiza como personal
+  return { user, role: "personal" };
+}
+
+export function listChatConversations(token: string | null): ChatConversation[] {
+  const user = currentUser(token);
+
+  let visibleStudents = students;
+  if (user.role === "student") {
+    visibleStudents = students.filter((s) => s.id === user.student_id);
+  } else if (user.role === "personal" && user.trainer_id) {
+    visibleStudents = students.filter((s) => s.trainer_id === user.trainer_id);
+  }
+
+  const currentRole: ChatSenderRole = user.role === "student" ? "aluno" : "personal";
+
+  return visibleStudents
+    .map((s) => {
+      const msgs = chatMessages.filter((m) => m.student_id === s.id);
+      const last = msgs.length ? msgs[msgs.length - 1] : null;
+      const unread = msgs.filter((m) => m.sender_role !== currentRole && m.read_at === null).length;
+      return {
+        student_id: s.id,
+        student_name: s.name,
+        student_avatar_url: null,
+        trainer_id: s.trainer_id,
+        trainer_name: s.trainer_name,
+        last_message: last,
+        unread_count: unread,
+        updated_at: last?.created_at ?? s.created_at,
+      } satisfies ChatConversation;
+    })
+    .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));
+}
+
+export function listChatMessages(token: string | null, studentId: string): ChatMessage[] {
+  resolveContextForStudent(token, studentId);
+  return chatMessages
+    .filter((m) => m.student_id === studentId)
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+}
+
+export function createChatMessage(
+  token: string | null,
+  studentId: string,
+  body: string,
+): ChatMessage {
+  const ctx = resolveContextForStudent(token, studentId);
+  const trimmed = body.trim();
+  if (!trimmed) {
+    const err: ApiError = { status: 400, message: "Mensagem vazia" };
+    throw err;
+  }
+  const msg: StoredChatMessage = {
+    id: nextId("chat-msg"),
+    student_id: studentId,
+    sender_role: ctx.role,
+    sender_id: ctx.user.id,
+    sender_name: ctx.user.name,
+    body: trimmed,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+  chatMessages = [...chatMessages, msg];
+  return msg;
+}
+
+export function markChatConversationRead(
+  token: string | null,
+  studentId: string,
+): { read: number } {
+  const ctx = resolveContextForStudent(token, studentId);
+  let read = 0;
+  const now = new Date().toISOString();
+  chatMessages = chatMessages.map((m) => {
+    if (m.student_id === studentId && m.sender_role !== ctx.role && m.read_at === null) {
+      read += 1;
+      return { ...m, read_at: now };
+    }
+    return m;
+  });
+  return { read };
+}
