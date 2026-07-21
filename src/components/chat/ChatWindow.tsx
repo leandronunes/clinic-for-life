@@ -77,7 +77,7 @@ export function ChatWindow({ studentId, peerName, currentUserRole, emptyHint }: 
     refetchInterval: 5000,
   });
 
-  const messages = messagesQuery.data ?? [];
+  const messages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
   const groups = useMemo(() => groupByDay(messages), [messages]);
 
   // Rola pro fim quando chegam novas mensagens ou troca de conversa.

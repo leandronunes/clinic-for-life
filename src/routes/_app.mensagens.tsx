@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/mensagens")({
   component: MensagensPage,
 });
 
-function MensagensPage() {
+export function MensagensPage() {
   const [active, setActive] = useState<ChatConversation | null>(null);
 
   return (
@@ -38,10 +38,7 @@ function MensagensPage() {
           )}
         >
           <div className="h-full overflow-y-auto">
-            <ConversationList
-              activeStudentId={active?.student_id}
-              onSelect={setActive}
-            />
+            <ConversationList activeStudentId={active?.student_id} onSelect={setActive} />
           </div>
         </aside>
 

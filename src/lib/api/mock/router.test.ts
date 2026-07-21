@@ -8,6 +8,7 @@ import type { ApiError } from "../http";
 import type { WorkoutCheckIn } from "../check-ins";
 import type { CheckInFeedback } from "../check-in-feedbacks";
 import type { AttendanceSummary } from "../dashboard";
+import type { ChatConversation, ChatMessage } from "../chat";
 
 describe("resolveMockRequest()", () => {
   it("logs in with a valid demo account", async () => {
@@ -507,5 +508,91 @@ describe("resolveMockRequest()", () => {
     });
     expect(summary.total_check_ins).toBeGreaterThanOrEqual(1);
     expect(summary).toHaveProperty("active_students");
+  });
+
+  describe("chat", () => {
+    async function loginAs(email: string, password: string) {
+      const res = await resolveMockRequest<LoginResponse>({
+        method: "POST",
+        path: "/api/v1/auth/login",
+        body: { email, password },
+        token: null,
+      });
+      return res.token;
+    }
+
+    it("lists the personal's conversations, including the seeded student", async () => {
+      const token = await loginAs("personal@forlife.app", "Personal@2026");
+      const conversations = await resolveMockRequest<ChatConversation[]>({
+        method: "GET",
+        path: "/api/v1/chat/conversations",
+        token,
+      });
+      expect(conversations.some((c) => c.student_id === "student-1")).toBe(true);
+    });
+
+    it("lists a conversation's messages in chronological order", async () => {
+      const token = await loginAs("personal@forlife.app", "Personal@2026");
+      const messages = await resolveMockRequest<ChatMessage[]>({
+        method: "GET",
+        path: "/api/v1/chat/conversations/student-1/messages",
+        token,
+      });
+      expect(messages.length).toBeGreaterThanOrEqual(3);
+      const timestamps = messages.map((m) => Date.parse(m.created_at));
+      expect(timestamps).toEqual([...timestamps].sort((a, b) => a - b));
+    });
+
+    it("lets the personal send a message, deriving sender_role from their own role", async () => {
+      const token = await loginAs("personal@forlife.app", "Personal@2026");
+      const message = await resolveMockRequest<ChatMessage>({
+        method: "POST",
+        path: "/api/v1/chat/conversations/student-1/messages",
+        body: { body: "Como foi o treino de hoje?" },
+        token,
+      });
+      expect(message.sender_role).toBe("personal");
+      expect(message.body).toBe("Como foi o treino de hoje?");
+      expect(message.read_at).toBeNull();
+    });
+
+    it("lets the aluno send a message on their own conversation", async () => {
+      const token = await loginAs("aluno@forlife.app", "Aluno@2026");
+      const message = await resolveMockRequest<ChatMessage>({
+        method: "POST",
+        path: "/api/v1/chat/conversations/student-1/messages",
+        body: { body: "Foi ótimo!" },
+        token,
+      });
+      expect(message.sender_role).toBe("aluno");
+    });
+
+    it("marks the other side's unread messages as read", async () => {
+      const token = await loginAs("personal@forlife.app", "Personal@2026");
+      const result = await resolveMockRequest<{ read: number }>({
+        method: "POST",
+        path: "/api/v1/chat/conversations/student-1/read",
+        token,
+      });
+      expect(result.read).toBeGreaterThanOrEqual(0);
+
+      const messages = await resolveMockRequest<ChatMessage[]>({
+        method: "GET",
+        path: "/api/v1/chat/conversations/student-1/messages",
+        token,
+      });
+      expect(messages.filter((m) => m.sender_role === "aluno").every((m) => m.read_at)).toBe(true);
+    });
+
+    it("forbids an aluno from reading another student's conversation", async () => {
+      const token = await loginAs("aluno@forlife.app", "Aluno@2026");
+      await expect(
+        resolveMockRequest({
+          method: "GET",
+          path: "/api/v1/chat/conversations/student-2/messages",
+          token,
+        }),
+      ).rejects.toMatchObject({ status: 403 } satisfies Partial<ApiError>);
+    });
   });
 });
