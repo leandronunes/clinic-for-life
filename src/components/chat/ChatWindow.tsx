@@ -125,7 +125,7 @@ export function ChatWindow({ studentId, peerName, currentUserRole, emptyHint }: 
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full w-full min-w-0 flex-1 flex-col">
       <header className="flex items-center gap-3 border-b px-4 py-3">
         <Avatar className="h-10 w-10">
           <AvatarFallback className="bg-primary/10 text-primary">
