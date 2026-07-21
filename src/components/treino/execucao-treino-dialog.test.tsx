@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ExecucaoTreinoDialog } from "./execucao-treino-dialog";
 import type { Workout } from "@/lib/api/workouts";
@@ -153,5 +153,43 @@ describe("ExecucaoTreinoDialog", () => {
 
     expect(screen.queryByLabelText("Dica do personal")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Ver execução")).not.toBeInTheDocument();
+  });
+
+  describe("clock while backgrounded", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("recalculates elapsed time immediately on visibilitychange, instead of waiting for the next tick", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      render(
+        <ExecucaoTreinoDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          treino={mockWorkout}
+          checkIn={mockCheckIn}
+          onToggleExercise={vi.fn()}
+          onUpdateLoad={vi.fn()}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /Iniciar série 1/i }));
+      expect(screen.getByText("00:00")).toBeInTheDocument();
+
+      // Simulate the browser suspending the interval while the tab/app is
+      // backgrounded: real time jumps forward without any timer callback
+      // firing (no advanceTimersByTime call in between).
+      vi.setSystemTime(Date.now() + 10_000);
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
+      expect(screen.getByText("00:10")).toBeInTheDocument();
+    });
   });
 });
