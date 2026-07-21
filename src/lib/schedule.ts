@@ -85,6 +85,98 @@ export function overlaps(
   return aStart < bEnd && bStart < aEnd;
 }
 
+/** Minutos desde 00:00 local — base pra calcular top/height na grade de horário. */
+export function minutesSinceMidnight(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+export interface GridBounds {
+  startMinutes: number;
+  endMinutes: number;
+}
+
+/**
+ * Faixa de horário (em minutos desde 00:00) que a grade de dia/semana deve
+ * cobrir. Usa o horário comercial típico como default, mas expande (com 1h
+ * de margem) pra nunca cortar uma aula real fora dele — não há convenção de
+ * horário comercial fixa no cadastro (`PlanejarAulasDialog` aceita qualquer
+ * horário).
+ */
+export function gridBounds(
+  sessions: ScheduleSession[],
+  defaultStartHour = 6,
+  defaultEndHour = 21,
+): GridBounds {
+  let startMinutes = defaultStartHour * 60;
+  let endMinutes = defaultEndHour * 60;
+  for (const s of sessions) {
+    const start = minutesSinceMidnight(new Date(s.starts_at));
+    const end = start + s.duration_minutes;
+    if (start < startMinutes) startMinutes = Math.max(0, start - 60);
+    if (end > endMinutes) endMinutes = Math.min(24 * 60, end + 60);
+  }
+  return { startMinutes, endMinutes };
+}
+
+export interface DayColumnLayout {
+  session: ScheduleSession;
+  column: number;
+  columnCount: number;
+}
+
+/**
+ * Atribui a cada aula de um único dia uma coluna (0-based) e o total de
+ * colunas do grupo de sobreposição em que ela está, pra renderizar aulas
+ * concorrentes lado a lado (igual ao Google Calendar faz com conflitos) em
+ * vez de empilhadas por cima uma da outra. Usa `overlaps()` pra agrupar em
+ * clusters de sobreposição, depois faz alocação gulosa de colunas dentro de
+ * cada cluster (coloração ótima de grafo de intervalos).
+ */
+export function layoutDayColumns(sessions: ScheduleSession[]): DayColumnLayout[] {
+  const sorted = [...sessions].sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+
+  const clusters: ScheduleSession[][] = [];
+  for (const s of sorted) {
+    const last = clusters[clusters.length - 1];
+    const joinsLast = last?.some((c) =>
+      overlaps(
+        new Date(c.starts_at),
+        c.duration_minutes,
+        new Date(s.starts_at),
+        s.duration_minutes,
+      ),
+    );
+    if (joinsLast) {
+      last.push(s);
+    } else {
+      clusters.push([s]);
+    }
+  }
+
+  const result: DayColumnLayout[] = [];
+  for (const cluster of clusters) {
+    const columnEnds: number[] = [];
+    for (const s of cluster) {
+      const start = Date.parse(s.starts_at);
+      const end = start + s.duration_minutes * 60_000;
+      let column = columnEnds.findIndex((colEnd) => colEnd <= start);
+      if (column === -1) {
+        column = columnEnds.length;
+        columnEnds.push(end);
+      } else {
+        columnEnds[column] = end;
+      }
+      result.push({ session: s, column, columnCount: -1 });
+    }
+    const columnCount = columnEnds.length;
+    for (const r of result.slice(-cluster.length)) {
+      r.columnCount = columnCount;
+    }
+  }
+
+  return result;
+}
+
 /** Agrupa sessões por chave YYYY-MM-DD do horário local. */
 export function groupByDay(sessions: ScheduleSession[]): Record<string, ScheduleSession[]> {
   const map: Record<string, ScheduleSession[]> = {};

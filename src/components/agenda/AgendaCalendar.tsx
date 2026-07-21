@@ -1,14 +1,18 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   addDays,
   endOfMonth,
   formatHM,
+  gridBounds,
   groupByDay,
   isoDate,
+  layoutDayColumns,
+  minutesSinceMidnight,
   startOfMonth,
   startOfWeek,
   WEEKDAY_SHORT_PT,
+  type GridBounds,
 } from "@/lib/schedule";
 import type { ScheduleSession } from "@/lib/api/schedules";
 
@@ -44,17 +48,196 @@ export function AgendaCalendar(props: AgendaCalendarProps) {
   return <MonthView {...props} />;
 }
 
-function DayView({ cursor, sessions, showStudentName, onSelectSession }: AgendaCalendarProps) {
-  const dayKey = isoDate(cursor);
-  const list = useMemo(
-    () =>
-      sessions
-        .filter((s) => isoDate(new Date(s.starts_at)) === dayKey)
-        .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at)),
-    [sessions, dayKey],
+/** Altura de 1h na grade de horário — convenção comum de calendário, dá
+ * espaço suficiente pra ler o conteúdo de uma aula de 30min sem espremer. */
+const HOUR_HEIGHT_PX = 60;
+
+/** Atualiza a cada minuto, sem precisar de interação do usuário, pra linha
+ * do "agora" andar sozinha (igual ao Google Calendar). */
+function useNow(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+function gridHeightPx(bounds: GridBounds): number {
+  return ((bounds.endMinutes - bounds.startMinutes) / 60) * HOUR_HEIGHT_PX;
+}
+
+function topForMinutes(bounds: GridBounds, minutes: number): number {
+  return ((minutes - bounds.startMinutes) / 60) * HOUR_HEIGHT_PX;
+}
+
+/** Coluna de rótulos de hora à esquerda da grade — mostra só as horas
+ * cheias dentro da faixa visível (`bounds` pode começar/terminar em minutos
+ * quebrados por causa da margem de expansão, mas os rótulos ficam sempre
+ * em horas cheias). */
+function TimeAxis({ bounds }: { bounds: GridBounds }) {
+  const firstHour = Math.ceil(bounds.startMinutes / 60);
+  const lastHour = Math.floor(bounds.endMinutes / 60);
+  const hours = Array.from({ length: lastHour - firstHour + 1 }, (_, i) => firstHour + i);
+
+  return (
+    <div className="relative w-11 shrink-0 sm:w-14" style={{ height: gridHeightPx(bounds) }}>
+      {hours.map((h) => (
+        <div
+          key={h}
+          className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums text-muted-foreground"
+          style={{ top: topForMinutes(bounds, h * 60) }}
+        >
+          {String(h).padStart(2, "0")}:00
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Linhas horizontais da grade — hora cheia mais forte, meia hora mais sutil. */
+function GridLines({ bounds }: { bounds: GridBounds }) {
+  const firstHalfHour = Math.ceil(bounds.startMinutes / 30);
+  const lastHalfHour = Math.floor(bounds.endMinutes / 30);
+  const marks = Array.from(
+    { length: lastHalfHour - firstHalfHour + 1 },
+    (_, i) => (firstHalfHour + i) * 30,
   );
 
-  if (list.length === 0) {
+  return (
+    <>
+      {marks.map((minutes) => (
+        <div
+          key={minutes}
+          className={cn(
+            "pointer-events-none absolute inset-x-0 border-t",
+            minutes % 60 === 0 ? "border-border" : "border-border/50",
+          )}
+          style={{ top: topForMinutes(bounds, minutes) }}
+        />
+      ))}
+    </>
+  );
+}
+
+/** Linha vermelha marcando o horário atual — só renderiza quando "agora"
+ * cai dentro da faixa visível da grade daquele dia. */
+function NowLine({ bounds, now }: { bounds: GridBounds; now: Date }) {
+  const minutes = minutesSinceMidnight(now);
+  if (minutes < bounds.startMinutes || minutes > bounds.endMinutes) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-destructive"
+      style={{ top: topForMinutes(bounds, minutes) }}
+    >
+      <span className="absolute -left-1 -top-[5px] h-2.5 w-2.5 rounded-full bg-destructive" />
+    </div>
+  );
+}
+
+function SessionBlock({
+  session,
+  bounds,
+  column,
+  columnCount,
+  showStudentName,
+  onSelect,
+}: {
+  session: ScheduleSession;
+  bounds: GridBounds;
+  column: number;
+  columnCount: number;
+  showStudentName?: boolean;
+  onSelect?: (s: ScheduleSession) => void;
+}) {
+  const start = new Date(session.starts_at);
+  const top = topForMinutes(bounds, minutesSinceMidnight(start));
+  const height = Math.max((session.duration_minutes / 60) * HOUR_HEIGHT_PX, 18);
+  const widthPct = 100 / columnCount;
+  const leftPct = widthPct * column;
+  // Um bloco baixo (aula curta) não tem espaço pra linha de duração/status
+  // sem cortar o texto — mostra só horário (+ nome, se aplicável).
+  const showDetails = height >= 40;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect?.(session)}
+      className={cn(
+        "absolute overflow-hidden rounded border px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm",
+        STATUS_STYLES[session.status],
+      )}
+      style={{
+        top,
+        height,
+        left: `calc(${leftPct}% + 2px)`,
+        width: `calc(${widthPct}% - 4px)`,
+      }}
+      title={`${formatHM(start)} · ${session.student_name} · ${session.duration_minutes} min`}
+    >
+      <div className="font-semibold tabular-nums">{formatHM(start)}</div>
+      {showStudentName && <div className="truncate">{session.student_name}</div>}
+      {showDetails && (
+        <div className="truncate text-muted-foreground">
+          {session.duration_minutes} min · {statusLabel(session.status)}
+        </div>
+      )}
+    </button>
+  );
+}
+
+/** Corpo da grade de um único dia: linhas de horário + linha do "agora" +
+ * os blocos de aula daquele dia, posicionados por horário/duração e
+ * divididos em colunas quando há sobreposição (`layoutDayColumns`). */
+function DayColumn({
+  sessions,
+  bounds,
+  now,
+  isToday,
+  showStudentName,
+  onSelectSession,
+  className,
+}: {
+  sessions: ScheduleSession[];
+  bounds: GridBounds;
+  now: Date;
+  isToday: boolean;
+  showStudentName?: boolean;
+  onSelectSession?: (s: ScheduleSession) => void;
+  className?: string;
+}) {
+  const layout = useMemo(() => layoutDayColumns(sessions), [sessions]);
+
+  return (
+    <div className={cn("relative", className)} style={{ height: gridHeightPx(bounds) }}>
+      <GridLines bounds={bounds} />
+      {isToday && <NowLine bounds={bounds} now={now} />}
+      {layout.map(({ session, column, columnCount }) => (
+        <SessionBlock
+          key={session.id}
+          session={session}
+          bounds={bounds}
+          column={column}
+          columnCount={columnCount}
+          showStudentName={showStudentName}
+          onSelect={onSelectSession}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DayView({ cursor, sessions, showStudentName, onSelectSession }: AgendaCalendarProps) {
+  const dayKey = isoDate(cursor);
+  const now = useNow();
+  const daySessions = useMemo(
+    () => sessions.filter((s) => isoDate(new Date(s.starts_at)) === dayKey),
+    [sessions, dayKey],
+  );
+  const bounds = useMemo(() => gridBounds(daySessions), [daySessions]);
+
+  if (daySessions.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground">
         Nenhum treino planejado para este dia.
@@ -63,31 +246,18 @@ function DayView({ cursor, sessions, showStudentName, onSelectSession }: AgendaC
   }
 
   return (
-    <ul className="divide-y rounded-md border">
-      {list.map((s) => {
-        const d = new Date(s.starts_at);
-        return (
-          <li key={s.id}>
-            <button
-              type="button"
-              onClick={() => onSelectSession?.(s)}
-              className="flex w-full items-center gap-4 p-3 text-left hover:bg-muted/60"
-            >
-              <div className="min-w-16 text-sm font-semibold tabular-nums">{formatHM(d)}</div>
-              <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", STATUS_DOT[s.status])} />
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">
-                  {showStudentName ? s.student_name : "Treino programado"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {s.duration_minutes} min · {statusLabel(s.status)}
-                </div>
-              </div>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex overflow-x-auto rounded-md border">
+      <TimeAxis bounds={bounds} />
+      <DayColumn
+        sessions={daySessions}
+        bounds={bounds}
+        now={now}
+        isToday={dayKey === isoDate(now)}
+        showStudentName={showStudentName}
+        onSelectSession={onSelectSession}
+        className="flex-1 border-l"
+      />
+    </div>
   );
 }
 
@@ -95,53 +265,48 @@ function WeekView({ cursor, sessions, showStudentName, onSelectSession }: Agenda
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const grouped = useMemo(() => groupByDay(sessions), [sessions]);
-  const today = isoDate(new Date());
+  const now = useNow();
+  const today = isoDate(now);
+  const bounds = useMemo(() => gridBounds(sessions), [sessions]);
 
   return (
-    <div className="grid grid-cols-7 gap-1.5">
-      {days.map((d) => {
-        const key = isoDate(d);
-        const items = grouped[key] ?? [];
-        const isToday = key === today;
-        return (
-          <div
-            key={key}
-            className={cn(
-              "flex min-h-40 flex-col rounded-md border bg-card p-1.5",
-              isToday && "border-primary/60 ring-1 ring-primary/20",
-            )}
-          >
-            <div className="mb-1 flex items-baseline justify-between px-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                {WEEKDAY_SHORT_PT[d.getDay()]}
-              </span>
-              <span className={cn("text-sm font-semibold", isToday && "text-primary")}>
-                {d.getDate()}
-              </span>
+    <div className="overflow-x-auto rounded-md border">
+      <div className="flex min-w-[640px]">
+        <div className="flex flex-col">
+          <div className="h-10 shrink-0" />
+          <TimeAxis bounds={bounds} />
+        </div>
+        {days.map((d) => {
+          const key = isoDate(d);
+          const items = grouped[key] ?? [];
+          const isToday = key === today;
+          return (
+            <div key={key} className="flex flex-1 flex-col border-l">
+              <div
+                className={cn(
+                  "flex h-10 shrink-0 flex-col items-center justify-center border-b",
+                  isToday && "bg-primary/5",
+                )}
+              >
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  {WEEKDAY_SHORT_PT[d.getDay()]}
+                </span>
+                <span className={cn("text-xs font-semibold", isToday && "text-primary")}>
+                  {d.getDate()}
+                </span>
+              </div>
+              <DayColumn
+                sessions={items}
+                bounds={bounds}
+                now={now}
+                isToday={isToday}
+                showStudentName={showStudentName}
+                onSelectSession={onSelectSession}
+              />
             </div>
-            <div className="flex flex-col gap-1">
-              {items.map((s) => {
-                const t = new Date(s.starts_at);
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => onSelectSession?.(s)}
-                    className={cn(
-                      "rounded border px-1.5 py-1 text-left text-[11px] leading-tight",
-                      STATUS_STYLES[s.status],
-                    )}
-                    title={`${formatHM(t)} · ${s.student_name}`}
-                  >
-                    <div className="font-semibold tabular-nums">{formatHM(t)}</div>
-                    {showStudentName && <div className="truncate">{s.student_name}</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
