@@ -110,6 +110,31 @@ describe("AppSidebar", () => {
     expect(screen.getByRole("link", { name: /perfil/i })).toHaveAttribute("href", "/perfil");
   });
 
+  it('exibe "Organização" no menu do admin, apontando para /organizacao', () => {
+    mockUseAuth.mockReturnValue(buildAuth({ user: adminUser, effectiveRole: "admin" }));
+
+    renderSidebar();
+
+    expect(screen.getByRole("link", { name: /organização/i })).toHaveAttribute(
+      "href",
+      "/organizacao",
+    );
+  });
+
+  it('não exibe "Organização" no menu do personal', () => {
+    const personalUser: AuthUser = {
+      id: "u3",
+      name: "Rafael Personal",
+      email: "rafael@test.com",
+      role: "personal",
+    };
+    mockUseAuth.mockReturnValue(buildAuth({ user: personalUser, effectiveRole: "personal" }));
+
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: /organização/i })).not.toBeInTheDocument();
+  });
+
   describe("feature flag: attendanceCycles", () => {
     beforeEach(() => {
       // Don't rely on the ambient .env — pin a known "off" baseline so these

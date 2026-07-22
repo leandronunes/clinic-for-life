@@ -17,6 +17,7 @@ import {
   Printer,
   CalendarCheck,
   MessageCircle,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const MENU: Record<UserRole, { title: string; url: string; icon: typeof LayoutDa
     { title: "Assiduidade", url: "/assiduidade-alunos", icon: CalendarCheck },
     { title: "Treinos Concluídos", url: "/treinos-concluidos", icon: ClipboardCheck },
     { title: "Parceiros", url: "/parceiros", icon: Handshake },
+    { title: "Organização", url: "/organizacao", icon: Building2 },
   ],
   personal: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
