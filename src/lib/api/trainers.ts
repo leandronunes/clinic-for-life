@@ -12,6 +12,8 @@ export interface Trainer {
   status: TrainerStatus;
   avatar_url?: string | null;
   students_count: number;
+  /** Nulo enquanto o pedido de entrada numa organização existente aguarda aprovação do admin dela. */
+  approved_at?: string | null;
 }
 
 export interface CreateTrainerPayload {
@@ -62,4 +64,18 @@ export function updateTrainer(id: string, payload: UpdateTrainerPayload): Promis
 /** Permanently deletes the trainer account. */
 export function deleteTrainer(id: string): Promise<void> {
   return http.del<void>(`/api/v1/trainers/${id}`);
+}
+
+/** Trainers com pedido de entrada numa organização existente ainda não aprovado. */
+export function fetchPendingTrainers(): Promise<Trainer[]> {
+  return http.get<Trainer[]>("/api/v1/trainers", { params: { pending: "true" } });
+}
+
+export function approveTrainer(id: string): Promise<Trainer> {
+  return http.patch<Trainer>(`/api/v1/trainers/${id}/approve`);
+}
+
+/** Rejeita o pedido — remove permanentemente o trainer e a conta associada. */
+export function rejectTrainer(id: string): Promise<void> {
+  return http.del<void>(`/api/v1/trainers/${id}/reject`);
 }
