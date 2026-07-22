@@ -17,10 +17,32 @@ test.describe("Link de perfil no header", () => {
     await expect(emailInput).toHaveValue("admin@forlife.app");
 
     await nameInput.fill("Camila Andrade Silva");
-    await page.getByRole("button", { name: "Salvar alterações" }).click();
+    // "Salvar alterações" também existe no card "Organização" logo abaixo
+    // (admin vê e edita os dados da própria organização) — .first() pega o
+    // botão do card "Dados pessoais".
+    await page.getByRole("button", { name: "Salvar alterações" }).first().click();
 
     await expect(page.getByText("Perfil atualizado")).toBeVisible();
     await expect(page.getByRole("link", { name: /camila andrade silva/i })).toBeVisible();
+  });
+
+  test("admin edita os dados da própria organização", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/perfil");
+
+    // CardTitle não é um heading semântico — sobe do texto "Organização"
+    // (CardTitle) por CardHeader até o Card, que também contém o
+    // CardContent com o input e o botão "Salvar alterações".
+    const orgCard = page.getByText("Organização", { exact: true }).locator("xpath=../..");
+    await expect(orgCard).toBeVisible();
+
+    const orgNameInput = orgCard.locator("input").first();
+    await expect(orgNameInput).toHaveValue("Clínica For Life");
+    await orgNameInput.fill("Clínica For Life Renomeada");
+    await orgCard.getByRole("button", { name: "Salvar alterações" }).click();
+
+    await expect(page.getByText("Organização atualizada")).toBeVisible();
+    await expect(orgNameInput).toHaveValue("Clínica For Life Renomeada");
   });
 
   test("admin impersonando um aluno vê o perfil dele somente leitura", async ({ page }) => {

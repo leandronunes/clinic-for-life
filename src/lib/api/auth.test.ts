@@ -145,6 +145,7 @@ describe("auth API", () => {
         personal_id: undefined,
         aluno_id: undefined,
         pending_approval: false,
+        organization_id: undefined,
       });
     });
 
@@ -184,6 +185,19 @@ describe("auth API", () => {
         pending_approval: true,
       };
       expect(mapBackendUser(pending)).toMatchObject({ pending_approval: true });
+    });
+
+    it("maps organization_id through, defaulting to undefined when absent", () => {
+      expect(mapBackendUser(backendUser)).toMatchObject({ organization_id: undefined });
+
+      const withOrg: BackendUser = {
+        id: "u5",
+        name: "Dra. Camila Andrade",
+        email: "admin@forlife.app",
+        role: "admin",
+        organization_id: "org-1",
+      };
+      expect(mapBackendUser(withOrg)).toMatchObject({ organization_id: "org-1" });
     });
   });
 });
