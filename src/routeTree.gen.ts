@@ -21,6 +21,7 @@ import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppTreinosConcluidosRouteImport } from './routes/_app.treinos-concluidos'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppParceirosRouteImport } from './routes/_app.parceiros'
+import { Route as AppOrganizacaoRouteImport } from './routes/_app.organizacao'
 import { Route as AppMensagensRouteImport } from './routes/_app.mensagens'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAssiduidadeAlunosRouteImport } from './routes/_app.assiduidade-alunos'
@@ -95,6 +96,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
 const AppParceirosRoute = AppParceirosRouteImport.update({
   id: '/parceiros',
   path: '/parceiros',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrganizacaoRoute = AppOrganizacaoRouteImport.update({
+  id: '/organizacao',
+  path: '/organizacao',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMensagensRoute = AppMensagensRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/mensagens': typeof AppMensagensRoute
+  '/organizacao': typeof AppOrganizacaoRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/dashboard': typeof AppDashboardRoute
   '/mensagens': typeof AppMensagensRoute
+  '/organizacao': typeof AppOrganizacaoRoute
   '/parceiros': typeof AppParceirosRoute
   '/perfil': typeof AppPerfilRoute
   '/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/_app/assiduidade-alunos': typeof AppAssiduidadeAlunosRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/mensagens': typeof AppMensagensRoute
+  '/_app/organizacao': typeof AppOrganizacaoRoute
   '/_app/parceiros': typeof AppParceirosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/treinos-concluidos': typeof AppTreinosConcluidosRoute
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/assiduidade-alunos'
     | '/dashboard'
     | '/mensagens'
+    | '/organizacao'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/assiduidade-alunos'
     | '/dashboard'
     | '/mensagens'
+    | '/organizacao'
     | '/parceiros'
     | '/perfil'
     | '/treinos-concluidos'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/_app/assiduidade-alunos'
     | '/_app/dashboard'
     | '/_app/mensagens'
+    | '/_app/organizacao'
     | '/_app/parceiros'
     | '/_app/perfil'
     | '/_app/treinos-concluidos'
@@ -453,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/parceiros'
       fullPath: '/parceiros'
       preLoaderRoute: typeof AppParceirosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/organizacao': {
+      id: '/_app/organizacao'
+      path: '/organizacao'
+      fullPath: '/organizacao'
+      preLoaderRoute: typeof AppOrganizacaoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mensagens': {
@@ -575,6 +594,7 @@ interface AppRouteChildren {
   AppAssiduidadeAlunosRoute: typeof AppAssiduidadeAlunosRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppMensagensRoute: typeof AppMensagensRoute
+  AppOrganizacaoRoute: typeof AppOrganizacaoRoute
   AppParceirosRoute: typeof AppParceirosRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppTreinosConcluidosRoute: typeof AppTreinosConcluidosRoute
@@ -598,6 +618,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAssiduidadeAlunosRoute: AppAssiduidadeAlunosRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppMensagensRoute: AppMensagensRoute,
+  AppOrganizacaoRoute: AppOrganizacaoRoute,
   AppParceirosRoute: AppParceirosRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppTreinosConcluidosRoute: AppTreinosConcluidosRoute,

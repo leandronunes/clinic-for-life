@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -43,14 +43,6 @@ vi.mock("@/lib/api/auth", async (importOriginal) => {
 import { fetchCurrentUser, updateCurrentUser } from "@/lib/api/auth";
 const mockFetchCurrentUser = vi.mocked(fetchCurrentUser);
 const mockUpdateCurrentUser = vi.mocked(updateCurrentUser);
-
-vi.mock("@/lib/api/organizations", () => ({
-  fetchOrganizations: vi.fn(),
-  updateOrganization: vi.fn(),
-}));
-import { fetchOrganizations, updateOrganization } from "@/lib/api/organizations";
-const mockFetchOrganizations = vi.mocked(fetchOrganizations);
-const mockUpdateOrganization = vi.mocked(updateOrganization);
 
 vi.mock("@/components/NotificationsCard", () => ({
   NotificationsCard: () => <div data-testid="notifications-card" />,
@@ -137,7 +129,6 @@ describe("PerfilPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchTrainers.mockResolvedValue([]);
-    mockFetchOrganizations.mockResolvedValue([]);
   });
 
   it("aluno real vê o formulário editável e pode salvar (comportamento existente)", async () => {
@@ -218,66 +209,6 @@ describe("PerfilPage", () => {
       expect(updateUserMock).toHaveBeenCalledWith({ ...backendAdmin, name: "Ana Souza" }),
     );
     expect(screen.queryByTestId("notifications-card")).not.toBeInTheDocument();
-    // backendAdmin não tem organization_id neste teste — sem organização vinculada, sem cartão.
-    expect(screen.queryByText("Organização")).not.toBeInTheDocument();
-  });
-
-  it("admin vê e edita os dados da própria organização", async () => {
-    mockUseAuth.mockReturnValue(
-      buildAuth({
-        hasRole: (...roles) => roles.includes("admin"),
-        isImpersonating: false,
-        effectiveAlunoId: null,
-      }),
-    );
-    mockFetchCurrentUser.mockResolvedValue({ ...backendAdmin, organization_id: "org-1" });
-    mockFetchOrganizations.mockResolvedValue([
-      { id: "org-1", name: "Clínica For Life", domain: "clinica-for-life" },
-    ]);
-    mockUpdateOrganization.mockResolvedValue({
-      id: "org-1",
-      name: "Clínica Renomeada",
-      domain: "clinica-for-life",
-    });
-
-    render(<PerfilPage />, { wrapper });
-
-    const nameInput = await screen.findByDisplayValue("Clínica For Life");
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, "Clínica Renomeada");
-
-    const orgTitle = screen.getByText("Organização");
-    const orgCard = orgTitle.parentElement!.parentElement!; // CardTitle -> CardHeader -> Card
-    await userEvent.click(within(orgCard).getByRole("button", { name: /salvar alterações/i }));
-
-    await waitFor(() =>
-      expect(mockUpdateOrganization).toHaveBeenCalledWith("org-1", {
-        name: "Clínica Renomeada",
-        domain: "clinica-for-life",
-      }),
-    );
-  });
-
-  it("personal não vê o cartão de organização", async () => {
-    mockUseAuth.mockReturnValue(
-      buildAuth({
-        hasRole: (...roles) => roles.includes("personal"),
-        isImpersonating: false,
-        effectiveAlunoId: null,
-      }),
-    );
-    mockFetchCurrentUser.mockResolvedValue({
-      id: "u3",
-      name: "Rafael Personal",
-      email: "rafael@test.com",
-      role: "personal",
-      organization_id: "org-1",
-    });
-
-    render(<PerfilPage />, { wrapper });
-
-    await screen.findByDisplayValue("Rafael Personal");
-    expect(screen.queryByText("Organização")).not.toBeInTheDocument();
   });
 
   it("lista de personais no 'Meu Personal' pede apenas personais ativos ao backend", async () => {
