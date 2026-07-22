@@ -110,6 +110,14 @@ async function routeMockRequest<T>({
   if (m === "GET" && path === "/api/v1/organizations") {
     return store.listOrganizations() as T;
   }
+  const organizationMatch = /^\/api\/v1\/organizations\/([^/]+)$/.exec(path);
+  if (organizationMatch && m === "PATCH") {
+    const [, organizationId] = organizationMatch;
+    return store.updateOrganization(organizationId, {
+      name: b.name as string | undefined,
+      domain: b.domain as string | undefined,
+    }) as T;
+  }
   if (m === "GET" && path === "/api/v1/auth/me") {
     return store.currentUser(token) as T;
   }

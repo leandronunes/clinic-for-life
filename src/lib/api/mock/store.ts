@@ -110,6 +110,10 @@ export function createTrainer(payload: CreateTrainerPayload): Trainer {
     phone: payload.phone,
     status: payload.status ?? "active",
     students_count: 0,
+    // Espelha o backend real: TrainersController#create (admin) sempre
+    // auto-aprova; o cadastro autosserviço (solo/join/create_org) também
+    // nasce aprovado no mock, ver comentário em register() acima.
+    approved_at: new Date().toISOString(),
   };
   trainers = [...trainers, trainer];
   return trainer;
@@ -1241,6 +1245,16 @@ const MOCK_ORGANIZATIONS: MockOrganization[] = [
 /** Modo offline não modela organizações de verdade — lista estática só pra o seletor "entrar numa organização existente" não travar carregando. */
 export function listOrganizations(): MockOrganization[] {
   return clone(MOCK_ORGANIZATIONS);
+}
+
+export function updateOrganization(
+  id: string,
+  payload: { name?: string; domain?: string },
+): MockOrganization {
+  const organization = MOCK_ORGANIZATIONS.find((o) => o.id === id);
+  if (!organization) notFound("Organização não encontrada");
+  Object.assign(organization, payload);
+  return clone(organization);
 }
 
 export function currentUser(token: string | null): BackendUser {

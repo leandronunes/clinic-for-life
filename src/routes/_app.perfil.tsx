@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Search, CheckCircle2, UserCircle } from "lucide-react";
+import { Search, CheckCircle2, UserCircle, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import {
 import { fetchStudent, updateStudent, type Student } from "@/lib/api/students";
 import { fetchTrainers, type Trainer } from "@/lib/api/trainers";
 import { fetchCurrentUser, updateCurrentUser } from "@/lib/api/auth";
+import { fetchOrganizations, updateOrganization } from "@/lib/api/organizations";
 import { useAuth } from "@/contexts/use-auth";
 import { NotificationsCard } from "@/components/NotificationsCard";
 import { ChangePasswordCard } from "@/components/ChangePasswordCard";
@@ -250,7 +251,7 @@ export function ImpersonatedStudentProfile({ alunoId }: { alunoId: string }) {
 }
 
 export function OwnAccountProfile() {
-  const { updateUser } = useAuth();
+  const { updateUser, hasRole } = useAuth();
   const qc = useQueryClient();
 
   const { data: me, isLoading } = useQuery({
@@ -320,8 +321,83 @@ export function OwnAccountProfile() {
         </CardContent>
       </Card>
 
+      {hasRole("admin") && me?.organization_id && (
+        <OrganizationCard organizationId={me.organization_id} />
+      )}
+
       <ChangePasswordCard />
     </div>
+  );
+}
+
+function OrganizationCard({ organizationId }: { organizationId: string }) {
+  const qc = useQueryClient();
+
+  const { data: organizations, isLoading } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: fetchOrganizations,
+  });
+  const organization = organizations?.find((o) => o.id === organizationId) ?? null;
+
+  const [form, setForm] = useState<{ name: string; domain: string } | null>(null);
+  const current =
+    form ?? (organization ? { name: organization.name, domain: organization.domain } : null);
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      updateOrganization(organizationId, { name: current!.name, domain: current!.domain }),
+    onSuccess: () => {
+      toast.success("Organização atualizada");
+      qc.invalidateQueries({ queryKey: ["organizations"] });
+      setForm(null);
+    },
+    onError: () => toast.error("Falha ao atualizar organização."),
+  });
+
+  if (isLoading || !current) {
+    return null;
+  }
+
+  return (
+    <Card className="shadow-soft">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Building2 className="h-4 w-4" /> Organização
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Só você, como administrador, pode editar os dados da sua organização.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome da organização" className="sm:col-span-2">
+            <Input
+              value={current.name}
+              onChange={(e) => setForm({ ...current, name: e.target.value })}
+            />
+          </Field>
+          <Field label="Domínio (identificador único)" className="sm:col-span-2">
+            <Input
+              value={current.domain}
+              onChange={(e) => setForm({ ...current, domain: e.target.value })}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => setForm(null)}
+            disabled={!form || saveMut.isPending}
+          >
+            Descartar
+          </Button>
+          <Button onClick={() => saveMut.mutate()} disabled={!form || saveMut.isPending}>
+            {saveMut.isPending ? "Salvando..." : "Salvar alterações"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

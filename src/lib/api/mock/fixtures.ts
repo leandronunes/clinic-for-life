@@ -483,6 +483,7 @@ export const MOCK_USERS: Array<BackendUser & { password: string }> = [
     password: "Admin@2026",
     role: "admin",
     avatar_url: null,
+    organization_id: "org-1",
   },
   {
     id: "user-personal-1",
@@ -492,6 +493,7 @@ export const MOCK_USERS: Array<BackendUser & { password: string }> = [
     role: "personal",
     avatar_url: null,
     trainer_id: "trainer-1",
+    organization_id: "org-1",
   },
   {
     id: "user-aluno-1",

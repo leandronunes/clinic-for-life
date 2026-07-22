@@ -16,6 +16,7 @@ export interface AuthUser {
   aluno_id?: string | null;
   /** true quando é um personal cujo pedido de entrada numa organização existente ainda não foi aprovado. */
   pending_approval?: boolean;
+  organization_id?: string | null;
 }
 
 /** Frontend session envelope. */
@@ -35,6 +36,7 @@ export interface BackendUser {
   avatar_url?: string | null;
   trainer_id?: string | null;
   student_id?: string | null;
+  organization_id?: string | null;
   mfa_enabled?: boolean;
   pending_approval?: boolean;
 }
@@ -156,5 +158,6 @@ export function mapBackendUser(u: BackendUser): AuthUser {
     personal_id: u.trainer_id ?? undefined,
     aluno_id: u.student_id ?? undefined,
     pending_approval: u.pending_approval ?? false,
+    organization_id: u.organization_id ?? undefined,
   };
 }
