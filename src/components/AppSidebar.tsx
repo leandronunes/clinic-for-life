@@ -84,7 +84,10 @@ export function AppSidebar() {
     (item) =>
       (item.url !== "/assiduidade-alunos" || isFeatureEnabled("attendanceCycles")) &&
       (!AGENDA_URLS.includes(item.url) || isFeatureEnabled("agendaCalendar")) &&
-      (!MENSAGENS_URLS.includes(item.url) || isFeatureEnabled("chat")),
+      (!MENSAGENS_URLS.includes(item.url) || isFeatureEnabled("chat")) &&
+      // Organização autogerada para um personal atuando sozinho não é uma
+      // organização "de verdade" pra gerenciar — sem nada pra configurar.
+      (item.url !== "/organizacao" || !user?.organization_solo),
   );
 
   const isActive = (url: string) =>

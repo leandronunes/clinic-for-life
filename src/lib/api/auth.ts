@@ -17,6 +17,8 @@ export interface AuthUser {
   /** true quando é um personal cujo pedido de entrada numa organização existente ainda não foi aprovado. */
   pending_approval?: boolean;
   organization_id?: string | null;
+  /** true quando a organização foi autogerada para um personal atuando sozinho (não é uma organização "de verdade"). */
+  organization_solo?: boolean;
 }
 
 /** Frontend session envelope. */
@@ -37,6 +39,7 @@ export interface BackendUser {
   trainer_id?: string | null;
   student_id?: string | null;
   organization_id?: string | null;
+  organization_solo?: boolean;
   mfa_enabled?: boolean;
   pending_approval?: boolean;
 }
@@ -159,5 +162,6 @@ export function mapBackendUser(u: BackendUser): AuthUser {
     aluno_id: u.student_id ?? undefined,
     pending_approval: u.pending_approval ?? false,
     organization_id: u.organization_id ?? undefined,
+    organization_solo: u.organization_solo ?? false,
   };
 }

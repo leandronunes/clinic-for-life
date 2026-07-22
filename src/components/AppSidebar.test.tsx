@@ -135,6 +135,19 @@ describe("AppSidebar", () => {
     expect(screen.queryByRole("link", { name: /organização/i })).not.toBeInTheDocument();
   });
 
+  it('não exibe "Organização" no menu do admin de uma organização solo (autogerada)', () => {
+    mockUseAuth.mockReturnValue(
+      buildAuth({
+        user: { ...adminUser, organization_solo: true },
+        effectiveRole: "admin",
+      }),
+    );
+
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: /organização/i })).not.toBeInTheDocument();
+  });
+
   describe("feature flag: attendanceCycles", () => {
     beforeEach(() => {
       // Don't rely on the ambient .env — pin a known "off" baseline so these

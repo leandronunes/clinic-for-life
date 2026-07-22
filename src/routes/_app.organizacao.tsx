@@ -18,6 +18,10 @@ export function OrganizacaoPage() {
   const { user } = useAuth();
 
   if (user?.role !== "admin") return <Navigate to="/dashboard" />;
+  // Organização autogerada para um personal atuando sozinho não é uma
+  // organização "de verdade" pra gerenciar — mesmo critério do AppSidebar,
+  // aplicado aqui também pra bloquear acesso direto pela URL.
+  if (user.organization_solo) return <Navigate to="/dashboard" />;
   if (!user.organization_id) return null;
 
   return (

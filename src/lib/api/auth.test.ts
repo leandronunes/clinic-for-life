@@ -146,6 +146,7 @@ describe("auth API", () => {
         aluno_id: undefined,
         pending_approval: false,
         organization_id: undefined,
+        organization_solo: false,
       });
     });
 
@@ -198,6 +199,19 @@ describe("auth API", () => {
         organization_id: "org-1",
       };
       expect(mapBackendUser(withOrg)).toMatchObject({ organization_id: "org-1" });
+    });
+
+    it("maps organization_solo through, defaulting to false when absent", () => {
+      expect(mapBackendUser(backendUser)).toMatchObject({ organization_solo: false });
+
+      const soloAdmin: BackendUser = {
+        id: "u6",
+        name: "Novo Personal",
+        email: "novo@forlife.app",
+        role: "admin",
+        organization_solo: true,
+      };
+      expect(mapBackendUser(soloAdmin)).toMatchObject({ organization_solo: true });
     });
   });
 });
