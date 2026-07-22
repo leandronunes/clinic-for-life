@@ -89,6 +89,8 @@ vi.mock("@/lib/api/trainers", () => ({
   createTrainer: vi.fn(),
   updateTrainer: vi.fn(),
   deleteTrainer: vi.fn(),
+  approveTrainer: vi.fn(),
+  rejectTrainer: vi.fn(),
 }));
 
 vi.mock("@/contexts/use-auth", () => ({
@@ -99,7 +101,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { Route } from "./_app.usuarios";
 import { fetchStudents, deleteStudent, updateStudent } from "@/lib/api/students";
-import { fetchTrainers, deleteTrainer } from "@/lib/api/trainers";
+import { fetchTrainers, deleteTrainer, approveTrainer, rejectTrainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
@@ -108,6 +110,8 @@ const mockDeleteStudent = vi.mocked(deleteStudent);
 const mockUpdateStudent = vi.mocked(updateStudent);
 const mockFetchTrainers = vi.mocked(fetchTrainers);
 const mockDeleteTrainer = vi.mocked(deleteTrainer);
+const mockApproveTrainer = vi.mocked(approveTrainer);
+const mockRejectTrainer = vi.mocked(rejectTrainer);
 const mockUseAuth = vi.mocked(useAuth);
 
 const student = {
@@ -133,6 +137,19 @@ const trainer = {
   phone: "(11) 98888-0000",
   status: "active" as const,
   students_count: 3,
+  approved_at: "2026-01-01T00:00:00Z",
+};
+
+const pendingTrainer = {
+  id: "t2",
+  name: "Bruna Nova",
+  cpf: "",
+  cref: "",
+  email: "bruna@forlife.app",
+  phone: "(11) 97777-0000",
+  status: "active" as const,
+  students_count: 0,
+  approved_at: null,
 };
 
 function makeQc() {
@@ -427,5 +444,62 @@ describe("UsuariosPage — PersonaisTab", () => {
     await waitFor(() => expect(screen.getByText("Rafael Monteiro")).toBeInTheDocument());
 
     expect(screen.getByText(`${trainer.students_count} alunos`)).toBeInTheDocument();
+  });
+
+  describe("pedidos de entrada pendentes de aprovação", () => {
+    beforeEach(() => {
+      mockFetchTrainers.mockResolvedValue([trainer, pendingTrainer]);
+    });
+
+    it("shows a pending-count badge and a 'Pendente' badge on the pending row", async () => {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Bruna Nova")).toBeInTheDocument());
+
+      expect(screen.getByText("1 pendente de aprovação")).toBeInTheDocument();
+      expect(screen.getByText("Pendente")).toBeInTheDocument();
+    });
+
+    it("shows Aprovar/Rejeitar instead of edit/delete for a pending trainer", async () => {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Bruna Nova")).toBeInTheDocument());
+
+      expect(screen.getByLabelText("Aprovar Bruna Nova")).toBeInTheDocument();
+      expect(screen.getByLabelText("Rejeitar Bruna Nova")).toBeInTheDocument();
+    });
+
+    it("approves a pending trainer and shows a toast", async () => {
+      mockApproveTrainer.mockResolvedValue({
+        ...pendingTrainer,
+        approved_at: "2026-01-02T00:00:00Z",
+      });
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Bruna Nova")).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText("Aprovar Bruna Nova"));
+
+      await waitFor(() => expect(mockApproveTrainer).toHaveBeenCalledWith("t2"));
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    });
+
+    it("rejects a pending trainer after confirmation and shows a toast", async () => {
+      mockRejectTrainer.mockResolvedValue(undefined);
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Bruna Nova")).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText("Rejeitar Bruna Nova"));
+      await waitFor(() => expect(screen.queryByTestId("alert-confirm")).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId("alert-confirm"));
+
+      await waitFor(() => expect(mockRejectTrainer).toHaveBeenCalledWith("t2"));
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    });
+
+    it("does not show a pending badge when there are no pending trainers", async () => {
+      mockFetchTrainers.mockResolvedValue([trainer]);
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Rafael Monteiro")).toBeInTheDocument());
+
+      expect(screen.queryByText(/pendente/)).not.toBeInTheDocument();
+    });
   });
 });

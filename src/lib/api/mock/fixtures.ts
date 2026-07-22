@@ -23,6 +23,7 @@ export const TRAINERS: Trainer[] = [
     phone: "(11) 98888-1111",
     status: "active",
     students_count: 0,
+    approved_at: "2026-01-01T00:00:00Z",
   },
   {
     id: "trainer-2",
@@ -33,6 +34,7 @@ export const TRAINERS: Trainer[] = [
     phone: "(11) 98888-2222",
     status: "active",
     students_count: 0,
+    approved_at: "2026-01-01T00:00:00Z",
   },
   {
     id: "trainer-3",
@@ -43,6 +45,7 @@ export const TRAINERS: Trainer[] = [
     phone: "(11) 98888-3333",
     status: "blocked",
     students_count: 0,
+    approved_at: "2026-01-01T00:00:00Z",
   },
 ];
 

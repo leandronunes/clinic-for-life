@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
@@ -56,6 +56,8 @@ import {
   createTrainer,
   updateTrainer,
   deleteTrainer,
+  approveTrainer,
+  rejectTrainer,
   type Trainer,
 } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
@@ -316,6 +318,8 @@ function PersonaisTab({
         : "bg-muted text-muted-foreground";
   const [editing, setEditing] = useState<Trainer | null>(null);
   const [deleting, setDeleting] = useState<Trainer | null>(null);
+  const [rejecting, setRejecting] = useState<Trainer | null>(null);
+  const pendingCount = trainers.filter((p: Trainer) => !p.approved_at).length;
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteTrainer(id),
@@ -327,11 +331,37 @@ function PersonaisTab({
     onError: () => toast.error("Falha ao remover personal."),
   });
 
+  const approveMut = useMutation({
+    mutationFn: (id: string) => approveTrainer(id),
+    onSuccess: () => {
+      toast.success("Personal aprovado — já faz parte da organização.");
+      qc.invalidateQueries({ queryKey: ["trainers"] });
+    },
+    onError: () => toast.error("Falha ao aprovar personal."),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: (id: string) => rejectTrainer(id),
+    onSuccess: () => {
+      toast.success("Pedido rejeitado.");
+      setRejecting(null);
+      qc.invalidateQueries({ queryKey: ["trainers"] });
+    },
+    onError: () => toast.error("Falha ao rejeitar pedido."),
+  });
+
   return (
     <Card className="shadow-soft">
       <CardContent className="p-0">
         <div className="flex items-center justify-between border-b border-border p-4">
-          <div className="text-sm text-muted-foreground">{filtered.length} personais</div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {filtered.length} personais
+            {isAdmin && pendingCount > 0 && (
+              <Badge className="bg-warning text-warning-foreground">
+                {pendingCount} pendente{pendingCount > 1 ? "s" : ""} de aprovação
+              </Badge>
+            )}
+          </div>
           {canWrite && (
             <NovoPersonalDialog
               onCreated={() => qc.invalidateQueries({ queryKey: ["trainers"] })}
@@ -358,39 +388,72 @@ function PersonaisTab({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((p: Trainer) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground sm:hidden">
-                        {p.students_count} alunos
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{p.cref}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{p.email}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{p.students_count}</TableCell>
-                    <TableCell>
-                      <Badge className={variantOf(p.status)}>{p.status}</Badge>
-                    </TableCell>
-                    {canWrite && (
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setEditing(p)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {isAdmin && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleting(p)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                filtered.map((p: Trainer) => {
+                  const isPending = isAdmin && !p.approved_at;
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {p.students_count} alunos
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{p.cref}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{p.email}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{p.students_count}</TableCell>
+                      <TableCell>
+                        {isPending ? (
+                          <Badge className="bg-warning text-warning-foreground">Pendente</Badge>
+                        ) : (
+                          <Badge className={variantOf(p.status)}>{p.status}</Badge>
                         )}
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          {isPending ? (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-success hover:text-success"
+                                aria-label={`Aprovar ${p.name}`}
+                                disabled={approveMut.isPending}
+                                onClick={() => approveMut.mutate(p.id)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                aria-label={`Rejeitar ${p.name}`}
+                                onClick={() => setRejecting(p)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="icon" variant="ghost" onClick={() => setEditing(p)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleting(p)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -430,6 +493,29 @@ function PersonaisTab({
               onClick={() => deleting && deleteMut.mutate(deleting.id)}
             >
               {deleteMut.isPending ? "Removendo…" : "Remover permanentemente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rejeitar pedido de entrada na organização?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O pedido de <strong>{rejecting?.name}</strong> será rejeitado e a conta removida
+              permanentemente. Esta ação não pode ser desfeita — a pessoa precisará se cadastrar
+              novamente do zero.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={rejectMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={rejectMut.isPending}
+              onClick={() => rejecting && rejectMut.mutate(rejecting.id)}
+            >
+              {rejectMut.isPending ? "Rejeitando…" : "Rejeitar e remover"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
