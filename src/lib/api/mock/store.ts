@@ -1195,23 +1195,52 @@ export function register(params: {
     const err: ApiError = { status: 422, message: "E-mail já cadastrado" };
     throw err;
   }
-  const student = createStudent({
-    name: params.name,
-    birth_date: "2000-01-01",
-    sex: "other",
-    email: params.email,
-    phone: "",
-  });
-  const user: BackendUser & { password: string } = {
-    id: nextId("user"),
-    name: params.name,
-    email: params.email,
-    password: params.password,
-    role: params.role ?? "student",
-    student_id: student.id,
-  };
+
+  // Modo offline não modela organizações/aprovação — todo personal
+  // autocadastrado (sozinho, criando ou entrando numa organização) vira um
+  // Trainer novo e já "aprovado" (pending_approval sempre false aqui).
+  const user: BackendUser & { password: string } =
+    params.role === "personal"
+      ? {
+          id: nextId("user"),
+          name: params.name,
+          email: params.email,
+          password: params.password,
+          role: "personal",
+          trainer_id: createTrainer({ name: params.name, email: params.email, phone: "" }).id,
+          pending_approval: false,
+        }
+      : {
+          id: nextId("user"),
+          name: params.name,
+          email: params.email,
+          password: params.password,
+          role: params.role ?? "student",
+          student_id: createStudent({
+            name: params.name,
+            birth_date: "2000-01-01",
+            sex: "other",
+            email: params.email,
+            phone: "",
+          }).id,
+        };
   mockUsers = [...mockUsers, user];
   return sessionFor(user);
+}
+
+export interface MockOrganization {
+  id: string;
+  name: string;
+  domain: string;
+}
+
+const MOCK_ORGANIZATIONS: MockOrganization[] = [
+  { id: "org-1", name: "Clínica For Life", domain: "clinica-for-life" },
+];
+
+/** Modo offline não modela organizações de verdade — lista estática só pra o seletor "entrar numa organização existente" não travar carregando. */
+export function listOrganizations(): MockOrganization[] {
+  return clone(MOCK_ORGANIZATIONS);
 }
 
 export function currentUser(token: string | null): BackendUser {

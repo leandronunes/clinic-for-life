@@ -5,20 +5,22 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/use-auth";
-import type { AuthUser } from "@/lib/api/auth";
+import type { AuthUser, BackendRole } from "@/lib/api/auth";
 
 interface GoogleLoginButtonProps {
   onSuccess: (user: AuthUser) => void;
   className?: string;
+  /** Declara intenção de papel — ver AuthContextValue["signInWithGoogle"]. */
+  role?: BackendRole;
 }
 
-export function GoogleLoginButton({ onSuccess, className }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ onSuccess, className, role }: GoogleLoginButtonProps) {
   const clientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ?? "";
   if (!clientId) return null;
-  return <GoogleLoginButtonInner onSuccess={onSuccess} className={className} />;
+  return <GoogleLoginButtonInner onSuccess={onSuccess} className={className} role={role} />;
 }
 
-function GoogleLoginButtonInner({ onSuccess, className }: GoogleLoginButtonProps) {
+function GoogleLoginButtonInner({ onSuccess, className, role }: GoogleLoginButtonProps) {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +28,7 @@ function GoogleLoginButtonInner({ onSuccess, className }: GoogleLoginButtonProps
     async (tokenResponse: Omit<TokenResponse, "error" | "error_description" | "error_uri">) => {
       setLoading(true);
       try {
-        const user = await signInWithGoogle(tokenResponse.access_token);
+        const user = await signInWithGoogle(tokenResponse.access_token, role);
         onSuccess(user);
       } catch (err) {
         const message = (err as { message?: string })?.message ?? "Falha no login com Google";
@@ -35,7 +37,7 @@ function GoogleLoginButtonInner({ onSuccess, className }: GoogleLoginButtonProps
         setLoading(false);
       }
     },
-    [signInWithGoogle, onSuccess],
+    [signInWithGoogle, onSuccess, role],
   );
 
   const login = useGoogleLogin({
