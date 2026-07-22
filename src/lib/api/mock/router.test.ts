@@ -54,6 +54,59 @@ describe("resolveMockRequest()", () => {
     ).rejects.toMatchObject({ status: 401 } satisfies Partial<ApiError>);
   });
 
+  describe("POST /api/v1/auth/register — role: personal", () => {
+    it("makes the user admin for trainer_mode: solo (mirrors the real backend — they founded the organization)", async () => {
+      const res = await resolveMockRequest<LoginResponse>({
+        method: "POST",
+        path: "/api/v1/auth/register",
+        body: {
+          name: "Novo Solo",
+          email: "novo.solo@example.com",
+          password: "Str0ng@Pass",
+          role: "personal",
+          trainer_mode: "solo",
+        },
+        token: null,
+      });
+
+      expect(res.user.role).toBe("admin");
+    });
+
+    it("makes the user admin for trainer_mode: create_org", async () => {
+      const res = await resolveMockRequest<LoginResponse>({
+        method: "POST",
+        path: "/api/v1/auth/register",
+        body: {
+          name: "Novo Fundador",
+          email: "novo.fundador@example.com",
+          password: "Str0ng@Pass",
+          role: "personal",
+          trainer_mode: "create_org",
+        },
+        token: null,
+      });
+
+      expect(res.user.role).toBe("admin");
+    });
+
+    it("keeps the user as personal for trainer_mode: join (they're joining someone else's organization)", async () => {
+      const res = await resolveMockRequest<LoginResponse>({
+        method: "POST",
+        path: "/api/v1/auth/register",
+        body: {
+          name: "Novo Membro",
+          email: "novo.membro@example.com",
+          password: "Str0ng@Pass",
+          role: "personal",
+          trainer_mode: "join",
+        },
+        token: null,
+      });
+
+      expect(res.user.role).toBe("personal");
+    });
+  });
+
   it("lists, creates, updates and deletes students", async () => {
     const before = await resolveMockRequest<Student[]>({
       method: "GET",

@@ -105,6 +105,7 @@ async function routeMockRequest<T>({
       email: String(b.email ?? ""),
       password: String(b.password ?? ""),
       role: (b.role as "admin" | "personal" | "student" | undefined) ?? "student",
+      trainer_mode: b.trainer_mode as "solo" | "join" | "create_org" | undefined,
     }) as T;
   }
   if (m === "GET" && path === "/api/v1/organizations") {

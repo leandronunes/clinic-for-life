@@ -1194,6 +1194,7 @@ export function register(params: {
   email: string;
   password: string;
   role?: BackendUser["role"];
+  trainer_mode?: "solo" | "join" | "create_org";
 }): LoginResponse {
   if (mockUsers.some((u) => u.email.toLowerCase() === params.email.toLowerCase())) {
     const err: ApiError = { status: 422, message: "E-mail já cadastrado" };
@@ -1202,7 +1203,11 @@ export function register(params: {
 
   // Modo offline não modela organizações/aprovação — todo personal
   // autocadastrado (sozinho, criando ou entrando numa organização) vira um
-  // Trainer novo e já "aprovado" (pending_approval sempre false aqui).
+  // Trainer novo e já "aprovado" (pending_approval sempre false aqui). O
+  // papel, porém, segue a mesma regra do backend real: quem funda uma
+  // organização (solo/create_org, ou nada enviado — mesmo default do
+  // backend) vira admin; só quem entra numa organização existente (join)
+  // permanece personal.
   const user: BackendUser & { password: string } =
     params.role === "personal"
       ? {
@@ -1210,7 +1215,7 @@ export function register(params: {
           name: params.name,
           email: params.email,
           password: params.password,
-          role: "personal",
+          role: params.trainer_mode === "join" ? "personal" : "admin",
           trainer_id: createTrainer({ name: params.name, email: params.email, phone: "" }).id,
           pending_approval: false,
         }
