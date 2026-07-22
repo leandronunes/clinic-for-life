@@ -144,6 +144,7 @@ describe("auth API", () => {
         avatar_url: undefined,
         personal_id: undefined,
         aluno_id: undefined,
+        pending_approval: false,
       });
     });
 
@@ -169,6 +170,20 @@ describe("auth API", () => {
         trainer_id: "t1",
       };
       expect(mapBackendUser(trainer)).toMatchObject({ role: "personal", personal_id: "t1" });
+    });
+
+    it("maps pending_approval through, defaulting to false when absent", () => {
+      expect(mapBackendUser(backendUser)).toMatchObject({ pending_approval: false });
+
+      const pending: BackendUser = {
+        id: "u4",
+        name: "Novo Personal",
+        email: "novo@forlife.app",
+        role: "personal",
+        trainer_id: "t2",
+        pending_approval: true,
+      };
+      expect(mapBackendUser(pending)).toMatchObject({ pending_approval: true });
     });
   });
 });

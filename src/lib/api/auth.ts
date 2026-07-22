@@ -14,6 +14,8 @@ export interface AuthUser {
   personal_id?: string | null;
   /** Only when role === "aluno": the student record id. */
   aluno_id?: string | null;
+  /** true quando é um personal cujo pedido de entrada numa organização existente ainda não foi aprovado. */
+  pending_approval?: boolean;
 }
 
 /** Frontend session envelope. */
@@ -34,6 +36,7 @@ export interface BackendUser {
   trainer_id?: string | null;
   student_id?: string | null;
   mfa_enabled?: boolean;
+  pending_approval?: boolean;
 }
 
 export interface LoginResponse {
@@ -47,6 +50,8 @@ export interface LoginParams {
   password: string;
 }
 
+export type TrainerMode = "solo" | "join" | "create_org";
+
 export interface RegisterParams {
   name: string;
   email: string;
@@ -55,14 +60,28 @@ export interface RegisterParams {
   phone?: string;
   /** Default role: "student" (aluno). Backend may restrict this. */
   role?: BackendRole;
+  /** Só relevante quando role === "personal". Default no backend: "solo". */
+  trainer_mode?: TrainerMode;
+  /** Obrigatório quando trainer_mode === "join". */
+  organization_id?: string;
+  /** Obrigatório quando trainer_mode === "create_org". */
+  organization_name?: string;
+  /** Obrigatório quando trainer_mode === "create_org". */
+  organization_domain?: string;
 }
 
 export function login(params: LoginParams): Promise<LoginResponse> {
   return http.post<LoginResponse>("/api/v1/auth/login", params);
 }
 
-export function googleLogin(accessToken: string): Promise<LoginResponse> {
-  return http.post<LoginResponse>("/api/v1/auth/google", { access_token: accessToken });
+/**
+ * @param role Optionally declares intent to sign up as "personal" — the
+ * Google flow is single-shot (no room for a mid-redirect trainer_mode
+ * picker), so a new personal via Google always ends up "solo" on the
+ * backend (see AuthController#build_trainer_for_registration!).
+ */
+export function googleLogin(accessToken: string, role?: BackendRole): Promise<LoginResponse> {
+  return http.post<LoginResponse>("/api/v1/auth/google", { access_token: accessToken, role });
 }
 
 /**
@@ -136,5 +155,6 @@ export function mapBackendUser(u: BackendUser): AuthUser {
     avatar_url: u.avatar_url ?? undefined,
     personal_id: u.trainer_id ?? undefined,
     aluno_id: u.student_id ?? undefined,
+    pending_approval: u.pending_approval ?? false,
   };
 }

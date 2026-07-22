@@ -107,6 +107,9 @@ async function routeMockRequest<T>({
       role: (b.role as "admin" | "personal" | "student" | undefined) ?? "student",
     }) as T;
   }
+  if (m === "GET" && path === "/api/v1/organizations") {
+    return store.listOrganizations() as T;
+  }
   if (m === "GET" && path === "/api/v1/auth/me") {
     return store.currentUser(token) as T;
   }

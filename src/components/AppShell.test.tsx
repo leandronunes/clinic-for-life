@@ -79,4 +79,26 @@ describe("AppShell", () => {
 
     expect(screen.getByTestId("navigate")).toHaveTextContent("/login");
   });
+
+  it("redirects to /aguardando-aprovacao for a personal pending organization approval", () => {
+    mockUseAuth.mockReturnValue({
+      user: { ...adminUser, role: "personal", pending_approval: true },
+      loading: false,
+    } as ReturnType<typeof useAuth>);
+
+    render(<AppShell />);
+
+    expect(screen.getByTestId("navigate")).toHaveTextContent("/aguardando-aprovacao");
+  });
+
+  it("does not redirect an approved user", () => {
+    mockUseAuth.mockReturnValue({
+      user: { ...adminUser, role: "personal", pending_approval: false },
+      loading: false,
+    } as ReturnType<typeof useAuth>);
+
+    render(<AppShell />);
+
+    expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
+  });
 });

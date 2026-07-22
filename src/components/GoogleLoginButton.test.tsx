@@ -80,8 +80,21 @@ describe("GoogleLoginButton", () => {
       await triggerSuccess({ access_token: "google-token-abc" });
     });
 
-    expect(mockSignInWithGoogle).toHaveBeenCalledWith("google-token-abc");
+    expect(mockSignInWithGoogle).toHaveBeenCalledWith("google-token-abc", undefined);
     expect(onSuccess).toHaveBeenCalledWith(fakeUser);
+  });
+
+  it("passes the role prop through to signInWithGoogle when provided", async () => {
+    const { triggerSuccess } = captureCallbacks();
+    mockSignInWithGoogle.mockResolvedValue(fakeUser);
+
+    render(<GoogleLoginButton onSuccess={onSuccess} role="personal" />);
+
+    await act(async () => {
+      await triggerSuccess({ access_token: "google-token-abc" });
+    });
+
+    expect(mockSignInWithGoogle).toHaveBeenCalledWith("google-token-abc", "personal");
   });
 
   it("exibe toast de erro quando signInWithGoogle falha", async () => {

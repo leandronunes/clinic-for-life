@@ -18,6 +18,10 @@ export function AppShell() {
   }
 
   if (!user) return <Navigate to="/login" />;
+  // Centraliza o gate aqui — pega qualquer caminho de entrada (login,
+  // cadastro, Google, ou só reabrir o app já logado) sem precisar duplicar
+  // a checagem em cada um.
+  if (user.pending_approval) return <Navigate to="/aguardando-aprovacao" />;
 
   return (
     <SidebarProvider>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   AuthSession,
+  BackendRole,
   BackendUser,
   RegisterParams,
   ResetPasswordParams,
@@ -117,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s.user;
   };
 
-  const signInWithGoogle = async (accessToken: string) => {
-    const res = await googleLogin(accessToken);
+  const signInWithGoogle = async (accessToken: string, role?: BackendRole) => {
+    const res = await googleLogin(accessToken, role);
     const s: AuthSession = {
       token: res.token,
       user: mapBackendUser(res.user),
