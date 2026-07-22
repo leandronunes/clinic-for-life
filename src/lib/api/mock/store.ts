@@ -1218,6 +1218,10 @@ export function register(params: {
           role: params.trainer_mode === "join" ? "personal" : "admin",
           trainer_id: createTrainer({ name: params.name, email: params.email, phone: "" }).id,
           pending_approval: false,
+          // Espelha Organization#solo do backend real: só solo (ou nada
+          // enviado, mesmo default) gera uma organização autogerada; join
+          // e create_org não.
+          organization_solo: params.trainer_mode === undefined || params.trainer_mode === "solo",
         }
       : {
           id: nextId("user"),

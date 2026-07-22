@@ -127,4 +127,13 @@ describe("OrganizacaoPage", () => {
 
     expect(screen.getByTestId("navigate")).toHaveTextContent("/dashboard");
   });
+
+  it("admin de uma organização solo é redirecionado para /dashboard, mesmo acessando a rota direto", () => {
+    mockUseAuth.mockReturnValue(buildAuth({ user: { ...adminUser, organization_solo: true } }));
+
+    render(<OrganizacaoPage />, { wrapper });
+
+    expect(screen.getByTestId("navigate")).toHaveTextContent("/dashboard");
+    expect(mockFetchOrganizations).not.toHaveBeenCalled();
+  });
 });

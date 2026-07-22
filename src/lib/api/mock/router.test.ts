@@ -55,7 +55,7 @@ describe("resolveMockRequest()", () => {
   });
 
   describe("POST /api/v1/auth/register — role: personal", () => {
-    it("makes the user admin for trainer_mode: solo (mirrors the real backend — they founded the organization)", async () => {
+    it("makes the user admin for trainer_mode: solo (mirrors the real backend — they founded the organization), flagged organization_solo", async () => {
       const res = await resolveMockRequest<LoginResponse>({
         method: "POST",
         path: "/api/v1/auth/register",
@@ -70,9 +70,10 @@ describe("resolveMockRequest()", () => {
       });
 
       expect(res.user.role).toBe("admin");
+      expect(res.user.organization_solo).toBe(true);
     });
 
-    it("makes the user admin for trainer_mode: create_org", async () => {
+    it("makes the user admin for trainer_mode: create_org, without organization_solo (it's a real organization)", async () => {
       const res = await resolveMockRequest<LoginResponse>({
         method: "POST",
         path: "/api/v1/auth/register",
@@ -87,6 +88,24 @@ describe("resolveMockRequest()", () => {
       });
 
       expect(res.user.role).toBe("admin");
+      expect(res.user.organization_solo).toBe(false);
+    });
+
+    it("defaults to solo (admin, organization_solo) when trainer_mode is absent", async () => {
+      const res = await resolveMockRequest<LoginResponse>({
+        method: "POST",
+        path: "/api/v1/auth/register",
+        body: {
+          name: "Sem Trainer Mode",
+          email: "sem.trainer.mode@example.com",
+          password: "Str0ng@Pass",
+          role: "personal",
+        },
+        token: null,
+      });
+
+      expect(res.user.role).toBe("admin");
+      expect(res.user.organization_solo).toBe(true);
     });
 
     it("keeps the user as personal for trainer_mode: join (they're joining someone else's organization)", async () => {
@@ -104,6 +123,7 @@ describe("resolveMockRequest()", () => {
       });
 
       expect(res.user.role).toBe("personal");
+      expect(res.user.organization_solo).toBe(false);
     });
   });
 
