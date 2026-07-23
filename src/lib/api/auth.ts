@@ -9,7 +9,6 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  cpf?: string | null;
   role: UserRole;
   avatar_url?: string | null;
   /** Only when role === "personal": the trainer record id. */
@@ -38,7 +37,6 @@ export interface BackendUser {
   id: string;
   name: string;
   email: string;
-  cpf?: string | null;
   role: BackendRole;
   avatar_url?: string | null;
   trainer_id?: string | null;
@@ -114,10 +112,9 @@ export function fetchCurrentUser(): Promise<BackendUser> {
 export interface UpdateCurrentUserPayload {
   name?: string;
   email?: string;
-  cpf?: string;
 }
 
-/** Updates the authenticated user's own name/email/cpf — any role can call this. */
+/** Updates the authenticated user's own name/email — any role can call this. */
 export function updateCurrentUser(payload: UpdateCurrentUserPayload): Promise<BackendUser> {
   return http.patch<BackendUser>("/api/v1/auth/me", payload);
 }
@@ -163,7 +160,6 @@ export function mapBackendUser(u: BackendUser): AuthUser {
     id: u.id,
     name: u.name,
     email: u.email,
-    cpf: u.cpf ?? undefined,
     role: u.role === "student" ? "aluno" : (u.role as UserRole),
     avatar_url: u.avatar_url ?? undefined,
     personal_id: u.trainer_id ?? undefined,

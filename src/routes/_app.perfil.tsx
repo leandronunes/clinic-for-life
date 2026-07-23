@@ -258,12 +258,11 @@ export function OwnAccountProfile() {
     queryFn: fetchCurrentUser,
   });
 
-  const [form, setForm] = useState<{ name: string; email: string; cpf: string } | null>(null);
-  const current = form ?? (me ? { name: me.name, email: me.email, cpf: me.cpf ?? "" } : null);
+  const [form, setForm] = useState<{ name: string; email: string } | null>(null);
+  const current = form ?? (me ? { name: me.name, email: me.email } : null);
 
   const saveMut = useMutation({
-    mutationFn: () =>
-      updateCurrentUser({ name: current!.name, email: current!.email, cpf: current!.cpf }),
+    mutationFn: () => updateCurrentUser({ name: current!.name, email: current!.email }),
     onSuccess: (res) => {
       toast.success("Perfil atualizado");
       updateUser(res);
@@ -280,7 +279,7 @@ export function OwnAccountProfile() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Perfil</h1>
-        <p className="text-sm text-muted-foreground">Atualize seu nome, e-mail e CPF.</p>
+        <p className="text-sm text-muted-foreground">Atualize seu nome e e-mail.</p>
       </div>
 
       <Card className="shadow-soft">
@@ -302,12 +301,6 @@ export function OwnAccountProfile() {
                 type="email"
                 value={current.email}
                 onChange={(e) => setForm({ ...current, email: e.target.value })}
-              />
-            </Field>
-            <Field label="CPF (opcional)" className="sm:col-span-2">
-              <Input
-                value={current.cpf}
-                onChange={(e) => setForm({ ...current, cpf: e.target.value })}
               />
             </Field>
           </div>
