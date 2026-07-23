@@ -80,6 +80,7 @@ vi.mock("@/lib/api/students", () => ({
   createStudent: vi.fn(),
   updateStudent: vi.fn(),
   deleteStudent: vi.fn(),
+  requestStudentMigration: vi.fn(),
   toBackendSex: vi.fn((s: string) => s),
   fromBackendSex: vi.fn((s: string) => s),
 }));
@@ -100,14 +101,22 @@ vi.mock("@/contexts/use-auth", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { Route } from "./_app.usuarios";
-import { fetchStudents, deleteStudent, updateStudent } from "@/lib/api/students";
+import {
+  fetchStudents,
+  createStudent,
+  deleteStudent,
+  updateStudent,
+  requestStudentMigration,
+} from "@/lib/api/students";
 import { fetchTrainers, deleteTrainer, approveTrainer, rejectTrainer } from "@/lib/api/trainers";
 import { useAuth } from "@/contexts/use-auth";
 import { toast } from "sonner";
 
 const mockFetchStudents = vi.mocked(fetchStudents);
+const mockCreateStudent = vi.mocked(createStudent);
 const mockDeleteStudent = vi.mocked(deleteStudent);
 const mockUpdateStudent = vi.mocked(updateStudent);
+const mockRequestStudentMigration = vi.mocked(requestStudentMigration);
 const mockFetchTrainers = vi.mocked(fetchTrainers);
 const mockDeleteTrainer = vi.mocked(deleteTrainer);
 const mockApproveTrainer = vi.mocked(approveTrainer);
@@ -388,6 +397,90 @@ describe("UsuariosPage — AlunosTab", () => {
       vi.stubEnv("VITE_FEATURE_ATTENDANCE_CYCLES", "true");
       const dialog = await openCreateDialog();
       expect(within(dialog).getByText("Treinos contratados por ciclo")).toBeInTheDocument();
+    });
+  });
+
+  describe("Cadastrar aluno — e-mail duplicado", () => {
+    async function fillAndSubmit(email: string) {
+      await renderPage();
+      await waitFor(() => expect(screen.getByText("Júlia Ferreira")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /novo aluno/i }));
+      const dialog = await screen.findByRole("dialog");
+
+      const nameInput = within(dialog).getByText("Nome").parentElement!.querySelector("input")!;
+      const emailInput = dialog.querySelector("input[type='email']")!;
+      fireEvent.change(nameInput, { target: { value: "Novo Aluno" } });
+      fireEvent.change(emailInput, { target: { value: email } });
+      fireEvent.click(within(dialog).getByRole("button", { name: /salvar/i }));
+      return dialog;
+    }
+
+    it("shows a friendly toast for a same-organization duplicate", async () => {
+      mockCreateStudent.mockRejectedValue({
+        status: 422,
+        message: "Email has already been taken",
+        code: "email_taken_same_organization",
+      });
+
+      await fillAndSubmit("existente@test.com");
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          "Já existe um aluno cadastrado com este e-mail nesta organização.",
+        ),
+      );
+      expect(screen.queryByTestId("alert-dialog")).not.toBeInTheDocument();
+    });
+
+    it("offers to request migration for a cross-organization duplicate (admin)", async () => {
+      mockCreateStudent.mockRejectedValue({
+        status: 422,
+        message: "Email has already been taken",
+        code: "email_taken_other_organization",
+      });
+      mockRequestStudentMigration.mockResolvedValue({
+        id: "r1",
+        status: "pending",
+        target_organization_name: "Academia Vida Ativa",
+        requested_by_name: "Dra. Camila Andrade",
+        created_at: "2026-07-23T00:00:00Z",
+      });
+
+      await fillAndSubmit("outraorg@test.com");
+
+      await waitFor(() => expect(screen.getByTestId("alert-dialog")).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId("alert-confirm"));
+
+      await waitFor(() =>
+        expect(mockRequestStudentMigration).toHaveBeenCalledWith("outraorg@test.com"),
+      );
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    });
+
+    it("does not offer to request migration for a personal (admin-only action)", async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: "u2", email: "personal@test.com", role: "personal" } as ReturnType<
+          typeof useAuth
+        >["user"],
+        canWrite: true,
+        hasRole: (r: string) => r === "personal",
+        impersonateAluno: vi.fn(),
+      } as unknown as ReturnType<typeof useAuth>);
+      mockCreateStudent.mockRejectedValue({
+        status: 422,
+        message: "Email has already been taken",
+        code: "email_taken_other_organization",
+      });
+
+      await fillAndSubmit("outraorg@test.com");
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          "Este e-mail já está cadastrado em outra organização. Peça a um admin para solicitar a migração.",
+        ),
+      );
+      expect(screen.queryByTestId("alert-dialog")).not.toBeInTheDocument();
+      expect(mockRequestStudentMigration).not.toHaveBeenCalled();
     });
   });
 });

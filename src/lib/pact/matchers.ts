@@ -30,6 +30,12 @@ export const errorStringBody = (example = "Unauthorized") => ({
   error: string(example),
 });
 
+/** Some failures also carry a machine-readable `code` alongside `error` (e.g. "pending_approval", "email_taken_same_organization"). */
+export const errorWithCodeBody = (message: string, code: string) => ({
+  error: string(message),
+  code: string(code),
+});
+
 // Rails serializes `datetime` columns via `&.iso8601` — always UTC with a "Z" suffix.
 const ISO8601_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
 // `date` columns / `.to_date.iso8601` — no time component.
@@ -42,5 +48,5 @@ export const iso8601Date = (example = "1995-01-01") => date(ISO8601_DATE_FORMAT,
 
 // Re-exported so call sites can `import { like, string, boolean, ... } from "@/lib/pact/matchers"`
 // instead of reaching for both this module and "@pact-foundation/pact".
-export const { like, integer, nullValue } = MatchersV3;
+export const { like, integer, nullValue, arrayContaining } = MatchersV3;
 export { string, boolean, decimal, eachLike, MatchersV3 };

@@ -10,6 +10,7 @@ import {
   enumString,
   errorArrayBody,
   errorStringBody,
+  errorWithCodeBody,
   idString,
   integer,
   iso8601Date,
@@ -19,10 +20,13 @@ import {
 } from "@/lib/pact/matchers";
 import { createPact, withMockServerEnv } from "@/lib/pact/setup";
 import {
+  acceptStudentMigration,
   createStudent,
   deleteStudent,
   fetchStudent,
   fetchStudents,
+  rejectStudentMigration,
+  requestStudentMigration,
   updateStudent,
 } from "./students";
 
@@ -267,6 +271,86 @@ describe("students API contract", () => {
       });
     });
 
+    it("rejects a same-organization duplicate e-mail with a machine-readable code", async () => {
+      const pact = createPact();
+      const payload = {
+        name: "Novo Aluno",
+        birth_date: "1998-05-20",
+        sex: "male" as const,
+        email: "duplicado@forlife.app",
+        phone: "(11) 96666-0000",
+      };
+      pact
+        .given(
+          "a student with the e-mail duplicado@forlife.app already exists in the admin's own organization",
+        )
+        .uponReceiving(
+          "a request to create a student with an e-mail already used in the same organization",
+        )
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: payload,
+        })
+        .willRespondWith({
+          status: 422,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorWithCodeBody(
+            "Já existe um aluno cadastrado com este e-mail nesta organização.",
+            "email_taken_same_organization",
+          ),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          await expect(createStudent(payload)).rejects.toMatchObject({
+            status: 422,
+            code: "email_taken_same_organization",
+          });
+        });
+      });
+    });
+
+    it("rejects a cross-organization duplicate e-mail with a machine-readable code", async () => {
+      const pact = createPact();
+      const payload = {
+        name: "Novo Aluno",
+        birth_date: "1998-05-20",
+        sex: "male" as const,
+        email: "outraorg@forlife.app",
+        phone: "(11) 96666-0000",
+      };
+      pact
+        .given("a student with the e-mail outraorg@forlife.app exists in another organization")
+        .uponReceiving(
+          "a request to create a student with an e-mail already used in another organization",
+        )
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: payload,
+        })
+        .willRespondWith({
+          status: 422,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorWithCodeBody(
+            "Este e-mail já está cadastrado em outra organização.",
+            "email_taken_other_organization",
+          ),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          await expect(createStudent(payload)).rejects.toMatchObject({
+            status: 422,
+            code: "email_taken_other_organization",
+          });
+        });
+      });
+    });
+
     it("rejects an invalid payload", async () => {
       const pact = createPact();
       const payload = {
@@ -393,6 +477,149 @@ describe("students API contract", () => {
       await pact.executeTest(async (mockServer) => {
         await withMockServerEnv(mockServer.url, async () => {
           await expect(deleteStudent("503")).rejects.toMatchObject({ status: 403 });
+        });
+      });
+    });
+  });
+
+  const migrationRequestTemplate = (overrides: Record<string, unknown> = {}) => ({
+    id: idString("6002"),
+    status: enumString(["pending", "accepted", "rejected"], "pending"),
+    target_organization_name: like("Academia Vida Ativa"),
+    requested_by_name: like("Dra. Camila Andrade"),
+    created_at: iso8601DateTime(),
+    ...overrides,
+  });
+
+  describe("POST /api/v1/students/migration_requests", () => {
+    it("creates a pending migration request for a student in another organization", async () => {
+      const pact = createPact();
+      pact
+        .given(
+          "an admin is authenticated and a student with id 6001 exists in another organization",
+        )
+        .uponReceiving("a request to invite a cross-organization student to migrate")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students/migration_requests",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: { email: "convidado@forlife.app" },
+        })
+        .willRespondWith({
+          status: 201,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: { data: migrationRequestTemplate() },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const request = await requestStudentMigration("convidado@forlife.app");
+          expect(request.status).toEqual("pending");
+        });
+      });
+    });
+
+    it("returns 404 when no student matches the e-mail", async () => {
+      const pact = createPact();
+      pact
+        .given("an admin is authenticated")
+        .uponReceiving("a request to invite a student who doesn't exist")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students/migration_requests",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: { email: "ninguem@forlife.app" },
+        })
+        .willRespondWith({
+          status: 404,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorWithCodeBody("Nenhum aluno encontrado com este e-mail.", "student_not_found"),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          await expect(requestStudentMigration("ninguem@forlife.app")).rejects.toMatchObject({
+            status: 404,
+            code: "student_not_found",
+          });
+        });
+      });
+    });
+
+    it("rejects a personal from creating a migration request", async () => {
+      const pact = createPact();
+      pact
+        .given("a personal is authenticated")
+        .uponReceiving("a request from a personal to invite a cross-organization student")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students/migration_requests",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: { email: "convidado@forlife.app" },
+        })
+        .willRespondWith({
+          status: 403,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: errorStringBody("Forbidden"),
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          await expect(requestStudentMigration("convidado@forlife.app")).rejects.toMatchObject({
+            status: 403,
+          });
+        });
+      });
+    });
+  });
+
+  describe("POST /api/v1/students/migration_requests/:id/accept", () => {
+    it("lets the affected student accept the migration", async () => {
+      const pact = createPact();
+      pact
+        .given("student 6001 has a pending migration request 6002")
+        .uponReceiving("a request from the affected student to accept a migration request")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students/migration_requests/6002/accept",
+          headers: { Authorization: bearerToken() },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: { data: migrationRequestTemplate({ status: "accepted" }) },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const request = await acceptStudentMigration("6002");
+          expect(request.status).toEqual("accepted");
+        });
+      });
+    });
+  });
+
+  describe("POST /api/v1/students/migration_requests/:id/reject", () => {
+    it("lets the affected student reject the migration", async () => {
+      const pact = createPact();
+      pact
+        .given("student 6001 has a pending migration request 6002")
+        .uponReceiving("a request from the affected student to reject a migration request")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students/migration_requests/6002/reject",
+          headers: { Authorization: bearerToken() },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: { data: migrationRequestTemplate({ status: "rejected" }) },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const request = await rejectStudentMigration("6002");
+          expect(request.status).toEqual("rejected");
         });
       });
     });

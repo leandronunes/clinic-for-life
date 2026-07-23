@@ -347,7 +347,11 @@ describe("auth API contract", () => {
         .willRespondWith({
           status: 200,
           headers: { "Content-Type": like("application/json; charset=utf-8") },
-          body: { data: userTemplate({ role: enumString(ROLES, "admin") }) },
+          body: {
+            // Every admin has a real Trainer profile (see User#ensure_admin_has_trainer
+            // in the backend) — trainer_id is never null for this role.
+            data: userTemplate({ role: enumString(ROLES, "admin"), trainer_id: idString() }),
+          },
         });
 
       await pact.executeTest(async (mockServer) => {
@@ -403,7 +407,14 @@ describe("auth API contract", () => {
           status: 200,
           headers: { "Content-Type": like("application/json; charset=utf-8") },
           body: {
-            data: userTemplate({ name: like("Novo Nome"), email: like("novo@forlife.app") }),
+            // Provider state authenticates as an admin, who always has a Trainer
+            // profile (see User#ensure_admin_has_trainer in the backend).
+            data: userTemplate({
+              name: like("Novo Nome"),
+              email: like("novo@forlife.app"),
+              role: enumString(ROLES, "admin"),
+              trainer_id: idString(),
+            }),
           },
         });
 

@@ -17,6 +17,8 @@ const DEFAULT_BASE_URL = "http://127.0.0.1:3002";
 export interface ApiError {
   status: number;
   message: string;
+  /** Machine-readable discriminator the backend sends alongside `error` for some failures (e.g. "email_taken_same_organization"). */
+  code?: string;
 }
 
 export interface Envelope<T> {
@@ -54,6 +56,14 @@ function extractMessage(body: unknown, fallback: string): string {
     if (Array.isArray(error)) return error.join(", ");
   }
   return fallback;
+}
+
+function extractCode(body: unknown): string | undefined {
+  if (body && typeof body === "object" && "code" in body) {
+    const code = (body as { code: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+  return undefined;
 }
 
 interface RequestOptions {
@@ -132,6 +142,7 @@ async function request<T>(
     const err: ApiError = {
       status: response.status,
       message: extractMessage(parsed, response.statusText || "Erro inesperado"),
+      code: extractCode(parsed),
     };
     throw err;
   }

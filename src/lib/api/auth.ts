@@ -1,4 +1,5 @@
 import { http } from "./http";
+import type { StudentMigrationRequest } from "./students";
 
 /** Frontend role values used throughout the app. */
 export type UserRole = "admin" | "personal" | "aluno";
@@ -16,6 +17,8 @@ export interface AuthUser {
   aluno_id?: string | null;
   /** true quando é um personal cujo pedido de entrada numa organização existente ainda não foi aprovado. */
   pending_approval?: boolean;
+  /** Presente só quando é um aluno com um convite de migração de organização pendente para responder. */
+  pending_migration_request?: StudentMigrationRequest | null;
   organization_id?: string | null;
   /** true quando a organização foi autogerada para um personal atuando sozinho (não é uma organização "de verdade"). */
   organization_solo?: boolean;
@@ -42,6 +45,7 @@ export interface BackendUser {
   organization_solo?: boolean;
   mfa_enabled?: boolean;
   pending_approval?: boolean;
+  pending_migration_request?: StudentMigrationRequest | null;
 }
 
 export interface LoginResponse {
@@ -161,6 +165,7 @@ export function mapBackendUser(u: BackendUser): AuthUser {
     personal_id: u.trainer_id ?? undefined,
     aluno_id: u.student_id ?? undefined,
     pending_approval: u.pending_approval ?? false,
+    pending_migration_request: u.pending_migration_request ?? null,
     organization_id: u.organization_id ?? undefined,
     organization_solo: u.organization_solo ?? false,
   };

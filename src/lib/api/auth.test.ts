@@ -145,6 +145,7 @@ describe("auth API", () => {
         personal_id: undefined,
         aluno_id: undefined,
         pending_approval: false,
+        pending_migration_request: null,
         organization_id: undefined,
         organization_solo: false,
       });
@@ -186,6 +187,28 @@ describe("auth API", () => {
         pending_approval: true,
       };
       expect(mapBackendUser(pending)).toMatchObject({ pending_approval: true });
+    });
+
+    it("maps pending_migration_request through, defaulting to null when absent", () => {
+      expect(mapBackendUser(backendUser)).toMatchObject({ pending_migration_request: null });
+
+      const invited: BackendUser = {
+        id: "u7",
+        name: "Júlia Ferreira",
+        email: "aluno@forlife.app",
+        role: "student",
+        student_id: "s1",
+        pending_migration_request: {
+          id: "r1",
+          status: "pending",
+          target_organization_name: "Academia Vida Ativa",
+          requested_by_name: "Dra. Camila Andrade",
+          created_at: "2026-07-01T00:00:00Z",
+        },
+      };
+      expect(mapBackendUser(invited)).toMatchObject({
+        pending_migration_request: { id: "r1", status: "pending" },
+      });
     });
 
     it("maps organization_id through, defaulting to undefined when absent", () => {

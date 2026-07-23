@@ -107,6 +107,26 @@ describe("http client", () => {
     });
   });
 
+  it("carries the machine-readable code through when the backend sends one", async () => {
+    mockFetch({
+      status: 422,
+      ok: false,
+      body: {
+        error: "Já existe um aluno cadastrado com este e-mail nesta organização.",
+        code: "email_taken_same_organization",
+      },
+    });
+    await expect(http.post("/api/v1/students", {})).rejects.toMatchObject({
+      status: 422,
+      code: "email_taken_same_organization",
+    } satisfies Partial<ApiError>);
+  });
+
+  it("leaves code undefined when the backend doesn't send one", async () => {
+    mockFetch({ status: 401, ok: false, body: { error: "Credenciais inválidas" } });
+    await expect(http.post("/api/v1/auth/login", {})).rejects.toMatchObject({ code: undefined });
+  });
+
   it("returns null for empty 204 responses when allowEmpty is set", async () => {
     mockFetch({ status: 204, text: "" });
     const result = await http.del("/api/v1/partners/1", { allowEmpty: true });

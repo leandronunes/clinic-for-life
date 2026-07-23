@@ -33,6 +33,7 @@ import { TreinoCard } from "@/components/treino/treino-card";
 import { ColarTreinoButton } from "@/components/treino/colar-treino-button";
 import { NovoTreinoDialog } from "@/components/treino/treino-form-dialog";
 import { ExerciseVideoDialog } from "@/components/treino/exercise-video-dialog";
+import { StudentMigrationRequestBanner } from "@/components/StudentMigrationRequestBanner";
 
 export const Route = createFileRoute("/_app/aluno/")({
   component: MeuTreinoPage,
@@ -122,6 +123,8 @@ export function MeuTreinoPage() {
 
   return (
     <div className="space-y-6">
+      <StudentMigrationRequestBanner />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Meu Treino</h1>
