@@ -24,8 +24,8 @@ export interface CreatePartnerPayload {
 
 export type UpdatePartnerPayload = Partial<CreatePartnerPayload>;
 
-export function fetchPartners(): Promise<Partner[]> {
-  return http.get<Partner[]>("/api/v1/partners");
+export function fetchPartners(params?: { domain?: string }): Promise<Partner[]> {
+  return http.get<Partner[]>("/api/v1/partners", { params });
 }
 
 export function createPartner(payload: CreatePartnerPayload): Promise<Partner> {

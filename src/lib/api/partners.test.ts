@@ -35,8 +35,16 @@ describe("partners API", () => {
     it("calls GET /api/v1/partners", async () => {
       mockGet.mockResolvedValue([partner]);
       const result = await fetchPartners();
-      expect(mockGet).toHaveBeenCalledWith("/api/v1/partners");
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/partners", { params: undefined });
       expect(result).toEqual([partner]);
+    });
+
+    it("passes domain as a query param", async () => {
+      mockGet.mockResolvedValue([partner]);
+      await fetchPartners({ domain: "app.clinicforlife.com.br" });
+      expect(mockGet).toHaveBeenCalledWith("/api/v1/partners", {
+        params: { domain: "app.clinicforlife.com.br" },
+      });
     });
   });
 
