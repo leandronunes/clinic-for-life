@@ -9,7 +9,7 @@ export function ParceirosVitrine({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     let alive = true;
-    fetchPartners()
+    fetchPartners({ domain: window.location.hostname })
       .then((data) => {
         if (alive) setPartners(data);
       })
