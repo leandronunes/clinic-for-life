@@ -60,6 +60,7 @@ export function AlunoProfile({ alunoId }: { alunoId: string }) {
     mutationFn: () =>
       updateStudent(alunoId, {
         name: current!.name,
+        cpf: current!.cpf,
         email: current!.email,
         phone: current!.phone,
         sex: current!.sex,
@@ -107,6 +108,12 @@ export function AlunoProfile({ alunoId }: { alunoId: string }) {
               <Input
                 value={current.name}
                 onChange={(e) => setForm({ ...current, name: e.target.value })}
+              />
+            </Field>
+            <Field label="CPF (opcional)">
+              <Input
+                value={current.cpf ?? ""}
+                onChange={(e) => setForm({ ...current, cpf: e.target.value })}
               />
             </Field>
             <Field label="E-mail">
@@ -223,6 +230,7 @@ export function ImpersonatedStudentProfile({ alunoId }: { alunoId: string }) {
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
             <ReadOnlyField label="Nome completo" value={student.name} className="sm:col-span-2" />
+            <ReadOnlyField label="CPF" value={student.cpf || "—"} />
             <ReadOnlyField label="E-mail" value={student.email} />
             <ReadOnlyField label="Telefone" value={student.phone} />
             <ReadOnlyField label="Nascimento" value={student.birth_date} />

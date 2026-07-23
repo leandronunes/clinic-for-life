@@ -165,6 +165,7 @@ export function createStudent(payload: CreateStudentPayload): Student {
   const student: Student = {
     id: nextId("student"),
     name: payload.name,
+    cpf: payload.cpf ?? null,
     birth_date: payload.birth_date,
     sex: payload.sex,
     email: payload.email,

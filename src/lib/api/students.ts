@@ -6,6 +6,7 @@ export type StudentStatus = "active" | "inactive";
 export interface Student {
   id: string;
   name: string;
+  cpf?: string | null;
   birth_date: string;
   sex: StudentSex;
   email: string;
@@ -25,6 +26,7 @@ export interface Student {
 
 export interface CreateStudentPayload {
   name: string;
+  cpf?: string;
   birth_date: string;
   sex: StudentSex;
   email: string;

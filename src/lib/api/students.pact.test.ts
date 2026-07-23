@@ -36,6 +36,7 @@ const STATUSES = ["active", "inactive"];
 const studentTemplate = (overrides: Record<string, unknown> = {}) => ({
   id: idString("501"),
   name: like("Aluno Exemplo"),
+  cpf: nullValue(),
   birth_date: iso8601Date(),
   sex: enumString(SEXES, "female"),
   email: like("aluno@forlife.app"),
@@ -240,6 +241,47 @@ describe("students API contract", () => {
       });
     });
 
+    it("creates a student with a cpf", async () => {
+      const pact = createPact();
+      const payload = {
+        name: "Novo Aluno",
+        cpf: "11122233344",
+        birth_date: "1998-05-20",
+        sex: "male" as const,
+        email: "novo.aluno.cpf@forlife.app",
+        phone: "(11) 96666-0000",
+        trainer_id: "10",
+      };
+      pact
+        .given("an admin is authenticated")
+        .uponReceiving("a request to create a student with a cpf")
+        .withRequest({
+          method: "POST",
+          path: "/api/v1/students",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: payload,
+        })
+        .willRespondWith({
+          status: 201,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: {
+            data: studentTemplate({
+              name: like("Novo Aluno"),
+              cpf: like("11122233344"),
+              sex: enumString(SEXES, "male"),
+              trainer_id: idString("10"),
+            }),
+          },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const student = await createStudent(payload);
+          expect(student.cpf).toEqual(expect.any(String));
+        });
+      });
+    });
+
     it("rejects creation from a student role", async () => {
       const pact = createPact();
       const payload = {
@@ -405,6 +447,33 @@ describe("students API contract", () => {
         await withMockServerEnv(mockServer.url, async () => {
           const student = await updateStudent("502", { phone: "(11) 95555-0000" });
           expect(student.phone).toEqual(expect.any(String));
+        });
+      });
+    });
+
+    it("updates the cpf", async () => {
+      const pact = createPact();
+      pact
+        .given("a student with id 502 exists")
+        .uponReceiving("a request to update a student's cpf")
+        .withRequest({
+          method: "PATCH",
+          path: "/api/v1/students/502",
+          headers: { Authorization: bearerToken(), "Content-Type": "application/json" },
+          body: { cpf: "11122233344" },
+        })
+        .willRespondWith({
+          status: 200,
+          headers: { "Content-Type": like("application/json; charset=utf-8") },
+          body: {
+            data: studentTemplate({ id: idString("502"), cpf: like("11122233344") }),
+          },
+        });
+
+      await pact.executeTest(async (mockServer) => {
+        await withMockServerEnv(mockServer.url, async () => {
+          const student = await updateStudent("502", { cpf: "11122233344" });
+          expect(student.cpf).toEqual(expect.any(String));
         });
       });
     });
