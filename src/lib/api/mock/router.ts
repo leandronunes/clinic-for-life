@@ -126,6 +126,7 @@ async function routeMockRequest<T>({
     return store.updateCurrentUser(token, {
       name: b.name as string | undefined,
       email: b.email as string | undefined,
+      cpf: b.cpf as string | undefined,
     }) as T;
   }
   if (m === "PATCH" && path === "/api/v1/auth/password") {
