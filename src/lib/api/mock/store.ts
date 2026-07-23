@@ -1279,7 +1279,7 @@ export function currentUser(token: string | null): BackendUser {
 
 export function updateCurrentUser(
   token: string | null,
-  payload: { name?: string; email?: string },
+  payload: { name?: string; email?: string; cpf?: string },
 ): BackendUser {
   const id = token ? userIdFromToken(token) : null;
   const idx = id ? mockUsers.findIndex((u) => u.id === id) : -1;
