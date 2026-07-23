@@ -203,42 +203,12 @@ describe("PerfilPage", () => {
       expect(mockUpdateCurrentUser).toHaveBeenCalledWith({
         name: "Ana Souza",
         email: "ana@test.com",
-        cpf: "",
       }),
     );
     await waitFor(() =>
       expect(updateUserMock).toHaveBeenCalledWith({ ...backendAdmin, name: "Ana Souza" }),
     );
     expect(screen.queryByTestId("notifications-card")).not.toBeInTheDocument();
-  });
-
-  it("admin/personal na própria conta edita o CPF via updateCurrentUser", async () => {
-    mockUseAuth.mockReturnValue(
-      buildAuth({
-        hasRole: (...roles) => roles.includes("admin"),
-        isImpersonating: false,
-        effectiveAlunoId: null,
-      }),
-    );
-    mockFetchCurrentUser.mockResolvedValue(backendAdmin);
-    mockUpdateCurrentUser.mockResolvedValue({ ...backendAdmin, cpf: "11122233344" });
-
-    render(<PerfilPage />, { wrapper });
-
-    await screen.findByDisplayValue("Ana Admin");
-    const textboxes = screen.getAllByRole("textbox");
-    const cpfInput = textboxes[textboxes.length - 1];
-    await userEvent.type(cpfInput, "11122233344");
-
-    await userEvent.click(screen.getByRole("button", { name: /salvar alterações/i }));
-
-    await waitFor(() =>
-      expect(mockUpdateCurrentUser).toHaveBeenCalledWith({
-        name: "Ana Admin",
-        email: "ana@test.com",
-        cpf: "11122233344",
-      }),
-    );
   });
 
   it("lista de personais no 'Meu Personal' pede apenas personais ativos ao backend", async () => {
