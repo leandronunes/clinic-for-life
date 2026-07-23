@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { bearerToken } from "@/lib/pact/auth-fixtures";
 import {
+  arrayContaining,
   enumString,
   errorStringBody,
   idString,
@@ -36,6 +37,22 @@ const trainerTemplate = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+// Every admin also has their own auto-created Trainer profile (see backend's
+// User#ensure_admin_has_trainer) — unlike a self-registered/admin-created
+// trainer, it has no cpf/cref/phone supplied, so those stay null.
+const adminOwnTrainerTemplate = (overrides: Record<string, unknown> = {}) => ({
+  id: idString(),
+  name: like("Admin Exemplo"),
+  cpf: nullValue(),
+  cref: nullValue(),
+  email: like("admin@forlife.app"),
+  phone: nullValue(),
+  status: enumString(STATUSES, "active"),
+  avatar_url: nullValue(),
+  students_count: integer(0),
+  ...overrides,
+});
+
 describe("trainers API contract", () => {
   it("lists trainers", async () => {
     const pact = createPact();
@@ -50,7 +67,10 @@ describe("trainers API contract", () => {
       .willRespondWith({
         status: 200,
         headers: { "Content-Type": like("application/json; charset=utf-8") },
-        body: { data: [trainerTemplate()] },
+        // arrayContaining, not a literal 1-item array — the provider state's
+        // own admin now also has a Trainer profile (see backend's
+        // User#ensure_admin_has_trainer), so the list has two heterogeneous shapes.
+        body: { data: arrayContaining(trainerTemplate(), adminOwnTrainerTemplate()) },
       });
 
     await pact.executeTest(async (mockServer) => {
@@ -75,7 +95,14 @@ describe("trainers API contract", () => {
       .willRespondWith({
         status: 200,
         headers: { "Content-Type": like("application/json; charset=utf-8") },
-        body: { data: [trainerTemplate({ status: enumString(STATUSES, "active") })] },
+        // arrayContaining — same reason as above; the admin's own auto-created
+        // trainer is "active" by default, so it also passes this filter.
+        body: {
+          data: arrayContaining(
+            trainerTemplate({ status: enumString(STATUSES, "active") }),
+            adminOwnTrainerTemplate({ status: enumString(STATUSES, "active") }),
+          ),
+        },
       });
 
     await pact.executeTest(async (mockServer) => {

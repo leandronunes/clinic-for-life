@@ -47,10 +47,12 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
+  requestStudentMigration,
   toBackendSex,
   fromBackendSex,
   type Student,
 } from "@/lib/api/students";
+import type { ApiError } from "@/lib/api/http";
 import {
   fetchTrainers,
   createTrainer,
@@ -172,6 +174,7 @@ function AlunosTab({
             <NovoAlunoDialog
               trainers={trainers}
               lockedPersonalId={personalId}
+              isAdmin={isAdmin}
               onCreated={() => qc.invalidateQueries({ queryKey: ["alunos"] })}
             />
           )}
@@ -527,13 +530,16 @@ function PersonaisTab({
 function NovoAlunoDialog({
   trainers,
   lockedPersonalId,
+  isAdmin,
   onCreated,
 }: {
   trainers: Trainer[];
   lockedPersonalId?: string;
+  isAdmin: boolean;
   onCreated: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [crossOrgEmail, setCrossOrgEmail] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     birth_date: "",
@@ -557,6 +563,33 @@ function NovoAlunoDialog({
       setOpen(false);
       onCreated();
     },
+    onError: (error: ApiError) => {
+      if (error.code === "email_taken_same_organization") {
+        toast.error("Já existe um aluno cadastrado com este e-mail nesta organização.");
+        return;
+      }
+      if (error.code === "email_taken_other_organization") {
+        if (isAdmin) {
+          setCrossOrgEmail(form.email);
+        } else {
+          toast.error(
+            "Este e-mail já está cadastrado em outra organização. Peça a um admin para solicitar a migração.",
+          );
+        }
+        return;
+      }
+      toast.error(error.message || "Falha ao cadastrar aluno.");
+    },
+  });
+
+  const migrationMut = useMutation({
+    mutationFn: (email: string) => requestStudentMigration(email),
+    onSuccess: () => {
+      toast.success("Solicitação de migração enviada — o aluno foi notificado.");
+      setCrossOrgEmail(null);
+      setOpen(false);
+    },
+    onError: () => toast.error("Falha ao solicitar a migração."),
   });
 
   return (
@@ -660,6 +693,28 @@ function NovoAlunoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={!!crossOrgEmail} onOpenChange={(o) => !o && setCrossOrgEmail(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>E-mail já cadastrado em outra organização</AlertDialogTitle>
+            <AlertDialogDescription>
+              O e-mail <strong>{crossOrgEmail}</strong> já pertence a um aluno de outra organização.
+              Deseja solicitar a migração desse aluno para a sua organização? Ele receberá um
+              convite e poderá aceitar ou recusar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={migrationMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={migrationMut.isPending}
+              onClick={() => crossOrgEmail && migrationMut.mutate(crossOrgEmail)}
+            >
+              {migrationMut.isPending ? "Enviando..." : "Solicitar migração"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

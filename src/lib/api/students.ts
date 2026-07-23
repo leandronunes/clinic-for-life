@@ -82,3 +82,28 @@ export function updateStudent(id: string, payload: UpdateStudentPayload): Promis
 export function deleteStudent(id: string): Promise<void> {
   return http.del<void>(`/api/v1/students/${id}`);
 }
+
+export type StudentMigrationRequestStatus = "pending" | "accepted" | "rejected";
+
+export interface StudentMigrationRequest {
+  id: string;
+  status: StudentMigrationRequestStatus;
+  target_organization_name: string;
+  requested_by_name: string;
+  created_at: string;
+}
+
+/** Admin-only: invites a student who already exists (by e-mail) in another organization to migrate here. */
+export function requestStudentMigration(email: string): Promise<StudentMigrationRequest> {
+  return http.post<StudentMigrationRequest>("/api/v1/students/migration_requests", { email });
+}
+
+/** Self-service by the affected student. */
+export function acceptStudentMigration(id: string): Promise<StudentMigrationRequest> {
+  return http.post<StudentMigrationRequest>(`/api/v1/students/migration_requests/${id}/accept`);
+}
+
+/** Self-service by the affected student. */
+export function rejectStudentMigration(id: string): Promise<StudentMigrationRequest> {
+  return http.post<StudentMigrationRequest>(`/api/v1/students/migration_requests/${id}/reject`);
+}
