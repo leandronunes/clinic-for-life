@@ -53,6 +53,7 @@ export const STUDENTS: Student[] = [
   {
     id: "student-1",
     name: "Júlia Ferreira",
+    cpf: "111.222.333-44",
     birth_date: "1996-04-12",
     sex: "female",
     email: "aluno@forlife.app",
@@ -70,6 +71,7 @@ export const STUDENTS: Student[] = [
   {
     id: "student-2",
     name: "Pedro Almeida",
+    cpf: null,
     birth_date: "1990-08-22",
     sex: "male",
     email: "pedro.almeida@example.com",
@@ -87,6 +89,7 @@ export const STUDENTS: Student[] = [
   {
     id: "student-3",
     name: "Mariana Costa",
+    cpf: null,
     birth_date: "1998-02-15",
     sex: "female",
     email: "mariana.costa@example.com",
@@ -104,6 +107,7 @@ export const STUDENTS: Student[] = [
   {
     id: "student-4",
     name: "Lucas Oliveira",
+    cpf: null,
     birth_date: "1993-06-30",
     sex: "male",
     email: "lucas.oliveira@example.com",
@@ -121,6 +125,7 @@ export const STUDENTS: Student[] = [
   {
     id: "student-5",
     name: "Fernanda Rocha",
+    cpf: null,
     birth_date: "1985-11-09",
     sex: "female",
     email: "fernanda.rocha@example.com",

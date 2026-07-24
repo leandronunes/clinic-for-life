@@ -542,6 +542,7 @@ function NovoAlunoDialog({
   const [crossOrgEmail, setCrossOrgEmail] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
+    cpf: "",
     birth_date: "",
     sex: "female" as Student["sex"],
     email: "",
@@ -606,6 +607,9 @@ function NovoAlunoDialog({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome" className="sm:col-span-2">
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="CPF (opcional)">
+            <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
           </Field>
           <Field label="Nascimento">
             <Input
@@ -740,6 +744,7 @@ function EditAlunoDialog({
       const quotaChanged = prevQuota !== nextQuota;
       return updateStudent(student.id, {
         name: form.name,
+        cpf: form.cpf,
         email: form.email,
         phone: form.phone,
         sex: form.sex,
@@ -772,6 +777,12 @@ function EditAlunoDialog({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome" className="sm:col-span-2">
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="CPF (opcional)">
+            <Input
+              value={form.cpf ?? ""}
+              onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+            />
           </Field>
           <Field label="Nascimento">
             <Input
